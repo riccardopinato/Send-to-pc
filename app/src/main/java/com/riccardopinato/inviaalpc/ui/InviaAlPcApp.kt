@@ -783,11 +783,37 @@ private fun TransferProgressCard(
 
                 Spacer(Modifier.height(8.dp))
 
+                val totalText =
+                    progress.totalBytes?.let {
+                        " • " +
+                            formatBytes(progress.transferredBytes) +
+                            " / " +
+                            formatBytes(it)
+                    }.orEmpty()
+
+                val etaText =
+                    progress.totalBytes
+                        ?.takeIf {
+                            progress.bytesPerSecond > 0L &&
+                                progress.transferredBytes < it
+                        }
+                        ?.let {
+                            val seconds =
+                                (it - progress.transferredBytes) /
+                                    progress.bytesPerSecond
+
+                            " • circa " +
+                                formatDuration(seconds)
+                        }
+                        .orEmpty()
+
                 Text(
                     percent.toString() +
                         "% • " +
                         formatBytes(progress.bytesPerSecond) +
-                        "/s"
+                        "/s" +
+                        totalText +
+                        etaText
                 )
             }
         }
@@ -1147,6 +1173,27 @@ private fun formatCountdown(seconds: Long): String =
         seconds / 60L,
         seconds % 60L
     )
+
+private fun formatDuration(seconds: Long): String {
+    val safe = seconds.coerceAtLeast(0L)
+
+    return when {
+        safe < 60L ->
+            safe.toString() + " s"
+
+        safe < 3600L ->
+            (safe / 60L).toString() +
+                " min " +
+                (safe % 60L).toString() +
+                " s"
+
+        else ->
+            (safe / 3600L).toString() +
+                " h " +
+                ((safe % 3600L) / 60L).toString() +
+                " min"
+    }
+}
 
 private fun formatBytes(bytes: Long): String {
     if (bytes < 1024L) return bytes.toString() + " B"
