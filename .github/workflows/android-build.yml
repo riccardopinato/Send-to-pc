@@ -40,6 +40,9 @@ jobs:
       - name: Run unit tests
         run: gradle testDebugUnitTest --stacktrace
 
+      - name: Run Android lint
+        run: gradle lintSlim --stacktrace
+
       - name: Build slim APK
         run: gradle assembleSlim --stacktrace
 
@@ -47,15 +50,16 @@ jobs:
         run: |
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/slim/app-slim.apk
 
-      - name: Show APK size
+      - name: Show APK size and checksum
         run: |
           ls -lh app/build/outputs/apk/slim/app-slim.apk
           du -h app/build/outputs/apk/slim/app-slim.apk
+          sha256sum app/build/outputs/apk/slim/app-slim.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Invia-al-PC-v1.8.0
+          name: Invia-al-PC-v1.9.0
           path: app/build/outputs/apk/slim/app-slim.apk
           if-no-files-found: error
           retention-days: 30
