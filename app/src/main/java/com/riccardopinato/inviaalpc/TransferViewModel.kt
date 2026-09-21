@@ -11,6 +11,8 @@ import com.riccardopinato.inviaalpc.transfer.NetworkUtils
 import com.riccardopinato.inviaalpc.transfer.SharedItem
 import com.riccardopinato.inviaalpc.transfer.SharedItemResolver
 import com.riccardopinato.inviaalpc.transfer.TransferForegroundService
+import com.riccardopinato.inviaalpc.transfer.TransferDirection
+import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
 import com.riccardopinato.inviaalpc.transfer.TransferLimits
 import com.riccardopinato.inviaalpc.transfer.TransferRuntime
 import com.riccardopinato.inviaalpc.transfer.UrlValidator
@@ -311,6 +313,84 @@ class TransferViewModel(
 
     fun clearHistory() {
         manager.clearHistory()
+    }
+
+    fun openHistoryEntry(entry: TransferHistoryEntry) {
+        val uriString = entry.contentUri
+
+        if (uriString.isNullOrBlank()) {
+            _uiState.value =
+                _uiState.value.copy(
+                    error = "Il file non è più disponibile."
+                )
+            return
+        }
+
+        val uri = Uri.parse(uriString)
+
+        val intent =
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(
+                    uri,
+                    entry.mimeType ?: "*/*"
+                )
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+        val opened =
+            runCatching {
+                app.startActivity(intent)
+            }.isSuccess
+
+        if (!opened) {
+            _uiState.value =
+                _uiState.value.copy(
+                    error = "Nessuna app disponibile per aprire questo file."
+                )
+        }
+    }
+
+    fun reuseHistoryEntry(entry: TransferHistoryEntry) {
+        if (entry.direction != TransferDirection.PHONE_TO_PC) {
+            return
+        }
+
+        val uriString = entry.contentUri
+
+        if (uriString.isNullOrBlank()) {
+            _uiState.value =
+                _uiState.value.copy(
+                    error = "Il file originale non è più disponibile."
+                )
+            return
+        }
+
+        val uri = Uri.parse(uriString)
+
+        val readable =
+            runCatching {
+                app.contentResolver
+                    .openAssetFileDescriptor(uri, "r")
+                    ?.use { true }
+                    ?: false
+            }.getOrDefault(false)
+
+        if (!readable) {
+            _uiState.value =
+                _uiState.value.copy(
+                    error = "Il file originale non è più accessibile. Selezionalo di nuovo."
+                )
+            return
+        }
+
+        addUris(listOf(uri))
+
+        _uiState.value =
+            _uiState.value.copy(
+                section = HomeSection.SEND,
+                error = null
+            )
     }
 
     private fun startCountdown(expiresAtMillis: Long) {
