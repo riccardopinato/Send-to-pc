@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.riccardopinato.inviaalpc.MainActivity
 import com.riccardopinato.inviaalpc.R
@@ -31,12 +32,16 @@ class TransferForegroundService : Service() {
             "transfer_session"
 
         private const val NOTIFICATION_ID = 101
+
+        private const val WAKE_LOCK_WINDOW_MS =
+            2L * 60L * 60L * 1000L
     }
 
     private val serviceScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var watcherJob: Job? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -68,6 +73,7 @@ class TransferForegroundService : Service() {
                     buildNotification()
                 )
 
+                ensureWakeLock()
                 startWatcher(session.localIp)
             }
         }
@@ -81,6 +87,8 @@ class TransferForegroundService : Service() {
         watcherJob =
             serviceScope.launch {
                 while (true) {
+                    ensureWakeLock()
+
                     val session =
                         TransferRuntime.sessionManager.session.value
                             ?: break
@@ -109,10 +117,45 @@ class TransferForegroundService : Service() {
 
     private fun terminateSession() {
         watcherJob?.cancel()
+        releaseWakeLock()
         TransferRuntime.stopEverything()
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+    }
+
+    private fun ensureWakeLock() {
+        val current = wakeLock
+
+        if (current?.isHeld == true) {
+            return
+        }
+
+        val powerManager =
+            getSystemService(
+                PowerManager::class.java
+            )
+
+        wakeLock =
+            powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                packageName + ":transfer"
+            ).apply {
+                setReferenceCounted(false)
+                acquire(WAKE_LOCK_WINDOW_MS)
+            }
+    }
+
+    private fun releaseWakeLock() {
+        val current = wakeLock
+
+        if (current?.isHeld == true) {
+            runCatching {
+                current.release()
+            }
+        }
+
+        wakeLock = null
     }
 
     override fun onTimeout(startId: Int, fgsType: Int) {
@@ -122,6 +165,7 @@ class TransferForegroundService : Service() {
 
     override fun onDestroy() {
         watcherJob?.cancel()
+        releaseWakeLock()
         serviceScope.cancel()
         super.onDestroy()
     }
