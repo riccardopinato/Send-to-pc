@@ -19,6 +19,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
 
@@ -34,6 +35,7 @@ class LocalTransferServer(
         private const val SOCKET_BUFFER_SIZE = 512 * 1024
         private const val PREFERRED_PORT = 8734
         private const val AUTH_SESSION_MS = 60L * 60L * 1000L
+        private const val MAX_CONCURRENT_CLIENTS = 12
     }
 
     private val running = AtomicBoolean(false)
@@ -43,6 +45,7 @@ class LocalTransferServer(
     private val resumableUploadStore = ResumableUploadStore(context)
     private val trustedDeviceStore = TransferRuntime.trustedDeviceStore
     private val authenticatedSessions = ConcurrentHashMap<String, Long>()
+    private val clientSlots = Semaphore(MAX_CONCURRENT_CLIENTS)
 
     fun start(port: Int = 0): Int {
         if (running.get()) {
@@ -88,15 +91,28 @@ class LocalTransferServer(
         while (running.get()) {
             try {
                 val client = server.accept()
+
+                if (!clientSlots.tryAcquire()) {
+                    runCatching {
+                        client.close()
+                    }
+                    continue
+                }
+
                 client.soTimeout = SOCKET_TIMEOUT_MS
                 client.tcpNoDelay = true
+
                 runCatching {
                     client.receiveBufferSize = SOCKET_BUFFER_SIZE
                     client.sendBufferSize = SOCKET_BUFFER_SIZE
                 }
 
                 scope.launch {
-                    handleClient(client)
+                    try {
+                        handleClient(client)
+                    } finally {
+                        clientSlots.release()
+                    }
                 }
             } catch (_: Exception) {
                 if (!running.get()) return
@@ -1289,6 +1305,7 @@ input.addEventListener('change',()=>{uploadFiles(Array.from(input.files));input.
 const queue=document.getElementById('queue');
 const CHUNK_SIZE=4*1024*1024;
 const HASH_CLIENT_LIMIT=32*1024*1024;
+const MAX_BROWSER_FILES=100;
 const uploadStates=new Map();
 
 function humanBytes(v){
@@ -1582,8 +1599,15 @@ async function uploadResumable(file,row){
 async function uploadFiles(files){
   if(files.length===0)return;
 
+  const requestedCount=files.length;
+  files=files.slice(0,MAX_BROWSER_FILES);
+
   queue.innerHTML='';
   progress.style.display='block';
+
+  if(requestedCount>MAX_BROWSER_FILES){
+    status.textContent='Per stabilità verranno elaborati i primi '+MAX_BROWSER_FILES+' file.';
+  }
 
   const rows=files.map((f,i)=>queueRow(f,i,files.length));
   let ok=0,failed=0,cancelled=0;
