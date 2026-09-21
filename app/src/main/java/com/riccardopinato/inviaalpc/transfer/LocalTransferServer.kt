@@ -39,6 +39,7 @@ class LocalTransferServer(
     private var serverSocket: ServerSocket? = null
     private var scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val receivedFileStore = ReceivedFileStore(context)
+    private val resumableUploadStore = ResumableUploadStore(context)
     private val trustedDeviceStore = TransferRuntime.trustedDeviceStore
     private val authenticatedSessions = ConcurrentHashMap<String, Long>()
 
@@ -197,7 +198,45 @@ class LocalTransferServer(
                 val itemId = path.removePrefix("/download/" + session.token + "/")
                     .substringBefore('/')
 
-                downloadItem(output, session, itemId)
+                downloadItem(request, output, session, itemId)
+            }
+
+            request.method == "GET" &&
+                path.startsWith("/upload/status/" + session.token + "/") -> {
+
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                val uploadId =
+                    path.removePrefix(
+                        "/upload/status/" + session.token + "/"
+                    ).substringBefore('/')
+
+                uploadStatus(uploadId, output)
+            }
+
+            request.method == "POST" &&
+                path == "/upload/chunk/" + session.token -> {
+
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                uploadChunk(request, input, output)
+            }
+
+            request.method == "POST" &&
+                path == "/upload/cancel/" + session.token -> {
+
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                cancelUpload(request, input, output)
             }
 
             request.method == "POST" && path == "/upload/" + session.token -> {
@@ -352,6 +391,7 @@ class LocalTransferServer(
     }
 
     private fun downloadItem(
+        request: HttpRequest,
         output: OutputStream,
         session: TransferSession,
         itemId: String
@@ -381,46 +421,166 @@ class LocalTransferServer(
             StandardCharsets.UTF_8.name()
         ).replace("+", "%20")
 
-        writeStatus(output, 200, "OK")
+        val totalBytes = item.sizeBytes
+        val range =
+            totalBytes?.let {
+                parseRange(
+                    request.headers["range"],
+                    it
+                )
+            }
+
+        if (
+            request.headers["range"] != null &&
+            totalBytes != null &&
+            range == null
+        ) {
+            writeStatus(
+                output,
+                416,
+                "Range Not Satisfiable"
+            )
+            writeHeader(
+                output,
+                "Content-Range",
+                "bytes */" + totalBytes
+            )
+            securityHeaders(output)
+            writeHeader(
+                output,
+                "Content-Length",
+                "0"
+            )
+            writeHeader(
+                output,
+                "Connection",
+                "close"
+            )
+            endHeaders(output)
+            stream.close()
+            return
+        }
+
+        val start = range?.first ?: 0L
+        val end =
+            range?.last
+                ?: totalBytes?.minus(1L)
+        val responseLength =
+            if (
+                totalBytes != null &&
+                end != null
+            ) {
+                end - start + 1L
+            } else {
+                null
+            }
+
+        writeStatus(
+            output,
+            if (range != null) 206 else 200,
+            if (range != null) "Partial Content" else "OK"
+        )
         writeHeader(output, "Content-Type", mime)
+        writeHeader(
+            output,
+            "Accept-Ranges",
+            "bytes"
+        )
         writeHeader(
             output,
             "Content-Disposition",
             "attachment; filename*=UTF-8''" + encodedName
         )
-        item.sizeBytes?.let {
-            writeHeader(output, "Content-Length", it.toString())
+
+        if (
+            range != null &&
+            totalBytes != null
+        ) {
+            writeHeader(
+                output,
+                "Content-Range",
+                "bytes " +
+                    start +
+                    "-" +
+                    range.last +
+                    "/" +
+                    totalBytes
+            )
         }
+
+        responseLength?.let {
+            writeHeader(
+                output,
+                "Content-Length",
+                it.toString()
+            )
+        } ?: totalBytes?.let {
+            writeHeader(
+                output,
+                "Content-Length",
+                it.toString()
+            )
+        }
+
         securityHeaders(output)
         writeHeader(output, "Connection", "close")
         endHeaders(output)
 
         stream.use { source ->
+            skipFully(source, start)
+
             val buffer = ByteArray(BUFFER_SIZE)
-            var transferred = 0L
+            var transferred = start
+            var remaining = responseLength
             var sampleBytes = 0L
             var sampleAt = System.currentTimeMillis()
 
-            while (true) {
-                val read = source.read(buffer)
+            while (
+                remaining == null ||
+                remaining > 0L
+            ) {
+                val wanted =
+                    if (remaining == null) {
+                        buffer.size
+                    } else {
+                        min(
+                            remaining,
+                            buffer.size.toLong()
+                        ).toInt()
+                    }
+
+                val read =
+                    source.read(
+                        buffer,
+                        0,
+                        wanted
+                    )
+
                 if (read <= 0) break
 
                 output.write(buffer, 0, read)
                 transferred += read
                 sampleBytes += read
+                remaining =
+                    remaining?.minus(read.toLong())
 
                 val now = System.currentTimeMillis()
                 val elapsed = now - sampleAt
 
                 if (elapsed >= 500L) {
-                    val speed = if (elapsed > 0L) sampleBytes * 1000L / elapsed else 0L
+                    val speed =
+                        if (elapsed > 0L) {
+                            sampleBytes * 1000L / elapsed
+                        } else {
+                            0L
+                        }
 
                     sessionManager.updateProgress(
                         TransferProgress(
                             itemId = item.id,
                             fileName = item.displayName,
                             transferredBytes = transferred,
-                            totalBytes = item.sizeBytes,
+                            totalBytes = totalBytes,
                             bytesPerSecond = speed,
                             direction = TransferDirection.PHONE_TO_PC
                         )
@@ -433,15 +593,306 @@ class LocalTransferServer(
 
             output.flush()
 
-            sessionManager.completeTransfer(
-                fileName = item.displayName,
-                sizeBytes = transferred,
-                direction = TransferDirection.PHONE_TO_PC,
-                contentUri = item.uri.toString(),
-                mimeType = mime
-            )
+            if (
+                totalBytes == null ||
+                transferred >= totalBytes
+            ) {
+                sessionManager.completeTransfer(
+                    fileName = item.displayName,
+                    sizeBytes =
+                        totalBytes
+                            ?: transferred,
+                    direction = TransferDirection.PHONE_TO_PC,
+                    contentUri = item.uri.toString(),
+                    mimeType = mime
+                )
+            } else {
+                sessionManager.updateStatus(
+                    TransferStatus.CONNECTED
+                )
+            }
         }
     }
+
+    private fun uploadStatus(
+        uploadId: String,
+        output: OutputStream
+    ) {
+        val status =
+            resumableUploadStore.status(
+                uploadId
+            )
+
+        if (status == null) {
+            sendJson(
+                output,
+                404,
+                """{"error":"upload_not_found","received":0}"""
+            )
+            return
+        }
+
+        sendJson(
+            output,
+            200,
+            uploadStatusJson(status)
+        )
+    }
+
+    private fun uploadChunk(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream
+    ) {
+        val uploadId =
+            request.headers["x-upload-id"]
+                ?.trim()
+                .orEmpty()
+
+        val totalBytes =
+            request.headers["x-file-size"]
+                ?.toLongOrNull()
+                ?: 0L
+
+        val offset =
+            request.headers["x-chunk-offset"]
+                ?.toLongOrNull()
+                ?: -1L
+
+        val encodedName =
+            request.headers["x-file-name"]
+
+        if (
+            encodedName.isNullOrBlank() ||
+            FileNameUtils.containsHeaderInjection(
+                encodedName
+            )
+        ) {
+            sendJson(
+                output,
+                400,
+                """{"error":"invalid_file_name"}"""
+            )
+            return
+        }
+
+        val decodedName =
+            runCatching {
+                URLDecoder.decode(
+                    encodedName,
+                    StandardCharsets.UTF_8.name()
+                )
+            }.getOrNull()
+
+        if (
+            decodedName.isNullOrBlank() ||
+            FileNameUtils.containsHeaderInjection(
+                decodedName
+            )
+        ) {
+            sendJson(
+                output,
+                400,
+                """{"error":"invalid_file_name"}"""
+            )
+            return
+        }
+
+        if (
+            totalBytes <= 0L ||
+            totalBytes >
+                TransferLimits.MAX_SINGLE_UPLOAD_BYTES
+        ) {
+            sendJson(
+                output,
+                413,
+                """{"error":"file_too_large"}"""
+            )
+            return
+        }
+
+        if (
+            offset == 0L &&
+            resumableUploadStore.status(
+                uploadId
+            ) == null &&
+            !StorageUtils.canReceive(
+                context,
+                totalBytes
+            )
+        ) {
+            sendJson(
+                output,
+                507,
+                """{"error":"insufficient_storage"}"""
+            )
+            return
+        }
+
+        val mimeType =
+            request.headers["x-file-type"]
+                ?.takeIf {
+                    it.length <= 150
+                }
+
+        val expectedHash =
+            request.headers["x-file-sha256"]
+                ?.trim()
+                ?.lowercase(Locale.ROOT)
+
+        try {
+            val status =
+                resumableUploadStore.writeChunk(
+                    uploadId = uploadId,
+                    requestedName = decodedName,
+                    mimeType = mimeType,
+                    totalBytes = totalBytes,
+                    offset = offset,
+                    input = input,
+                    contentLength =
+                        request.contentLength,
+                    expectedSha256 = expectedHash
+                )
+
+            sessionManager.updateProgress(
+                TransferProgress(
+                    itemId = uploadId,
+                    fileName =
+                        status.displayName,
+                    transferredBytes =
+                        status.receivedBytes,
+                    totalBytes =
+                        status.totalBytes,
+                    bytesPerSecond = 0L,
+                    direction =
+                        TransferDirection.PC_TO_PHONE
+                )
+            )
+
+            if (status.completed) {
+                sessionManager.completeTransfer(
+                    fileName =
+                        status.displayName,
+                    sizeBytes =
+                        status.totalBytes,
+                    direction =
+                        TransferDirection.PC_TO_PHONE,
+                    contentUri =
+                        status.contentUri,
+                    mimeType =
+                        status.mimeType
+                )
+            }
+
+            sendJson(
+                output,
+                200,
+                uploadStatusJson(status)
+            )
+        } catch (error: Throwable) {
+            val message =
+                error.message.orEmpty()
+
+            when {
+                message.startsWith(
+                    "OFFSET_MISMATCH:"
+                ) -> {
+                    val received =
+                        message.substringAfter(':')
+                            .toLongOrNull()
+                            ?: 0L
+
+                    sendJson(
+                        output,
+                        409,
+                        """{"error":"offset_mismatch","received":""" +
+                            received +
+                            "}"
+                    )
+                }
+
+                message == "HASH_MISMATCH" ->
+                    sendJson(
+                        output,
+                        409,
+                        """{"error":"hash_mismatch"}"""
+                    )
+
+                else ->
+                    sendJson(
+                        output,
+                        400,
+                        """{"error":"upload_chunk_failed"}"""
+                    )
+            }
+        }
+    }
+
+    private fun cancelUpload(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream
+    ) {
+        val length =
+            request.contentLength
+                .coerceAtMost(4096L)
+                .toInt()
+
+        val body =
+            readExact(
+                input,
+                length
+            ).toString(
+                StandardCharsets.UTF_8
+            )
+
+        val uploadId =
+            parseUrlEncoded(
+                body
+            )["uploadId"].orEmpty()
+
+        val cancelled =
+            resumableUploadStore.cancel(
+                uploadId
+            )
+
+        sendJson(
+            output,
+            200,
+            """{"ok":""" +
+                cancelled +
+                "}"
+        )
+    }
+
+    private fun uploadStatusJson(
+        status: ResumableUploadStatus
+    ): String =
+        """{"ok":true,"id":"""" +
+            jsonEscape(
+                status.uploadId
+            ) +
+            """","name":"""" +
+            jsonEscape(
+                status.displayName
+            ) +
+            """","received":""" +
+            status.receivedBytes +
+            ""","total":""" +
+            status.totalBytes +
+            ""","completed":""" +
+            status.completed +
+            ""","sha256":""" +
+            (
+                status.sha256
+                    ?.let {
+                        "\"" +
+                            jsonEscape(it) +
+                            "\""
+                    }
+                    ?: "null"
+            ) +
+            "}"
 
     private fun uploadFile(
         request: HttpRequest,
@@ -642,6 +1093,91 @@ class LocalTransferServer(
             headers = headers,
             contentLength = contentLength
         )
+    }
+
+    private fun parseRange(
+        header: String?,
+        totalBytes: Long
+    ): LongRange? {
+        if (header.isNullOrBlank()) {
+            return null
+        }
+
+        if (!header.startsWith("bytes=")) {
+            return null
+        }
+
+        val raw =
+            header.removePrefix("bytes=")
+                .substringBefore(',')
+                .trim()
+
+        val parts =
+            raw.split(
+                '-',
+                limit = 2
+            )
+
+        if (
+            parts.size != 2 ||
+            parts[0].isBlank()
+        ) {
+            return null
+        }
+
+        val start =
+            parts[0].toLongOrNull()
+                ?: return null
+
+        if (
+            start < 0L ||
+            start >= totalBytes
+        ) {
+            return null
+        }
+
+        val requestedEnd =
+            parts[1]
+                .takeIf {
+                    it.isNotBlank()
+                }
+                ?.toLongOrNull()
+
+        val end =
+            min(
+                requestedEnd
+                    ?: (totalBytes - 1L),
+                totalBytes - 1L
+            )
+
+        if (end < start) {
+            return null
+        }
+
+        return start..end
+    }
+
+    private fun skipFully(
+        input: InputStream,
+        bytes: Long
+    ) {
+        var remaining = bytes
+
+        while (remaining > 0L) {
+            val skipped =
+                input.skip(remaining)
+
+            if (skipped > 0L) {
+                remaining -= skipped
+                continue
+            }
+
+            if (input.read() == -1) {
+                break
+            }
+
+            remaining--
+        }
     }
 
     private fun parseUrlEncoded(body: String): Map<String, String> {
@@ -1020,11 +1556,15 @@ async function trustThisPc(){
     private fun statusReason(code: Int): String =
         when (code) {
             200 -> "OK"
+            204 -> "No Content"
+            206 -> "Partial Content"
             400 -> "Bad Request"
             401 -> "Unauthorized"
             404 -> "Not Found"
+            409 -> "Conflict"
             410 -> "Gone"
             413 -> "Payload Too Large"
+            416 -> "Range Not Satisfiable"
             500 -> "Internal Server Error"
             503 -> "Service Unavailable"
             507 -> "Insufficient Storage"
