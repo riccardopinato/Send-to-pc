@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.riccardopinato.inviaalpc.BuildConfig
 import com.riccardopinato.inviaalpc.HomeSection
 import com.riccardopinato.inviaalpc.TransferViewModel
 import com.riccardopinato.inviaalpc.transfer.SharedItem
@@ -71,12 +72,25 @@ fun InviaAlPcApp(
 
     LaunchedEffect(Unit) {
         viewModel.refreshNetwork()
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    LaunchedEffect(session?.id) {
+        if (
+            session != null &&
+            Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.TIRAMISU
+        ) {
             notificationPermission.launch(
                 Manifest.permission.POST_NOTIFICATIONS
             )
         }
+    }
+
+    if (uiState.showOnboarding) {
+        FirstRunDialog(
+            versionName = BuildConfig.VERSION_NAME,
+            onDismiss = viewModel::dismissOnboarding
+        )
     }
 
     Scaffold(
@@ -90,11 +104,11 @@ fun InviaAlPcApp(
                         )
 
                         Text(
-                            if (uiState.localIp != null) {
-                                "Rete locale pronta"
-                            } else {
-                                "Wi-Fi non disponibile"
-                            },
+                            uiState.localIp
+                                ?.let {
+                                    "Wi-Fi locale • " + it
+                                }
+                                ?: "Wi-Fi locale non disponibile",
                             style = MaterialTheme.typography.labelSmall,
                             color =
                                 if (uiState.localIp != null) {
@@ -102,6 +116,16 @@ fun InviaAlPcApp(
                                 } else {
                                     MaterialTheme.colorScheme.error
                                 }
+                        )
+                    }
+                },
+                actions = {
+                    TextButton(
+                        onClick = viewModel::showOnboarding
+                    ) {
+                        Text(
+                            "?",
+                            fontWeight = FontWeight.Black
                         )
                     }
                 }
@@ -200,6 +224,7 @@ fun InviaAlPcApp(
                         onRemove = viewModel::removeItem,
                         onTextChange = viewModel::setSharedText,
                         onLinkChange = viewModel::setSharedLink,
+                        onDismissError = viewModel::clearError,
                         onStart = viewModel::startSendSession
                     )
                 }
@@ -207,10 +232,11 @@ fun InviaAlPcApp(
                 HomeSection.RECEIVE -> {
                     ReceiveScreen(
                         modifier = Modifier.padding(padding),
-                        networkAvailable = uiState.localIp != null,
+                        localIp = uiState.localIp,
                         preparing = uiState.preparing,
                         error = uiState.error,
                         onRefresh = viewModel::refreshNetwork,
+                        onDismissError = viewModel::clearError,
                         onStart = viewModel::startReceiveSession
                     )
                 }
@@ -219,7 +245,9 @@ fun InviaAlPcApp(
                     RecentsScreen(
                         modifier = Modifier.padding(padding),
                         history = history,
+                        error = uiState.error,
                         onClear = viewModel::clearHistory,
+                        onDismissError = viewModel::clearError,
                         onOpen = viewModel::openHistoryEntry,
                         onReuse = viewModel::reuseHistoryEntry
                     )
@@ -251,6 +279,7 @@ private fun SendScreen(
     onRemove: (String) -> Unit,
     onTextChange: (String) -> Unit,
     onLinkChange: (String) -> Unit,
+    onDismissError: () -> Unit,
     onStart: () -> Unit
 ) {
     LazyColumn(
@@ -381,7 +410,10 @@ private fun SendScreen(
 
         error?.let {
             item {
-                ErrorCard(it)
+                ErrorCard(
+                    text = it,
+                    onDismiss = onDismissError
+                )
             }
         }
 
@@ -475,12 +507,15 @@ private fun SelectedFilesCard(
 @Composable
 private fun ReceiveScreen(
     modifier: Modifier,
-    networkAvailable: Boolean,
+    localIp: String?,
     preparing: Boolean,
     error: String?,
     onRefresh: () -> Unit,
+    onDismissError: () -> Unit,
     onStart: () -> Unit
 ) {
+    val networkAvailable =
+        localIp != null
     LazyColumn(
         modifier =
             modifier
@@ -523,9 +558,11 @@ private fun ReceiveScreen(
 
                     Text(
                         if (networkAvailable) {
-                            "I file ricevuti saranno salvati in Download/Invia al PC."
+                            "Telefono raggiungibile su " +
+                                localIp +
+                                ". I file ricevuti saranno salvati in Download/Invia al PC."
                         } else {
-                            "Collega telefono e computer alla stessa rete Wi-Fi."
+                            "Collega telefono e computer alla stessa Wi-Fi. Se usi una VPN, un hotspot o una rete ospiti, prova a disattivarli."
                         }
                     )
 
@@ -541,7 +578,10 @@ private fun ReceiveScreen(
 
         error?.let {
             item {
-                ErrorCard(it)
+                ErrorCard(
+                    text = it,
+                    onDismiss = onDismissError
+                )
             }
         }
 
@@ -711,6 +751,14 @@ private fun ActiveSessionScreen(
 
         item {
             Text(
+                "Connessione diretta sulla rete locale. Nessun file viene caricato su server esterni.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        item {
+            Text(
                 session.url,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -807,7 +855,9 @@ private fun TransferProgressCard(
 private fun RecentsScreen(
     modifier: Modifier,
     history: List<TransferHistoryEntry>,
+    error: String?,
     onClear: () -> Unit,
+    onDismissError: () -> Unit,
     onOpen: (TransferHistoryEntry) -> Unit,
     onReuse: (TransferHistoryEntry) -> Unit
 ) {
@@ -843,6 +893,15 @@ private fun RecentsScreen(
                         Text("Cancella")
                     }
                 }
+            }
+        }
+
+        error?.let {
+            item {
+                ErrorCard(
+                    text = it,
+                    onDismiss = onDismissError
+                )
             }
         }
 
@@ -953,6 +1012,115 @@ private fun RecentsScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun FirstRunDialog(
+    versionName: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Invia al PC",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement =
+                    Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Trasferisci file, foto, testo e link direttamente tra telefono e PC."
+                )
+
+                OnboardingStep(
+                    number = "1",
+                    title = "Stessa rete",
+                    text = "Telefono e PC devono essere collegati alla stessa Wi-Fi locale."
+                )
+
+                OnboardingStep(
+                    number = "2",
+                    title = "Crea la sessione",
+                    text = "Scegli cosa inviare oppure avvia Ricevi, poi mostra il QR."
+                )
+
+                OnboardingStep(
+                    number = "3",
+                    title = "Apri dal PC",
+                    text = "Scansiona il QR o apri l'indirizzo nel browser. Il PIN protegge la sessione."
+                )
+
+                Text(
+                    "Nessun account, nessun cloud. I file restano sulla rete locale.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    "Versione " + versionName + " RC",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss
+            ) {
+                Text("Inizia")
+            }
+        }
+    )
+}
+
+@Composable
+private fun OnboardingStep(
+    number: String,
+    title: String,
+    text: String
+) {
+    Row(
+        horizontalArrangement =
+            Arrangement.spacedBy(12.dp),
+        verticalAlignment =
+            Alignment.Top
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color =
+                MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Text(
+                number,
+                modifier =
+                    Modifier.padding(
+                        horizontal = 10.dp,
+                        vertical = 6.dp
+                    ),
+                fontWeight = FontWeight.Black,
+                color =
+                    MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+
+        Column {
+            Text(
+                title,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text,
+                style = MaterialTheme.typography.bodySmall,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -1121,7 +1289,10 @@ private fun DevicesScreen(
 }
 
 @Composable
-private fun ErrorCard(text: String) {
+private fun ErrorCard(
+    text: String,
+    onDismiss: (() -> Unit)? = null
+) {
     Card(
         colors =
             CardDefaults.cardColors(
@@ -1130,12 +1301,25 @@ private fun ErrorCard(text: String) {
             ),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text,
+        Row(
             modifier = Modifier.padding(16.dp),
-            color =
-                MaterialTheme.colorScheme.onErrorContainer
-        )
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text,
+                modifier = Modifier.weight(1f),
+                color =
+                    MaterialTheme.colorScheme.onErrorContainer
+            )
+
+            if (onDismiss != null) {
+                TextButton(
+                    onClick = onDismiss
+                ) {
+                    Text("Chiudi")
+                }
+            }
+        }
     }
 }
 
