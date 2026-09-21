@@ -291,7 +291,7 @@ class TransferViewModel(
                 }
             )
 
-            startCountdown(created.expiresAtMillis)
+            startCountdown()
 
             _uiState.value =
                 _uiState.value.copy(
@@ -428,15 +428,21 @@ class TransferViewModel(
             )
     }
 
-    private fun startCountdown(expiresAtMillis: Long) {
+    private fun startCountdown() {
         countdownJob?.cancel()
 
         countdownJob =
             viewModelScope.launch {
                 while (true) {
+                    val active =
+                        manager.session.value
+                            ?: break
+
                     val remaining =
-                        (expiresAtMillis - System.currentTimeMillis())
-                            .coerceAtLeast(0L)
+                        (
+                            active.expiresAtMillis -
+                                System.currentTimeMillis()
+                        ).coerceAtLeast(0L)
 
                     _uiState.value =
                         _uiState.value.copy(
@@ -444,7 +450,11 @@ class TransferViewModel(
                                 remaining / 1000L
                         )
 
-                    if (remaining <= 0L) break
+                    if (remaining <= 0L) {
+                        delay(1_000L)
+                        continue
+                    }
+
                     delay(1_000L)
                 }
             }
