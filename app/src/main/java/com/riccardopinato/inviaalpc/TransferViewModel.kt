@@ -15,6 +15,7 @@ import com.riccardopinato.inviaalpc.transfer.TransferDirection
 import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
 import com.riccardopinato.inviaalpc.transfer.TransferLimits
 import com.riccardopinato.inviaalpc.transfer.TransferRuntime
+import com.riccardopinato.inviaalpc.transfer.TrustedDevice
 import com.riccardopinato.inviaalpc.transfer.UrlValidator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -26,7 +27,8 @@ import kotlinx.coroutines.launch
 enum class HomeSection {
     SEND,
     RECEIVE,
-    RECENTS
+    RECENTS,
+    DEVICES
 }
 
 data class TransferUiState(
@@ -50,9 +52,20 @@ class TransferViewModel(
     val session = manager.session
     val progress = manager.progress
     val history = manager.history
+    val trustedDevices = TransferRuntime.trustedDeviceStore.devices
+
+    private val appPrefs =
+        app.getSharedPreferences(
+            "app_preferences",
+            Application.MODE_PRIVATE
+        )
 
     private val _uiState =
-        MutableStateFlow(TransferUiState())
+        MutableStateFlow(
+            TransferUiState(
+                section = loadLastSection()
+            )
+        )
 
     val uiState: StateFlow<TransferUiState> =
         _uiState.asStateFlow()
@@ -77,6 +90,10 @@ class TransferViewModel(
     }
 
     fun setSection(section: HomeSection) {
+        appPrefs.edit()
+            .putString("last_section", section.name)
+            .apply()
+
         _uiState.value =
             _uiState.value.copy(
                 section = section,
@@ -314,6 +331,24 @@ class TransferViewModel(
     fun clearHistory() {
         manager.clearHistory()
     }
+
+    fun removeTrustedDevice(device: TrustedDevice) {
+        TransferRuntime.trustedDeviceStore.remove(device.id)
+    }
+
+    fun clearTrustedDevices() {
+        TransferRuntime.trustedDeviceStore.clear()
+    }
+
+    private fun loadLastSection(): HomeSection =
+        runCatching {
+            HomeSection.valueOf(
+                appPrefs.getString(
+                    "last_section",
+                    HomeSection.SEND.name
+                ) ?: HomeSection.SEND.name
+            )
+        }.getOrDefault(HomeSection.SEND)
 
     fun openHistoryEntry(entry: TransferHistoryEntry) {
         val uriString = entry.contentUri
