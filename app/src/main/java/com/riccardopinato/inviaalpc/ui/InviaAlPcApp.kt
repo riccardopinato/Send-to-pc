@@ -1402,6 +1402,171 @@ private fun OnboardingStep(
 }
 
 @Composable
+private fun AppIcon(
+    resId: Int,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    Icon(
+        painter = painterResource(resId),
+        contentDescription = contentDescription,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun NetworkStatusLine(
+    localIp: String?
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(7.dp),
+            shape = CircleShape,
+            color =
+                if (localIp != null) {
+                    MaterialTheme.colorScheme.secondary
+                } else {
+                    MaterialTheme.colorScheme.error
+                }
+        ) {}
+
+        Spacer(Modifier.width(6.dp))
+
+        Text(
+            text =
+                localIp?.let {
+                    "Rete locale • " + it
+                } ?: "Wi-Fi locale non disponibile",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun PageHero(
+    eyebrow: String,
+    title: String,
+    subtitle: String,
+    iconRes: Int,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(22.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = contentColor.copy(alpha = 0.10f),
+                contentColor = contentColor
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppIcon(
+                        resId = iconRes,
+                        contentDescription = null,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            Text(
+                eyebrow,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp,
+                color = contentColor.copy(alpha = 0.72f)
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = contentColor.copy(alpha = 0.78f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun IconBadge(
+    iconRes: Int,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        modifier = Modifier.size(42.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = containerColor,
+        contentColor = contentColor
+    ) {
+        Box(
+            contentAlignment = Alignment.Center
+        ) {
+            AppIcon(
+                resId = iconRes,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DirectionBadge(
+    direction: TransferDirection
+) {
+    val sending =
+        direction == TransferDirection.PHONE_TO_PC
+
+    IconBadge(
+        iconRes =
+            if (sending) {
+                R.drawable.ic_send
+            } else {
+                R.drawable.ic_receive
+            },
+        containerColor =
+            if (sending) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            },
+        contentColor =
+            if (sending) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            }
+    )
+}
+
+@Composable
 private fun SlimGlyph(
     value: String
 ) {
