@@ -332,15 +332,21 @@ private fun SendScreen(
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         item {
-            Text(
-                "Cosa vuoi inviare?",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+            PageHero(
+                eyebrow = "TELEFONO → PC",
+                title = "Invia in pochi secondi",
+                subtitle = "Scegli i contenuti, crea il QR e aprilo dal browser del PC.",
+                iconRes = R.drawable.ic_send,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
+        }
 
+        item {
             Text(
-                "Il PC dovrà solo aprire il QR nel browser.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                "Aggiungi contenuti",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -356,7 +362,11 @@ private fun SendScreen(
                             .weight(1f)
                             .height(64.dp)
                 ) {
-                    SlimGlyph("+")
+                    AppIcon(
+                        R.drawable.ic_file,
+                        null,
+                        Modifier.size(22.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("File")
                 }
@@ -368,7 +378,11 @@ private fun SendScreen(
                             .weight(1f)
                             .height(64.dp)
                 ) {
-                    SlimGlyph("▣")
+                    AppIcon(
+                        R.drawable.ic_photo,
+                        null,
+                        Modifier.size(22.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Foto")
                 }
@@ -422,7 +436,11 @@ private fun SendScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SlimGlyph("↗")
+                        AppIcon(
+                            R.drawable.ic_link,
+                            null,
+                            Modifier.size(20.dp)
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "Link",
@@ -468,7 +486,11 @@ private fun SendScreen(
                         .height(56.dp),
                 shape = RoundedCornerShape(18.dp)
             ) {
-                SlimGlyph("QR")
+                AppIcon(
+                    R.drawable.ic_qr,
+                    null,
+                    Modifier.size(22.dp)
+                )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     if (preparing) {
@@ -536,7 +558,11 @@ private fun SelectedFilesCard(
                                         item.displayName
                             }
                     ) {
-                        SlimGlyph("×")
+                        AppIcon(
+                            R.drawable.ic_close,
+                            null,
+                            Modifier.size(19.dp)
+                        )
                     }
                 }
             }
@@ -572,36 +598,74 @@ private fun ReceiveScreen(
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         item {
-            Text(
-                "Ricevi dal PC",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                "Apri la pagina locale sul computer e trascina i file.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            PageHero(
+                eyebrow = "PC → TELEFONO",
+                title = "Ricevi senza cavi",
+                subtitle = "Apri la pagina locale dal computer e trascina i file.",
+                iconRes = R.drawable.ic_receive,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             )
         }
 
         item {
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor =
+                        if (networkAvailable) {
+                            MaterialTheme.colorScheme.surface
+                        } else {
+                            MaterialTheme.colorScheme.errorContainer
+                        }
+                )
             ) {
                 Column(
                     modifier = Modifier.padding(22.dp)
                 ) {
-                    Text(
-                        if (networkAvailable) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color =
+                                if (networkAvailable) {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.error
+                                },
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AppIcon(
+                                    resId =
+                                        if (networkAvailable) {
+                                            R.drawable.ic_check
+                                        } else {
+                                            R.drawable.ic_close
+                                        },
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.width(12.dp))
+
+                        Text(
+                            if (networkAvailable) {
                             "Rete locale pronta"
                         } else {
                             "Wi-Fi non disponibile"
                         },
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(10.dp))
 
                     Text(
                         if (networkAvailable) {
@@ -641,7 +705,11 @@ private fun ReceiveScreen(
                         .fillMaxWidth()
                         .height(56.dp)
             ) {
-                SlimGlyph("QR")
+                AppIcon(
+                    R.drawable.ic_qr,
+                    null,
+                    Modifier.size(22.dp)
+                )
                 Spacer(Modifier.width(8.dp))
                 Text(
                     if (preparing) {
