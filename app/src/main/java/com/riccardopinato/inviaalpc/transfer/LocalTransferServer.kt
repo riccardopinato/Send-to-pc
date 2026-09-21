@@ -143,9 +143,8 @@ class LocalTransferServer(
 
         when {
             request.method == "GET" && path == "/s/" + session.token -> {
-                sessionManager.updateStatus(TransferStatus.CONNECTED)
-
                 if (isAuthenticated(request)) {
+                    sessionManager.updateStatus(TransferStatus.CONNECTED)
                     sendHtml(output, 200, "Invia al PC", dashboardPage(session))
                 } else {
                     sendHtml(output, 200, "PIN", pinPage(session.token))
@@ -219,6 +218,7 @@ class LocalTransferServer(
 
         val sid = SessionSecurity.generateToken()
         authenticatedSessions[sid] = System.currentTimeMillis() + TransferLimits.SESSION_DURATION_MS
+        sessionManager.updateStatus(TransferStatus.CONNECTED)
 
         writeStatus(output, 303, "See Other")
         writeHeader(output, "Location", "/s/" + session.token)
@@ -337,7 +337,9 @@ class LocalTransferServer(
             sessionManager.completeTransfer(
                 fileName = item.displayName,
                 sizeBytes = transferred,
-                direction = TransferDirection.PHONE_TO_PC
+                direction = TransferDirection.PHONE_TO_PC,
+                contentUri = item.uri.toString(),
+                mimeType = mime
             )
         }
     }
@@ -436,7 +438,9 @@ class LocalTransferServer(
             sessionManager.completeTransfer(
                 fileName = destination.displayName,
                 sizeBytes = transferred,
-                direction = TransferDirection.PC_TO_PHONE
+                direction = TransferDirection.PC_TO_PHONE,
+                contentUri = destination.uri.toString(),
+                mimeType = mimeType
             )
 
             sendJson(
