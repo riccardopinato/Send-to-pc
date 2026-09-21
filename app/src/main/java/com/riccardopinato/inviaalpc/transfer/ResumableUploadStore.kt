@@ -170,7 +170,17 @@ class ResumableUploadStore(
             )
 
         if (received == totalBytes) {
-            val finalHash = sha256(uri)
+            val shouldHash =
+                updated.expectedSha256 != null ||
+                    totalBytes <= HASH_LIMIT_BYTES
+
+            val finalHash =
+                if (shouldHash) {
+                    sha256(uri)
+                } else {
+                    null
+                }
+
             val expected =
                 updated.expectedSha256
                     ?.lowercase(Locale.ROOT)
@@ -178,6 +188,7 @@ class ResumableUploadStore(
 
             if (
                 expected != null &&
+                finalHash != null &&
                 !MessageDigest.isEqual(
                     expected.toByteArray(),
                     finalHash.toByteArray()
@@ -612,5 +623,8 @@ class ResumableUploadStore(
 
         private const val KEEP_METADATA_MS =
             24L * 60L * 60L * 1000L
+
+        private const val HASH_LIMIT_BYTES =
+            256L * 1024L * 1024L
     }
 }
