@@ -22,6 +22,7 @@ enum class TransferStatus {
     WAITING,
     CONNECTED,
     TRANSFERRING,
+    COMPLETED,
     EXPIRED,
     STOPPED,
     ERROR
@@ -58,6 +59,8 @@ data class TransferHistoryEntry(
     val fileName: String,
     val sizeBytes: Long?,
     val direction: TransferDirection,
+    val contentUri: String? = null,
+    val mimeType: String? = null,
     val completedAtMillis: Long = System.currentTimeMillis()
 )
 
@@ -199,6 +202,8 @@ private class TransferHistoryStore(context: Context) {
                             fileName = item.getString("name"),
                             sizeBytes = if (item.isNull("size")) null else item.getLong("size"),
                             direction = TransferDirection.valueOf(item.getString("direction")),
+                            contentUri = item.optString("uri", "").takeIf { it.isNotBlank() },
+                            mimeType = item.optString("mime", "").takeIf { it.isNotBlank() },
                             completedAtMillis = item.getLong("date")
                         )
                     )
@@ -217,6 +222,8 @@ private class TransferHistoryStore(context: Context) {
                     put("name", entry.fileName)
                     if (entry.sizeBytes == null) put("size", JSONObject.NULL) else put("size", entry.sizeBytes)
                     put("direction", entry.direction.name)
+                    if (entry.contentUri == null) put("uri", JSONObject.NULL) else put("uri", entry.contentUri)
+                    if (entry.mimeType == null) put("mime", JSONObject.NULL) else put("mime", entry.mimeType)
                     put("date", entry.completedAtMillis)
                 }
             )
@@ -278,19 +285,27 @@ class TransferSessionManager(context: Context) {
     }
 
     @Synchronized
-    fun completeTransfer(fileName: String, sizeBytes: Long?, direction: TransferDirection) {
+    fun completeTransfer(
+        fileName: String,
+        sizeBytes: Long?,
+        direction: TransferDirection,
+        contentUri: String? = null,
+        mimeType: String? = null
+    ) {
         val updated = listOf(
             TransferHistoryEntry(
                 fileName = fileName,
                 sizeBytes = sizeBytes,
-                direction = direction
+                direction = direction,
+                contentUri = contentUri,
+                mimeType = mimeType
             )
         ) + _history.value.take(49)
 
         _history.value = updated
         historyStore.save(updated)
         _progress.value = null
-        updateStatus(TransferStatus.CONNECTED)
+        updateStatus(TransferStatus.COMPLETED)
     }
 
     fun clearHistory() {
