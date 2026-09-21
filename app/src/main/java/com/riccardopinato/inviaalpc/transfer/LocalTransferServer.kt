@@ -1404,17 +1404,42 @@ function queueRow(file,index,total){
 
 async function stableUploadId(file){
   const source=file.name+'|'+file.size+'|'+file.lastModified;
-  const bytes=new TextEncoder().encode(source);
-  const digest=await crypto.subtle.digest('SHA-256',bytes);
-  return Array.from(new Uint8Array(digest))
-    .map(b=>b.toString(16).padStart(2,'0'))
-    .join('')
-    .slice(0,40);
+
+  if(window.crypto && crypto.subtle){
+    const bytes=new TextEncoder().encode(source);
+    const digest=await crypto.subtle.digest('SHA-256',bytes);
+    return Array.from(new Uint8Array(digest))
+      .map(b=>b.toString(16).padStart(2,'0'))
+      .join('')
+      .slice(0,40);
+  }
+
+  let h1=2166136261>>>0;
+  let h2=2654435761>>>0;
+  for(let i=0;i<source.length;i++){
+    const code=source.charCodeAt(i);
+    h1^=code;
+    h1=Math.imul(h1,16777619)>>>0;
+    h2^=(code+i);
+    h2=Math.imul(h2,2246822519)>>>0;
+  }
+  const a=h1.toString(16).padStart(8,'0');
+  const b=h2.toString(16).padStart(8,'0');
+  return 'local_'+a+b+'_'+file.size.toString(36);
 }
 
 async function clientSha256(file){
-  if(file.size>HASH_CLIENT_LIMIT)return null;
-  const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+  if(
+    file.size>HASH_CLIENT_LIMIT ||
+    !window.crypto ||
+    !crypto.subtle
+  )return null;
+
+  const digest=await crypto.subtle.digest(
+    'SHA-256',
+    await file.arrayBuffer()
+  );
+
   return Array.from(new Uint8Array(digest))
     .map(b=>b.toString(16).padStart(2,'0'))
     .join('');
