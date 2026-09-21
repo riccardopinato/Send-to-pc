@@ -10,6 +10,9 @@ object TransferRuntime {
     lateinit var sessionManager: TransferSessionManager
         private set
 
+    lateinit var trustedDeviceStore: TrustedDeviceStore
+        private set
+
     @Volatile
     var server: LocalTransferServer? = null
         private set
@@ -19,6 +22,7 @@ object TransferRuntime {
         if (initialized) return
 
         sessionManager = TransferSessionManager(context.applicationContext)
+        trustedDeviceStore = TrustedDeviceStore(context.applicationContext)
         initialized = true
     }
 
