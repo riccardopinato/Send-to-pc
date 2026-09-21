@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -510,7 +511,10 @@ private fun SelectedFilesCard(
     onRemove: (String) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(
             modifier = Modifier.padding(18.dp)
@@ -783,62 +787,99 @@ private fun ActiveSessionScreen(
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         item {
-            Text(
-                "Sessione attiva",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+            PageHero(
+                eyebrow = "SESSIONE LOCALE",
+                title = "Connessione pronta",
+                subtitle =
+                    when (session.status) {
+                        TransferStatus.WAITING ->
+                            "In attesa del PC. Scansiona il QR o copia l'indirizzo."
+                        TransferStatus.CONNECTED ->
+                            "PC collegato e autenticato."
+                        TransferStatus.TRANSFERRING ->
+                            "Trasferimento in corso."
+                        TransferStatus.COMPLETED ->
+                            "Trasferimento completato. La sessione resta aperta."
+                        TransferStatus.ERROR ->
+                            "La rete è cambiata o la sessione non è più raggiungibile."
+                        TransferStatus.EXPIRED ->
+                            "La sessione è scaduta."
+                        TransferStatus.STOPPED ->
+                            "Sessione terminata."
+                    },
+                iconRes = R.drawable.ic_qr,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
+
+            Spacer(Modifier.height(10.dp))
 
             SessionStatusChip(session.status)
-
-            Text(
-                when (session.status) {
-                    TransferStatus.WAITING ->
-                        "In attesa del PC. Scansiona il QR o copia l'indirizzo."
-                    TransferStatus.CONNECTED ->
-                        "PC collegato e autenticato."
-                    TransferStatus.TRANSFERRING ->
-                        "Trasferimento in corso."
-                    TransferStatus.COMPLETED ->
-                        "Trasferimento completato. La sessione resta aperta."
-                    TransferStatus.ERROR ->
-                        "La rete è cambiata o la sessione non è più raggiungibile."
-                    TransferStatus.EXPIRED ->
-                        "La sessione è scaduta."
-                    TransferStatus.STOPPED ->
-                        "Sessione terminata."
-                },
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
 
         item {
-            Card {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            ) {
                 Column(
-                    modifier = Modifier.padding(22.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(22.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    QrCodeView(
-                        text = session.url,
-                        modifier = Modifier.size(250.dp)
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = Color.White,
+                        tonalElevation = 0.dp
+                    ) {
+                        QrCodeView(
+                            text = session.url,
+                            modifier =
+                                Modifier
+                                    .padding(14.dp)
+                                    .size(224.dp)
+                        )
+                    }
 
                     Spacer(Modifier.height(18.dp))
 
                     Text(
-                        "PIN",
-                        style = MaterialTheme.typography.labelMedium
+                        "PIN DI ACCESSO",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Text(
-                        session.pin,
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Black
-                    )
+                    Spacer(Modifier.height(6.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            session.pin,
+                            modifier =
+                                Modifier.padding(
+                                    horizontal = 24.dp,
+                                    vertical = 10.dp
+                                ),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 6.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+
+                    Spacer(Modifier.height(8.dp))
 
                     Text(
                         "Scade tra " +
-                            formatCountdown(remainingSeconds)
+                            formatCountdown(remainingSeconds),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(Modifier.height(12.dp))
@@ -864,7 +905,11 @@ private fun ActiveSessionScreen(
                             ).show()
                         }
                     ) {
-                        SlimGlyph("⧉")
+                        AppIcon(
+                            R.drawable.ic_copy,
+                            null,
+                            Modifier.size(20.dp)
+                        )
                         Spacer(Modifier.width(8.dp))
                         Text("Copia indirizzo")
                     }
@@ -895,7 +940,11 @@ private fun ActiveSessionScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    SlimGlyph("↗")
+                    AppIcon(
+                        R.drawable.ic_open,
+                        null,
+                        Modifier.size(20.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Apri ultimo file ricevuto")
                 }
@@ -1133,16 +1182,8 @@ private fun RecentsScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            if (
-                                entry.direction ==
-                                TransferDirection.PHONE_TO_PC
-                            ) {
-                                "↑"
-                            } else {
-                                "↓"
-                            },
-                            style = MaterialTheme.typography.headlineMedium
+                        DirectionBadge(
+                            direction = entry.direction
                         )
 
                         Spacer(Modifier.width(14.dp))
@@ -1196,7 +1237,11 @@ private fun RecentsScreen(
                                                 onOpen(entry)
                                             }
                                         ) {
-                                            SlimGlyph("↗")
+                                            AppIcon(
+                                                R.drawable.ic_open,
+                                                null,
+                                                Modifier.size(18.dp)
+                                            )
                                             Spacer(Modifier.width(4.dp))
                                             Text("Apri")
                                         }
@@ -1206,7 +1251,11 @@ private fun RecentsScreen(
                                                 onReuse(entry)
                                             }
                                         ) {
-                                            SlimGlyph("↺")
+                                            AppIcon(
+                                                R.drawable.ic_refresh,
+                                                null,
+                                                Modifier.size(18.dp)
+                                            )
                                             Spacer(Modifier.width(4.dp))
                                             Text("Invia di nuovo")
                                         }
@@ -1229,10 +1278,32 @@ private fun FirstRunDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                "Invia al PC",
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    modifier = Modifier.size(38.dp),
+                    shape = RoundedCornerShape(13.dp),
+                    color = MaterialTheme.colorScheme.primary
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AppIcon(
+                            R.drawable.ic_logo,
+                            null,
+                            Modifier.size(23.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Text(
+                    "Invia al PC",
+                    fontWeight = FontWeight.Bold
+                )
+            }
         },
         text = {
             Column(
@@ -1268,7 +1339,7 @@ private fun FirstRunDialog(
                 )
 
                 Text(
-                    "Versione " + versionName + " RC",
+                    "Versione " + versionName,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1363,7 +1434,11 @@ private fun SessionStatusChip(
         },
         leadingIcon = {
             if (status == TransferStatus.COMPLETED) {
-                SlimGlyph("✓")
+                AppIcon(
+                    R.drawable.ic_check,
+                    null,
+                    Modifier.size(18.dp)
+                )
             }
         }
     )
@@ -1471,7 +1546,11 @@ private fun DevicesScreen(
                     Column(
                         modifier = Modifier.padding(22.dp)
                     ) {
-                        SlimGlyph("PC")
+                        IconBadge(
+                            iconRes = R.drawable.ic_devices,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
 
                         Spacer(Modifier.height(10.dp))
 
@@ -1498,7 +1577,11 @@ private fun DevicesScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SlimGlyph("PC")
+                        IconBadge(
+                            iconRes = R.drawable.ic_devices,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
 
                         Spacer(Modifier.width(14.dp))
 
@@ -1531,7 +1614,11 @@ private fun DevicesScreen(
                                             device.name
                                 }
                         ) {
-                            SlimGlyph("×")
+                            AppIcon(
+                                R.drawable.ic_close,
+                                null,
+                                Modifier.size(19.dp)
+                            )
                         }
                     }
                 }
