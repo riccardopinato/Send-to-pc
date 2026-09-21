@@ -1,0 +1,13 @@
+Invia al PC v1.11.0 — Visual Polish
+
+- Nuova identità grafica coerente tra Android e pagina web.
+- Palette proprietaria indaco / teal, con tema chiaro e scuro.
+- Eliminati i simboli testuali usati come icone: ora usa vettoriali custom leggerissimi.
+- Nuova barra superiore con logo, stato rete e pulsante guida.
+- Navigation bar ridisegnata.
+- Schermate Invia e Ricevi con hero card e gerarchia visiva più chiara.
+- QR e PIN ridisegnati.
+- Recenti e PC fidati con badge e icone dedicate.
+- Nuova icona launcher.
+- Pagina web allineata allo stile Android e con supporto dark mode.
+- Nessuna reintroduzione di material-icons-extended: la build Slim resta leggera.
