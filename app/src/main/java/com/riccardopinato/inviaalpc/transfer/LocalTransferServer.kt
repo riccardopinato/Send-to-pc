@@ -33,6 +33,7 @@ class LocalTransferServer(
         private const val SOCKET_TIMEOUT_MS = 120_000
         private const val SOCKET_BUFFER_SIZE = 512 * 1024
         private const val PREFERRED_PORT = 8734
+        private const val AUTH_SESSION_MS = 60L * 60L * 1000L
     }
 
     private val running = AtomicBoolean(false)
@@ -287,7 +288,7 @@ class LocalTransferServer(
         }
 
         val sid = SessionSecurity.generateToken()
-        authenticatedSessions[sid] = System.currentTimeMillis() + TransferLimits.SESSION_DURATION_MS
+        authenticatedSessions[sid] = System.currentTimeMillis() + AUTH_SESSION_MS
         sessionManager.updateStatus(TransferStatus.CONNECTED)
 
         writeStatus(output, 303, "See Other")
@@ -295,7 +296,7 @@ class LocalTransferServer(
         writeHeader(
             output,
             "Set-Cookie",
-            "sid=" + sid + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=600"
+            "sid=" + sid + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
         )
         securityHeaders(output)
         writeHeader(output, "Content-Length", "0")
@@ -335,7 +336,7 @@ class LocalTransferServer(
             output,
             "Set-Cookie",
             "sid=" + sid +
-                "; Path=/; HttpOnly; SameSite=Strict; Max-Age=600"
+                "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
         )
         securityHeaders(output)
         writeHeader(output, "Content-Length", "0")
