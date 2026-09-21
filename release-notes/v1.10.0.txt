@@ -1,0 +1,12 @@
+Invia al PC v1.10.0 — Final QA
+
+- Trasferimenti più affidabili a schermo spento grazie a wake lock limitato alla sessione.
+- Conferma prima di interrompere un trasferimento attivo.
+- Conferma prima di cancellare la cronologia o revocare tutti i PC fidati.
+- Migliorata l'accessibilità dei pulsanti di rimozione/revoca.
+- Limite a 12 connessioni client concorrenti per proteggere il server locale.
+- Limite browser a 100 file per coda.
+- Parser HTTP Range coperto da test dedicati.
+- Pipeline con unit test, Android Lint, R8, resource shrinking, verifica firma e SHA-256.
+
+La build Slim resta lo standard del progetto.
