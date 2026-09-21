@@ -97,10 +97,7 @@ class ResumableUploadStore(
             return current.toStatus()
         }
 
-        if (
-            current.totalBytes != totalBytes ||
-            current.displayName != FileNameUtils.sanitize(requestedName)
-        ) {
+        if (current.totalBytes != totalBytes) {
             error("Metadati upload non coerenti")
         }
 
@@ -140,13 +137,20 @@ class ResumableUploadStore(
                                     error("Chunk interrotto")
                                 }
 
-                                channel.write(
+                                val byteBuffer =
                                     java.nio.ByteBuffer.wrap(
                                         buffer,
                                         0,
                                         read
                                     )
-                                )
+
+                                while (
+                                    byteBuffer.hasRemaining()
+                                ) {
+                                    channel.write(
+                                        byteBuffer
+                                    )
+                                }
 
                                 copied += read
                                 remaining -= read
