@@ -41,16 +41,21 @@ jobs:
         run: gradle testDebugUnitTest --stacktrace
 
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+        run: gradle assembleSlim --stacktrace
 
       - name: Verify APK signature
         run: |
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/slim/app-slim.apk
+
+      - name: Show APK size
+        run: |
+          ls -lh app/build/outputs/apk/slim/app-slim.apk
+          du -h app/build/outputs/apk/slim/app-slim.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Invia-al-PC-v1.6.0
+          name: Invia-al-PC-v1.7.0
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 30
