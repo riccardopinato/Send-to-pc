@@ -85,7 +85,7 @@ data class TransferSession(
 }
 
 object TransferLimits {
-    const val MAX_SINGLE_UPLOAD_BYTES = 2L * 1024L * 1024L * 1024L
+    const val MAX_SINGLE_UPLOAD_BYTES = 8L * 1024L * 1024L * 1024L
     const val STORAGE_HEADROOM_BYTES = 100L * 1024L * 1024L
     const val MAX_FILE_NAME_LENGTH = 180
     const val MAX_SHARED_TEXT_LENGTH = 250_000
@@ -276,7 +276,26 @@ class TransferSessionManager(context: Context) {
     }
 
     fun updateStatus(status: TransferStatus) {
-        _session.value = _session.value?.copy(status = status)
+        val current = _session.value ?: return
+        val now = System.currentTimeMillis()
+        val extendSession =
+            status == TransferStatus.CONNECTED ||
+                status == TransferStatus.TRANSFERRING ||
+                status == TransferStatus.COMPLETED
+
+        _session.value =
+            current.copy(
+                status = status,
+                expiresAtMillis =
+                    if (extendSession) {
+                        maxOf(
+                            current.expiresAtMillis,
+                            now + TransferLimits.SESSION_DURATION_MS
+                        )
+                    } else {
+                        current.expiresAtMillis
+                    }
+            )
     }
 
     fun updateProgress(value: TransferProgress) {
