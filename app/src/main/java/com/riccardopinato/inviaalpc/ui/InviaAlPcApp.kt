@@ -534,6 +534,24 @@ private fun SelectedFilesCard(
                             .padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Surface(
+                        modifier = Modifier.size(34.dp),
+                        shape = RoundedCornerShape(11.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AppIcon(
+                                R.drawable.ic_file,
+                                null,
+                                Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.width(10.dp))
+
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
@@ -1124,6 +1142,14 @@ private fun RecentsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconBadge(
+                    iconRes = R.drawable.ic_history,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+
+                Spacer(Modifier.width(12.dp))
+
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
@@ -1567,17 +1593,6 @@ private fun DirectionBadge(
 }
 
 @Composable
-private fun SlimGlyph(
-    value: String
-) {
-    Text(
-        text = value,
-        fontWeight = FontWeight.Black,
-        style = MaterialTheme.typography.labelLarge
-    )
-}
-
-@Composable
 private fun SessionStatusChip(
     status: TransferStatus
 ) {
@@ -1676,6 +1691,14 @@ private fun DevicesScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconBadge(
+                    iconRes = R.drawable.ic_devices,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+
+                Spacer(Modifier.width(12.dp))
+
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
