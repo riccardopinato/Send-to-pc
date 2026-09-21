@@ -19,8 +19,11 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.UploadFile
@@ -43,6 +46,9 @@ import com.riccardopinato.inviaalpc.transfer.TransferDirection
 import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
 import com.riccardopinato.inviaalpc.transfer.TransferProgress
 import com.riccardopinato.inviaalpc.transfer.TransferSession
+import com.riccardopinato.inviaalpc.transfer.TransferStatus
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -164,7 +170,9 @@ fun InviaAlPcApp(
                 modifier = Modifier.padding(padding),
                 session = activeSession,
                 progress = progress,
+                history = history,
                 remainingSeconds = uiState.remainingSeconds,
+                onOpenRecent = viewModel::openHistoryEntry,
                 onStop = viewModel::stopSession
             )
         } else {
@@ -209,7 +217,9 @@ fun InviaAlPcApp(
                     RecentsScreen(
                         modifier = Modifier.padding(padding),
                         history = history,
-                        onClear = viewModel::clearHistory
+                        onClear = viewModel::clearHistory,
+                        onOpen = viewModel::openHistoryEntry,
+                        onReuse = viewModel::reuseHistoryEntry
                     )
                 }
             }
@@ -555,7 +565,9 @@ private fun ActiveSessionScreen(
     modifier: Modifier,
     session: TransferSession,
     progress: TransferProgress?,
+    history: List<TransferHistoryEntry>,
     remainingSeconds: Long,
+    onOpenRecent: (TransferHistoryEntry) -> Unit,
     onStop: () -> Unit
 ) {
     val context = LocalContext.current
@@ -576,8 +588,25 @@ private fun ActiveSessionScreen(
                 fontWeight = FontWeight.Bold
             )
 
+            SessionStatusChip(session.status)
+
             Text(
-                "Scansiona il QR oppure copia l'indirizzo nel browser del PC.",
+                when (session.status) {
+                    TransferStatus.WAITING ->
+                        "In attesa del PC. Scansiona il QR o copia l'indirizzo."
+                    TransferStatus.CONNECTED ->
+                        "PC collegato e autenticato."
+                    TransferStatus.TRANSFERRING ->
+                        "Trasferimento in corso."
+                    TransferStatus.COMPLETED ->
+                        "Trasferimento completato. La sessione resta aperta."
+                    TransferStatus.ERROR ->
+                        "La rete è cambiata o la sessione non è più raggiungibile."
+                    TransferStatus.EXPIRED ->
+                        "La sessione è scaduta."
+                    TransferStatus.STOPPED ->
+                        "Sessione terminata."
+                },
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -645,6 +674,30 @@ private fun ActiveSessionScreen(
         progress?.let { current ->
             item {
                 TransferProgressCard(current)
+            }
+        }
+
+        val latestReceived =
+            history.firstOrNull {
+                it.direction == TransferDirection.PC_TO_PHONE &&
+                    !it.contentUri.isNullOrBlank()
+            }
+
+        if (
+            session.status == TransferStatus.COMPLETED &&
+            latestReceived != null
+        ) {
+            item {
+                Button(
+                    onClick = {
+                        onOpenRecent(latestReceived)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.OpenInNew, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Apri ultimo file ricevuto")
+                }
             }
         }
 
@@ -720,7 +773,9 @@ private fun TransferProgressCard(
 private fun RecentsScreen(
     modifier: Modifier,
     history: List<TransferHistoryEntry>,
-    onClear: () -> Unit
+    onClear: () -> Unit,
+    onOpen: (TransferHistoryEntry) -> Unit,
+    onReuse: (TransferHistoryEntry) -> Unit
 ) {
     LazyColumn(
         modifier =
@@ -794,7 +849,9 @@ private fun RecentsScreen(
 
                         Spacer(Modifier.width(14.dp))
 
-                        Column {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
                                 entry.fileName,
                                 maxLines = 1,
@@ -802,11 +859,69 @@ private fun RecentsScreen(
                                 fontWeight = FontWeight.SemiBold
                             )
 
-                            entry.sizeBytes?.let {
-                                Text(
-                                    formatBytes(it),
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                            Text(
+                                buildString {
+                                    append(
+                                        if (
+                                            entry.direction ==
+                                            TransferDirection.PHONE_TO_PC
+                                        ) {
+                                            "Inviato"
+                                        } else {
+                                            "Ricevuto"
+                                        }
+                                    )
+
+                                    entry.sizeBytes?.let {
+                                        append(" • ")
+                                        append(formatBytes(it))
+                                    }
+
+                                    append(" • ")
+                                    append(formatHistoryDate(entry.completedAtMillis))
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            if (!entry.contentUri.isNullOrBlank()) {
+                                Row(
+                                    modifier = Modifier.padding(top = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    if (
+                                        entry.direction ==
+                                        TransferDirection.PC_TO_PHONE
+                                    ) {
+                                        TextButton(
+                                            onClick = {
+                                                onOpen(entry)
+                                            }
+                                        ) {
+                                            Icon(
+                                                Icons.Default.OpenInNew,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text("Apri")
+                                        }
+                                    } else {
+                                        TextButton(
+                                            onClick = {
+                                                onReuse(entry)
+                                            }
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Refresh,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Text("Invia di nuovo")
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -815,6 +930,46 @@ private fun RecentsScreen(
         }
     }
 }
+
+@Composable
+private fun SessionStatusChip(
+    status: TransferStatus
+) {
+    val label =
+        when (status) {
+            TransferStatus.WAITING -> "In attesa"
+            TransferStatus.CONNECTED -> "PC collegato"
+            TransferStatus.TRANSFERRING -> "Trasferimento"
+            TransferStatus.COMPLETED -> "Completato"
+            TransferStatus.EXPIRED -> "Scaduta"
+            TransferStatus.STOPPED -> "Terminata"
+            TransferStatus.ERROR -> "Errore rete"
+        }
+
+    AssistChip(
+        onClick = {},
+        label = {
+            Text(label)
+        },
+        leadingIcon = {
+            if (status == TransferStatus.COMPLETED) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    )
+}
+
+private fun formatHistoryDate(
+    timestamp: Long
+): String =
+    SimpleDateFormat(
+        "dd MMM, HH:mm",
+        Locale.getDefault()
+    ).format(Date(timestamp))
 
 @Composable
 private fun ErrorCard(text: String) {
