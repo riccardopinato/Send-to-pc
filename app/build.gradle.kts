@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.riccardopinato.inviaalpc"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.riccardopinato.inviaalpc"
@@ -54,11 +54,15 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
 
-    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
+    // Lifecycle 2.11 Compose artifacts require compileSdk 37.
+    // 2.10.0 keeps this release compatible with stable Android SDK 36.
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+
+    // Compose 1.11.x line: compatible with compileSdk 36.
+    val composeBom = platform("androidx.compose:compose-bom:2026.06.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
