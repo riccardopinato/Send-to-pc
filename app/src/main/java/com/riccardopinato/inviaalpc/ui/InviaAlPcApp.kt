@@ -19,9 +19,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -487,7 +492,13 @@ private fun SelectedFilesCard(
                     IconButton(
                         onClick = {
                             onRemove(item.id)
-                        }
+                        },
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription =
+                                    "Rimuovi " +
+                                        item.displayName
+                            }
                     ) {
                         SlimGlyph("×")
                     }
@@ -619,6 +630,44 @@ private fun ActiveSessionScreen(
     onStop: () -> Unit
 ) {
     val context = LocalContext.current
+    var confirmStop by remember {
+        mutableStateOf(false)
+    }
+
+    if (confirmStop) {
+        AlertDialog(
+            onDismissRequest = {
+                confirmStop = false
+            },
+            title = {
+                Text("Interrompere il trasferimento?")
+            },
+            text = {
+                Text(
+                    "Il file in corso resterà riprendibile quando possibile, ma la sessione corrente verrà chiusa."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmStop = false
+                        onStop()
+                    }
+                ) {
+                    Text("Termina")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        confirmStop = false
+                    }
+                ) {
+                    Text("Continua")
+                }
+            }
+        )
+    }
 
     LazyColumn(
         modifier =
@@ -767,7 +816,16 @@ private fun ActiveSessionScreen(
 
         item {
             FilledTonalButton(
-                onClick = onStop,
+                onClick = {
+                    if (
+                        session.status ==
+                        TransferStatus.TRANSFERRING
+                    ) {
+                        confirmStop = true
+                    } else {
+                        onStop()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Termina sessione")
@@ -861,6 +919,45 @@ private fun RecentsScreen(
     onOpen: (TransferHistoryEntry) -> Unit,
     onReuse: (TransferHistoryEntry) -> Unit
 ) {
+    var confirmClear by remember {
+        mutableStateOf(false)
+    }
+
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = {
+                confirmClear = false
+            },
+            title = {
+                Text("Cancellare la cronologia?")
+            },
+            text = {
+                Text(
+                    "Verrà rimossa solo la cronologia locale. I file trasferiti non saranno eliminati."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmClear = false
+                        onClear()
+                    }
+                ) {
+                    Text("Cancella")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        confirmClear = false
+                    }
+                ) {
+                    Text("Annulla")
+                }
+            }
+        )
+    }
+
     LazyColumn(
         modifier =
             modifier
@@ -889,7 +986,11 @@ private fun RecentsScreen(
                 }
 
                 if (history.isNotEmpty()) {
-                    TextButton(onClick = onClear) {
+                    TextButton(
+                        onClick = {
+                            confirmClear = true
+                        }
+                    ) {
                         Text("Cancella")
                     }
                 }
@@ -1179,6 +1280,45 @@ private fun DevicesScreen(
     onRemove: (TrustedDevice) -> Unit,
     onClear: () -> Unit
 ) {
+    var confirmClear by remember {
+        mutableStateOf(false)
+    }
+
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = {
+                confirmClear = false
+            },
+            title = {
+                Text("Revocare tutti i PC?")
+            },
+            text = {
+                Text(
+                    "Tutti i PC fidati dovranno usare nuovamente il PIN per essere associati."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmClear = false
+                        onClear()
+                    }
+                ) {
+                    Text("Revoca tutti")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        confirmClear = false
+                    }
+                ) {
+                    Text("Annulla")
+                }
+            }
+        )
+    }
+
     LazyColumn(
         modifier =
             modifier
@@ -1209,7 +1349,9 @@ private fun DevicesScreen(
 
                 if (devices.isNotEmpty()) {
                     TextButton(
-                        onClick = onClear
+                        onClick = {
+                            confirmClear = true
+                        }
                     ) {
                         Text("Revoca tutti")
                     }
@@ -1277,7 +1419,13 @@ private fun DevicesScreen(
                         IconButton(
                             onClick = {
                                 onRemove(device)
-                            }
+                            },
+                            modifier =
+                                Modifier.semantics {
+                                    contentDescription =
+                                        "Revoca " +
+                                            device.name
+                                }
                         ) {
                             SlimGlyph("×")
                         }
