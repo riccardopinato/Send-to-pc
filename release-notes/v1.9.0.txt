@@ -1,0 +1,11 @@
+Invia al PC v1.9.0 RC
+
+- Onboarding iniziale più chiaro.
+- Diagnostica rete locale migliorata.
+- Messaggi di errore più comprensibili e richiudibili.
+- Supporto download HTTP Range verificato con test dedicati.
+- Nuovi test di sicurezza per URL, nomi file e token.
+- Pipeline release con unit test, Android Lint, R8, resource shrinking, verifica firma e SHA-256.
+- Mantiene trasferimenti resumable, PC fidati, coda multi-file e build Slim.
+
+Questa versione è candidata alla release finale 1.0 del prodotto.
