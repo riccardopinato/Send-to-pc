@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -25,13 +26,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.riccardopinato.inviaalpc.BuildConfig
+import com.riccardopinato.inviaalpc.R
 import com.riccardopinato.inviaalpc.HomeSection
 import com.riccardopinato.inviaalpc.TransferViewModel
 import com.riccardopinato.inviaalpc.transfer.SharedItem
@@ -102,50 +107,72 @@ fun InviaAlPcApp(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            "Invia al PC",
-                            fontWeight = FontWeight.Bold
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(42.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AppIcon(
+                                    resId = R.drawable.ic_logo,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(25.dp)
+                                )
+                            }
+                        }
 
-                        Text(
-                            uiState.localIp
-                                ?.let {
-                                    "Wi-Fi locale • " + it
-                                }
-                                ?: "Wi-Fi locale non disponibile",
-                            style = MaterialTheme.typography.labelSmall,
-                            color =
-                                if (uiState.localIp != null) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.error
-                                }
-                        )
+                        Spacer(Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                "Invia al PC",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+
+                            NetworkStatusLine(
+                                localIp = uiState.localIp
+                            )
+                        }
                     }
                 },
                 actions = {
-                    TextButton(
+                    IconButton(
                         onClick = viewModel::showOnboarding
                     ) {
-                        Text(
-                            "?",
-                            fontWeight = FontWeight.Black
+                        AppIcon(
+                            resId = R.drawable.ic_help,
+                            contentDescription = "Guida",
+                            modifier = Modifier.size(22.dp)
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         },
         bottomBar = {
             if (session == null) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp
+                ) {
                     NavigationBarItem(
                         selected = uiState.section == HomeSection.SEND,
                         onClick = {
                             viewModel.setSection(HomeSection.SEND)
                         },
                         icon = {
-                            SlimGlyph("↑")
+                            AppIcon(
+                                R.drawable.ic_send,
+                                "Invia"
+                            )
                         },
                         label = {
                             Text("Invia")
@@ -158,7 +185,10 @@ fun InviaAlPcApp(
                             viewModel.setSection(HomeSection.RECEIVE)
                         },
                         icon = {
-                            SlimGlyph("⇅")
+                            AppIcon(
+                                R.drawable.ic_receive,
+                                "Ricevi"
+                            )
                         },
                         label = {
                             Text("Ricevi")
@@ -171,7 +201,10 @@ fun InviaAlPcApp(
                             viewModel.setSection(HomeSection.RECENTS)
                         },
                         icon = {
-                            SlimGlyph("↺")
+                            AppIcon(
+                                R.drawable.ic_history,
+                                "Recenti"
+                            )
                         },
                         label = {
                             Text("Recenti")
@@ -184,7 +217,10 @@ fun InviaAlPcApp(
                             viewModel.setSection(HomeSection.DEVICES)
                         },
                         icon = {
-                            SlimGlyph("PC")
+                            AppIcon(
+                                R.drawable.ic_devices,
+                                "PC fidati"
+                            )
                         },
                         label = {
                             Text("PC")
