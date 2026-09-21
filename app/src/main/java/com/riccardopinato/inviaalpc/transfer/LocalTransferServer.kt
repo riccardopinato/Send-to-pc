@@ -11,6 +11,7 @@ import java.io.BufferedOutputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.BindException
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
@@ -30,12 +31,14 @@ class LocalTransferServer(
         private const val MAX_HEADER_BYTES = 64 * 1024
         private const val BUFFER_SIZE = 64 * 1024
         private const val SOCKET_TIMEOUT_MS = 30_000
+        private const val PREFERRED_PORT = 8734
     }
 
     private val running = AtomicBoolean(false)
     private var serverSocket: ServerSocket? = null
     private var scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val receivedFileStore = ReceivedFileStore(context)
+    private val trustedDeviceStore = TransferRuntime.trustedDeviceStore
     private val authenticatedSessions = ConcurrentHashMap<String, Long>()
 
     fun start(port: Int = 0): Int {
@@ -46,7 +49,17 @@ class LocalTransferServer(
 
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        val socket = ServerSocket(port)
+        val socket =
+            if (port != 0) {
+                ServerSocket(port)
+            } else {
+                try {
+                    ServerSocket(PREFERRED_PORT)
+                } catch (_: BindException) {
+                    ServerSocket(0)
+                }
+            }
+
         socket.reuseAddress = true
 
         serverSocket = socket
@@ -155,6 +168,19 @@ class LocalTransferServer(
                 authenticate(request, input, output, clientAddress, session)
             }
 
+            request.method == "POST" && path == "/auth/trusted/" + session.token -> {
+                authenticateTrusted(request, input, output, session)
+            }
+
+            request.method == "POST" && path == "/trust/" + session.token -> {
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                trustCurrentDevice(request, input, output)
+            }
+
             request.method == "GET" &&
                 path.startsWith("/download/" + session.token + "/") -> {
 
@@ -231,6 +257,74 @@ class LocalTransferServer(
         writeHeader(output, "Content-Length", "0")
         writeHeader(output, "Connection", "close")
         endHeaders(output)
+    }
+
+    private fun authenticateTrusted(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream,
+        session: TransferSession
+    ) {
+        val length = request.contentLength.coerceAtMost(4096L).toInt()
+        val body = readExact(input, length).toString(StandardCharsets.UTF_8)
+        val rawToken = parseUrlEncoded(body)["token"].orEmpty()
+
+        val trusted =
+            trustedDeviceStore.validate(rawToken)
+
+        if (trusted == null) {
+            sendJson(output, 401, """{"error":"trusted_device_not_found"}""")
+            return
+        }
+
+        val sid = SessionSecurity.generateToken()
+        authenticatedSessions[sid] =
+            System.currentTimeMillis() +
+                TransferLimits.SESSION_DURATION_MS
+
+        sessionManager.updateStatus(
+            TransferStatus.CONNECTED
+        )
+
+        writeStatus(output, 204, "No Content")
+        writeHeader(
+            output,
+            "Set-Cookie",
+            "sid=" + sid +
+                "; Path=/; HttpOnly; SameSite=Strict; Max-Age=600"
+        )
+        securityHeaders(output)
+        writeHeader(output, "Content-Length", "0")
+        writeHeader(output, "Connection", "close")
+        endHeaders(output)
+    }
+
+    private fun trustCurrentDevice(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream
+    ) {
+        val length = request.contentLength.coerceAtMost(4096L).toInt()
+        val body = readExact(input, length).toString(StandardCharsets.UTF_8)
+        val name =
+            parseUrlEncoded(body)["name"]
+                ?.take(60)
+                ?: "PC fidato"
+
+        val pair =
+            trustedDeviceStore.create(name)
+
+        sendJson(
+            output,
+            200,
+            """{"ok":true,"id":"""" +
+                jsonEscape(pair.first.id) +
+                """","name":"""" +
+                jsonEscape(pair.first.name) +
+                """","token":"""" +
+                jsonEscape(pair.second) +
+                """"}"""
+        )
     }
 
     private fun isAuthenticated(request: HttpRequest): Boolean {
@@ -585,12 +679,33 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:#5267ff;co
 <body>
 <div class="card">
 <h1>Invia al PC</h1>
-<p class="muted">Inserisci il PIN mostrato sul telefono.</p>
+<p class="muted" id="hint">Inserisci il PIN mostrato sul telefono.</p>
 """ + errorHtml + """
-<form method="post" action="/auth/""" + htmlEscape(token) + """">
+<form id="pinForm" method="post" action="/auth/""" + htmlEscape(token) + """">
 <input class="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" autofocus required>
 <button type="submit">Connetti</button>
 </form>
+<script>
+(async function(){
+  try{
+    const trusted=localStorage.getItem('inviaalpc.trustedToken');
+    if(!trusted)return;
+    document.getElementById('hint').textContent='PC riconosciuto. Connessione rapida...';
+    document.getElementById('pinForm').style.opacity='.45';
+    const body='token='+encodeURIComponent(trusted);
+    const r=await fetch('/auth/trusted/""" + htmlEscape(token) + """',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    });
+    if(r.ok){location.reload();return;}
+    localStorage.removeItem('inviaalpc.trustedToken');
+    localStorage.removeItem('inviaalpc.trustedName');
+    document.getElementById('hint').textContent='Inserisci il PIN mostrato sul telefono.';
+    document.getElementById('pinForm').style.opacity='1';
+  }catch(e){}
+})();
+</script>
 </div>
 </body>
 </html>"""
@@ -662,6 +777,12 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:#5267ff;co
 <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
 <div class="status" id="status">Pronto.</div>
 </section>
+<section class="card" id="trustCard">
+<h2>Connessione rapida</h2>
+<p class="muted">Puoi ricordare questo PC. Dalla prossima sessione, sulla stessa rete e porta, proverà a collegarsi senza richiedere il PIN.</p>
+<button class="secondary" id="trustButton" onclick="trustThisPc()">Ricorda questo PC</button>
+<div class="status" id="trustStatus"></div>
+</section>
 <div class="footer">Trasferimento diretto sulla rete locale. Nessun file viene caricato online.</div>
 </div>
 <script>
@@ -679,6 +800,36 @@ function uploadFile(file){return new Promise((resolve,reject)=>{progress.style.d
             session.token +
             """');xhr.setRequestHeader('Content-Type','application/octet-stream');xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));xhr.setRequestHeader('X-File-Type',file.type||'application/octet-stream');xhr.upload.onprogress=e=>{if(!e.lengthComputable)return;const p=Math.round(e.loaded/e.total*100);bar.style.width=p+'%';status.textContent=file.name+' — '+p+'%'};xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300)resolve();else{status.textContent='Errore durante il trasferimento.';reject(new Error('HTTP '+xhr.status))}};xhr.onerror=()=>{status.textContent='Connessione interrotta.';reject(new Error('network'))};xhr.send(file)})}
 async function copyText(){const el=document.getElementById('sharedText');if(!el)return;const value=el.innerText;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove()}status.textContent='Testo copiato.'}catch(e){status.textContent='Seleziona il testo e copialo manualmente.'}}
+async function trustThisPc(){
+  const trustStatus=document.getElementById('trustStatus');
+  const current=localStorage.getItem('inviaalpc.trustedName');
+  const suggested=current||((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||'PC');
+  const name=prompt('Nome di questo PC',suggested);
+  if(!name)return;
+  trustStatus.textContent='Salvataggio...';
+  try{
+    const r=await fetch('/trust/""" + session.token + """',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'name='+encodeURIComponent(name)
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const data=await r.json();
+    localStorage.setItem('inviaalpc.trustedToken',data.token);
+    localStorage.setItem('inviaalpc.trustedName',data.name);
+    document.getElementById('trustButton').textContent='PC ricordato';
+    trustStatus.textContent='Connessione rapida attivata per '+data.name+'.';
+  }catch(e){
+    trustStatus.textContent='Impossibile ricordare questo PC.';
+  }
+}
+(function(){
+  const name=localStorage.getItem('inviaalpc.trustedName');
+  if(name){
+    document.getElementById('trustButton').textContent='PC ricordato';
+    document.getElementById('trustStatus').textContent='Dispositivo: '+name;
+  }
+})();
 </script>
 </body>
 </html>"""
