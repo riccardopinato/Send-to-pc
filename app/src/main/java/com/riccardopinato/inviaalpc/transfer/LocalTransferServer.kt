@@ -29,8 +29,9 @@ class LocalTransferServer(
 
     companion object {
         private const val MAX_HEADER_BYTES = 64 * 1024
-        private const val BUFFER_SIZE = 64 * 1024
-        private const val SOCKET_TIMEOUT_MS = 30_000
+        private const val BUFFER_SIZE = 256 * 1024
+        private const val SOCKET_TIMEOUT_MS = 120_000
+        private const val SOCKET_BUFFER_SIZE = 512 * 1024
         private const val PREFERRED_PORT = 8734
     }
 
@@ -87,6 +88,10 @@ class LocalTransferServer(
                 val client = server.accept()
                 client.soTimeout = SOCKET_TIMEOUT_MS
                 client.tcpNoDelay = true
+                runCatching {
+                    client.receiveBufferSize = SOCKET_BUFFER_SIZE
+                    client.sendBufferSize = SOCKET_BUFFER_SIZE
+                }
 
                 scope.launch {
                     handleClient(client)
@@ -495,6 +500,7 @@ class LocalTransferServer(
         var remaining = contentLength
         var transferred = 0L
         val startedAt = System.currentTimeMillis()
+        var lastProgressAt = startedAt
 
         try {
             destination.output.buffered(BUFFER_SIZE).use { target ->
@@ -510,18 +516,27 @@ class LocalTransferServer(
                     transferred += read
                     remaining -= read
 
-                    val elapsed = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L)
+                    val now = System.currentTimeMillis()
+                    val shouldPublish =
+                        now - lastProgressAt >= 350L ||
+                            remaining == 0L
 
-                    sessionManager.updateProgress(
-                        TransferProgress(
-                            itemId = destination.uri.toString(),
-                            fileName = destination.displayName,
-                            transferredBytes = transferred,
-                            totalBytes = contentLength,
-                            bytesPerSecond = transferred * 1000L / elapsed,
-                            direction = TransferDirection.PC_TO_PHONE
+                    if (shouldPublish) {
+                        val elapsed = (now - startedAt).coerceAtLeast(1L)
+
+                        sessionManager.updateProgress(
+                            TransferProgress(
+                                itemId = destination.uri.toString(),
+                                fileName = destination.displayName,
+                                transferredBytes = transferred,
+                                totalBytes = contentLength,
+                                bytesPerSecond = transferred * 1000L / elapsed,
+                                direction = TransferDirection.PC_TO_PHONE
+                            )
                         )
-                    )
+
+                        lastProgressAt = now
+                    }
                 }
 
                 target.flush()
@@ -761,7 +776,7 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:#5267ff;co
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Invia al PC</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#f4f6fb;color:#16181d}.page{width:min(940px,calc(100% - 28px));margin:36px auto 60px}.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{font-size:30px;font-weight:850}.local{padding:9px 14px;border-radius:999px;background:#e8f7ed;color:#176f39;font-size:13px;font-weight:750}.card{background:white;border-radius:28px;padding:26px;margin-bottom:18px;box-shadow:0 16px 55px rgba(20,30,60,.075)}h2{margin:0 0 8px}.muted{color:#707681}.file{display:flex;align-items:center;gap:14px;border-bottom:1px solid #eceef3;padding:14px 0}.file:last-child{border-bottom:0}.fileInfo{min-width:0;flex:1}.fileName{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fileSize{font-size:13px;color:#777d88;margin-top:3px}.download,.secondary{border:0;text-decoration:none;cursor:pointer;font-weight:750;border-radius:15px;padding:11px 16px}.download{background:#5267ff;color:white}.secondary{background:#eef0f6;color:#25282e;margin-top:14px}.drop{border:2px dashed #b8becc;border-radius:22px;padding:42px 20px;text-align:center;cursor:pointer;transition:.15s}.drop.active{border-color:#5267ff;background:#eef0ff}.dropTitle{font-size:20px;font-weight:800}.dropSub{margin-top:6px;color:#767c87}input[type=file]{display:none}.progress{display:none;height:10px;border-radius:999px;overflow:hidden;margin-top:18px;background:#e7e9ef}.bar{height:100%;width:0;background:#5267ff}.status{margin-top:10px;color:#686e78;font-size:14px}.contentCard{margin-top:18px;background:#f7f8fb;border-radius:20px;padding:18px}.label{font-size:11px;font-weight:850;letter-spacing:.1em;color:#767d89}.sharedText{margin-top:10px;white-space:pre-wrap;line-height:1.5}.sharedLink{display:block;margin-top:10px;overflow-wrap:anywhere;color:#4054e7;font-weight:700}.empty{color:#777d87;padding:12px 0}.footer{text-align:center;color:#8b9099;font-size:13px;margin-top:28px}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:#f4f6fb;color:#16181d}.page{width:min(940px,calc(100% - 28px));margin:36px auto 60px}.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{font-size:30px;font-weight:850}.local{padding:9px 14px;border-radius:999px;background:#e8f7ed;color:#176f39;font-size:13px;font-weight:750}.card{background:white;border-radius:28px;padding:26px;margin-bottom:18px;box-shadow:0 16px 55px rgba(20,30,60,.075)}h2{margin:0 0 8px}.muted{color:#707681}.file{display:flex;align-items:center;gap:14px;border-bottom:1px solid #eceef3;padding:14px 0}.file:last-child{border-bottom:0}.fileInfo{min-width:0;flex:1}.fileName{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fileSize{font-size:13px;color:#777d88;margin-top:3px}.download,.secondary{border:0;text-decoration:none;cursor:pointer;font-weight:750;border-radius:15px;padding:11px 16px}.download{background:#5267ff;color:white}.secondary{background:#eef0f6;color:#25282e;margin-top:14px}.drop{border:2px dashed #b8becc;border-radius:22px;padding:42px 20px;text-align:center;cursor:pointer;transition:.15s}.drop.active{border-color:#5267ff;background:#eef0ff}.dropTitle{font-size:20px;font-weight:800}.dropSub{margin-top:6px;color:#767c87}input[type=file]{display:none}.progress{display:none;height:10px;border-radius:999px;overflow:hidden;margin-top:18px;background:#e7e9ef}.bar{height:100%;width:0;background:#5267ff}.status{margin-top:10px;color:#686e78;font-size:14px}.queue{margin-top:16px;display:grid;gap:8px}.queueItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:#f7f8fb}.queueName{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.queueMeta{font-size:12px;color:#747a85}.queueOk{color:#19733f}.queueErr{color:#b3261e}.contentCard{margin-top:18px;background:#f7f8fb;border-radius:20px;padding:18px}.label{font-size:11px;font-weight:850;letter-spacing:.1em;color:#767d89}.sharedText{margin-top:10px;white-space:pre-wrap;line-height:1.5}.sharedLink{display:block;margin-top:10px;overflow-wrap:anywhere;color:#4054e7;font-weight:700}.empty{color:#777d87;padding:12px 0}.footer{text-align:center;color:#8b9099;font-size:13px;margin-top:28px}
 @media(max-width:600px){.header{align-items:flex-start;flex-direction:column}.file{align-items:flex-start}.download{padding:9px 11px}}
 </style>
 </head>
@@ -776,6 +791,7 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:#5267ff;co
 <input id="fileInput" type="file" multiple>
 <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
 <div class="status" id="status">Pronto.</div>
+<div class="queue" id="queue"></div>
 </section>
 <section class="card" id="trustCard">
 <h2>Connessione rapida</h2>
@@ -795,10 +811,79 @@ zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('acti
 zone.addEventListener('dragleave',()=>zone.classList.remove('active'));
 zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('active');uploadFiles(Array.from(e.dataTransfer.files))});
 input.addEventListener('change',()=>{uploadFiles(Array.from(input.files));input.value=''});
-async function uploadFiles(files){if(files.length===0)return;for(let i=0;i<files.length;i++){status.textContent='File '+(i+1)+' di '+files.length;await uploadFile(files[i])}bar.style.width='100%';status.textContent='Trasferimento completato.'}
-function uploadFile(file){return new Promise((resolve,reject)=>{progress.style.display='block';bar.style.width='0%';const xhr=new XMLHttpRequest();xhr.open('POST','/upload/""" +
+const queue=document.getElementById('queue');
+function humanBytes(v){if(v<1024)return v+' B';const k=v/1024;if(k<1024)return k.toFixed(1)+' KB';const m=k/1024;if(m<1024)return m.toFixed(1)+' MB';return (m/1024).toFixed(2)+' GB'}
+function queueRow(file,index,total){
+  const row=document.createElement('div');
+  row.className='queueItem';
+  const left=document.createElement('div');
+  const name=document.createElement('div');
+  name.className='queueName';
+  name.textContent=file.name;
+  const meta=document.createElement('div');
+  meta.className='queueMeta';
+  meta.textContent='In coda • '+humanBytes(file.size);
+  left.appendChild(name);
+  left.appendChild(meta);
+  const state=document.createElement('div');
+  state.className='queueMeta';
+  state.textContent=(index+1)+'/'+total;
+  row.appendChild(left);
+  row.appendChild(state);
+  queue.appendChild(row);
+  return {row,meta,state};
+}
+async function uploadFiles(files){
+  if(files.length===0)return;
+  queue.innerHTML='';
+  const rows=files.map((f,i)=>queueRow(f,i,files.length));
+  let ok=0,failed=0;
+  for(let i=0;i<files.length;i++){
+    const file=files[i];
+    const row=rows[i];
+    status.textContent='File '+(i+1)+' di '+files.length;
+    row.meta.textContent='Preparazione...';
+    try{
+      await uploadWithRetry(file,row,2);
+      ok++;
+      row.meta.textContent='Completato • '+humanBytes(file.size);
+      row.meta.className='queueMeta queueOk';
+      row.state.textContent='✓';
+      row.state.className='queueMeta queueOk';
+    }catch(e){
+      failed++;
+      row.meta.textContent='Non trasferito';
+      row.meta.className='queueMeta queueErr';
+      row.state.textContent='Errore';
+      row.state.className='queueMeta queueErr';
+    }
+  }
+  if(failed===0){
+    bar.style.width='100%';
+    status.textContent='Trasferimento completato: '+ok+' file.';
+  }else{
+    status.textContent='Completati '+ok+' file, errori '+failed+'. Puoi riprovare selezionando di nuovo i file falliti.';
+  }
+}
+async function uploadWithRetry(file,row,maxRetries){
+  let attempt=0;
+  while(true){
+    try{
+      if(attempt>0){
+        row.meta.textContent='Nuovo tentativo '+attempt+' di '+maxRetries+'...';
+        await new Promise(r=>setTimeout(r,800*attempt));
+      }
+      await uploadFile(file,row);
+      return;
+    }catch(e){
+      if(attempt>=maxRetries)throw e;
+      attempt++;
+    }
+  }
+}
+function uploadFile(file,row){return new Promise((resolve,reject)=>{progress.style.display='block';bar.style.width='0%';const xhr=new XMLHttpRequest();xhr.open('POST','/upload/""" +
             session.token +
-            """');xhr.setRequestHeader('Content-Type','application/octet-stream');xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));xhr.setRequestHeader('X-File-Type',file.type||'application/octet-stream');xhr.upload.onprogress=e=>{if(!e.lengthComputable)return;const p=Math.round(e.loaded/e.total*100);bar.style.width=p+'%';status.textContent=file.name+' — '+p+'%'};xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300)resolve();else{status.textContent='Errore durante il trasferimento.';reject(new Error('HTTP '+xhr.status))}};xhr.onerror=()=>{status.textContent='Connessione interrotta.';reject(new Error('network'))};xhr.send(file)})}
+            """');xhr.timeout=120000;xhr.setRequestHeader('Content-Type','application/octet-stream');xhr.setRequestHeader('X-File-Name',encodeURIComponent(file.name));xhr.setRequestHeader('X-File-Type',file.type||'application/octet-stream');xhr.upload.onprogress=e=>{if(!e.lengthComputable)return;const p=Math.round(e.loaded/e.total*100);bar.style.width=p+'%';row.meta.textContent='Trasferimento • '+p+'% • '+humanBytes(e.loaded)+' / '+humanBytes(e.total);status.textContent=file.name+' — '+p+'%'};xhr.onload=()=>{if(xhr.status>=200&&xhr.status<300)resolve();else reject(new Error('HTTP '+xhr.status))};xhr.onerror=()=>reject(new Error('network'));xhr.ontimeout=()=>reject(new Error('timeout'));xhr.send(file)})}
 async function copyText(){const el=document.getElementById('sharedText');if(!el)return;const value=el.innerText;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove()}status.textContent='Testo copiato.'}catch(e){status.textContent='Seleziona il testo e copialo manualmente.'}}
 async function trustThisPc(){
   const trustStatus=document.getElementById('trustStatus');
