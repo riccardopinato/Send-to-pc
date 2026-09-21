@@ -14,20 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -130,7 +116,7 @@ fun InviaAlPcApp(
                             viewModel.setSection(HomeSection.SEND)
                         },
                         icon = {
-                            Icon(Icons.Default.Send, null)
+                            SlimGlyph("↑")
                         },
                         label = {
                             Text("Invia")
@@ -143,7 +129,7 @@ fun InviaAlPcApp(
                             viewModel.setSection(HomeSection.RECEIVE)
                         },
                         icon = {
-                            Icon(Icons.Default.SwapVert, null)
+                            SlimGlyph("⇅")
                         },
                         label = {
                             Text("Ricevi")
@@ -156,7 +142,7 @@ fun InviaAlPcApp(
                             viewModel.setSection(HomeSection.RECENTS)
                         },
                         icon = {
-                            Icon(Icons.Default.History, null)
+                            SlimGlyph("↺")
                         },
                         label = {
                             Text("Recenti")
@@ -169,7 +155,7 @@ fun InviaAlPcApp(
                             viewModel.setSection(HomeSection.DEVICES)
                         },
                         icon = {
-                            Icon(Icons.Default.Computer, null)
+                            SlimGlyph("PC")
                         },
                         label = {
                             Text("PC")
@@ -300,7 +286,7 @@ private fun SendScreen(
                             .weight(1f)
                             .height(64.dp)
                 ) {
-                    Icon(Icons.Default.UploadFile, null)
+                    SlimGlyph("+")
                     Spacer(Modifier.width(8.dp))
                     Text("File")
                 }
@@ -312,7 +298,7 @@ private fun SendScreen(
                             .weight(1f)
                             .height(64.dp)
                 ) {
-                    Icon(Icons.Default.Image, null)
+                    SlimGlyph("▣")
                     Spacer(Modifier.width(8.dp))
                     Text("Foto")
                 }
@@ -366,7 +352,7 @@ private fun SendScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Link, null)
+                        SlimGlyph("↗")
                         Spacer(Modifier.width(8.dp))
                         Text(
                             "Link",
@@ -409,7 +395,7 @@ private fun SendScreen(
                         .height(56.dp),
                 shape = RoundedCornerShape(18.dp)
             ) {
-                Icon(Icons.Default.QrCode2, null)
+                SlimGlyph("QR")
                 Spacer(Modifier.width(8.dp))
                 Text(
                     if (preparing) {
@@ -471,10 +457,7 @@ private fun SelectedFilesCard(
                             onRemove(item.id)
                         }
                     ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Rimuovi"
-                        )
+                        SlimGlyph("×")
                     }
                 }
             }
@@ -571,7 +554,7 @@ private fun ReceiveScreen(
                         .fillMaxWidth()
                         .height(56.dp)
             ) {
-                Icon(Icons.Default.QrCode2, null)
+                SlimGlyph("QR")
                 Spacer(Modifier.width(8.dp))
                 Text(
                     if (preparing) {
@@ -688,7 +671,7 @@ private fun ActiveSessionScreen(
                             ).show()
                         }
                     ) {
-                        Icon(Icons.Default.ContentCopy, null)
+                        SlimGlyph("⧉")
                         Spacer(Modifier.width(8.dp))
                         Text("Copia indirizzo")
                     }
@@ -719,7 +702,7 @@ private fun ActiveSessionScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.OpenInNew, null)
+                    SlimGlyph("↗")
                     Spacer(Modifier.width(8.dp))
                     Text("Apri ultimo file ricevuto")
                 }
@@ -949,11 +932,7 @@ private fun RecentsScreen(
                                                 onOpen(entry)
                                             }
                                         ) {
-                                            Icon(
-                                                Icons.Default.OpenInNew,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
+                                            SlimGlyph("↗")
                                             Spacer(Modifier.width(4.dp))
                                             Text("Apri")
                                         }
@@ -963,11 +942,7 @@ private fun RecentsScreen(
                                                 onReuse(entry)
                                             }
                                         ) {
-                                            Icon(
-                                                Icons.Default.Refresh,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(18.dp)
-                                            )
+                                            SlimGlyph("↺")
                                             Spacer(Modifier.width(4.dp))
                                             Text("Invia di nuovo")
                                         }
@@ -980,6 +955,17 @@ private fun RecentsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun SlimGlyph(
+    value: String
+) {
+    Text(
+        text = value,
+        fontWeight = FontWeight.Black,
+        style = MaterialTheme.typography.labelLarge
+    )
 }
 
 @Composable
@@ -1004,11 +990,7 @@ private fun SessionStatusChip(
         },
         leadingIcon = {
             if (status == TransferStatus.COMPLETED) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
+                SlimGlyph("✓")
             }
         }
     )
@@ -1075,11 +1057,7 @@ private fun DevicesScreen(
                     Column(
                         modifier = Modifier.padding(22.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Computer,
-                            contentDescription = null,
-                            modifier = Modifier.size(34.dp)
-                        )
+                        SlimGlyph("PC")
 
                         Spacer(Modifier.height(10.dp))
 
@@ -1106,10 +1084,7 @@ private fun DevicesScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.Default.Computer,
-                            contentDescription = null
-                        )
+                        SlimGlyph("PC")
 
                         Spacer(Modifier.width(14.dp))
 
@@ -1136,10 +1111,7 @@ private fun DevicesScreen(
                                 onRemove(device)
                             }
                         ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Revoca PC"
-                            )
+                            SlimGlyph("×")
                         }
                     }
                 }
