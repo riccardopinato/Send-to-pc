@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.History
@@ -47,6 +48,7 @@ import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
 import com.riccardopinato.inviaalpc.transfer.TransferProgress
 import com.riccardopinato.inviaalpc.transfer.TransferSession
 import com.riccardopinato.inviaalpc.transfer.TransferStatus
+import com.riccardopinato.inviaalpc.transfer.TrustedDevice
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,6 +61,7 @@ fun InviaAlPcApp(
     val session by viewModel.session.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val history by viewModel.history.collectAsState()
+    val trustedDevices by viewModel.trustedDevices.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     val filePicker =
@@ -159,6 +162,19 @@ fun InviaAlPcApp(
                             Text("Recenti")
                         }
                     )
+
+                    NavigationBarItem(
+                        selected = uiState.section == HomeSection.DEVICES,
+                        onClick = {
+                            viewModel.setSection(HomeSection.DEVICES)
+                        },
+                        icon = {
+                            Icon(Icons.Default.Computer, null)
+                        },
+                        label = {
+                            Text("PC")
+                        }
+                    )
                 }
             }
         }
@@ -220,6 +236,15 @@ fun InviaAlPcApp(
                         onClear = viewModel::clearHistory,
                         onOpen = viewModel::openHistoryEntry,
                         onReuse = viewModel::reuseHistoryEntry
+                    )
+                }
+
+                HomeSection.DEVICES -> {
+                    DevicesScreen(
+                        modifier = Modifier.padding(padding),
+                        devices = trustedDevices,
+                        onRemove = viewModel::removeTrustedDevice,
+                        onClear = viewModel::clearTrustedDevices
                     )
                 }
             }
@@ -970,6 +995,132 @@ private fun formatHistoryDate(
         "dd MMM, HH:mm",
         Locale.getDefault()
     ).format(Date(timestamp))
+
+@Composable
+private fun DevicesScreen(
+    modifier: Modifier,
+    devices: List<TrustedDevice>,
+    onRemove: (TrustedDevice) -> Unit,
+    onClear: () -> Unit
+) {
+    LazyColumn(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(bottom = 24.dp)
+    ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        "PC fidati",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        "I PC ricordati possono riconnettersi senza PIN quando il browser conserva il token locale.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (devices.isNotEmpty()) {
+                    TextButton(
+                        onClick = onClear
+                    ) {
+                        Text("Revoca tutti")
+                    }
+                }
+            }
+        }
+
+        if (devices.isEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(22.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Computer,
+                            contentDescription = null,
+                            modifier = Modifier.size(34.dp)
+                        )
+
+                        Spacer(Modifier.height(10.dp))
+
+                        Text(
+                            "Nessun PC fidato",
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            "Collega un PC con il PIN, poi usa “Ricorda questo PC” dalla pagina web."
+                        )
+                    }
+                }
+            }
+        } else {
+            items(
+                items = devices,
+                key = { it.id }
+            ) { device ->
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Computer,
+                            contentDescription = null
+                        )
+
+                        Spacer(Modifier.width(14.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                device.name,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                            Text(
+                                "Ultimo accesso • " +
+                                    formatHistoryDate(device.lastSeenAtMillis),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                onRemove(device)
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Revoca PC"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun ErrorCard(text: String) {
