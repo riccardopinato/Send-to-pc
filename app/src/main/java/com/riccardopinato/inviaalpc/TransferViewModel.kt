@@ -39,7 +39,8 @@ data class TransferUiState(
     val remainingSeconds: Long = 0L,
     val localIp: String? = null,
     val preparing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showOnboarding: Boolean = false
 )
 
 class TransferViewModel(
@@ -63,7 +64,12 @@ class TransferViewModel(
     private val _uiState =
         MutableStateFlow(
             TransferUiState(
-                section = loadLastSection()
+                section = loadLastSection(),
+                showOnboarding =
+                    !appPrefs.getBoolean(
+                        "onboarding_complete",
+                        false
+                    )
             )
         )
 
@@ -97,6 +103,34 @@ class TransferViewModel(
         _uiState.value =
             _uiState.value.copy(
                 section = section,
+                error = null
+            )
+    }
+
+    fun dismissOnboarding() {
+        appPrefs.edit()
+            .putBoolean(
+                "onboarding_complete",
+                true
+            )
+            .apply()
+
+        _uiState.value =
+            _uiState.value.copy(
+                showOnboarding = false
+            )
+    }
+
+    fun showOnboarding() {
+        _uiState.value =
+            _uiState.value.copy(
+                showOnboarding = true
+            )
+    }
+
+    fun clearError() {
+        _uiState.value =
+            _uiState.value.copy(
                 error = null
             )
     }
@@ -141,12 +175,17 @@ class TransferViewModel(
                         .take(TransferLimits.MAX_SELECTED_FILES),
 
                 error =
-                    if (uris.size > remaining) {
-                        "Sono stati aggiunti solo i primi " +
-                            TransferLimits.MAX_SELECTED_FILES +
-                            " file."
-                    } else {
-                        null
+                    when {
+                        resolved.isEmpty() ->
+                            "Non riesco ad accedere ai file selezionati. Prova a sceglierli di nuovo dal selettore di sistema."
+
+                        uris.size > remaining ->
+                            "Sono stati aggiunti solo i primi " +
+                                TransferLimits.MAX_SELECTED_FILES +
+                                " file."
+
+                        else ->
+                            null
                     }
             )
     }
@@ -304,8 +343,9 @@ class TransferViewModel(
                 _uiState.value.copy(
                     preparing = false,
                     error =
-                        throwable.message
-                            ?: "Impossibile avviare la sessione."
+                        friendlySessionError(
+                            throwable
+                        )
                 )
         }
     }
@@ -459,6 +499,20 @@ class TransferViewModel(
                 }
             }
     }
+
+    private fun friendlySessionError(
+        throwable: Throwable
+    ): String =
+        when (throwable) {
+            is SecurityException ->
+                "Android ha bloccato l'avvio della sessione. Controlla i permessi dell'app e riprova."
+
+            is java.net.BindException ->
+                "La porta di rete è occupata. Ho provato anche una porta alternativa: chiudi eventuali sessioni precedenti e riprova."
+
+            else ->
+                "Non riesco ad avviare il trasferimento sulla rete locale. Verifica che telefono e PC siano sulla stessa Wi-Fi e riprova."
+        }
 
     override fun onCleared() {
         countdownJob?.cancel()
