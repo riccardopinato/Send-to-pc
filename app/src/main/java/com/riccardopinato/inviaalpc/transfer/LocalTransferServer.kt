@@ -425,7 +425,7 @@ class LocalTransferServer(
         val totalBytes = item.sizeBytes
         val range =
             totalBytes?.let {
-                parseRange(
+                HttpRange.parse(
                     request.headers["range"],
                     it
                 )
@@ -1094,68 +1094,6 @@ class LocalTransferServer(
             headers = headers,
             contentLength = contentLength
         )
-    }
-
-    private fun parseRange(
-        header: String?,
-        totalBytes: Long
-    ): LongRange? {
-        if (header.isNullOrBlank()) {
-            return null
-        }
-
-        if (!header.startsWith("bytes=")) {
-            return null
-        }
-
-        val raw =
-            header.removePrefix("bytes=")
-                .substringBefore(',')
-                .trim()
-
-        val parts =
-            raw.split(
-                '-',
-                limit = 2
-            )
-
-        if (
-            parts.size != 2 ||
-            parts[0].isBlank()
-        ) {
-            return null
-        }
-
-        val start =
-            parts[0].toLongOrNull()
-                ?: return null
-
-        if (
-            start < 0L ||
-            start >= totalBytes
-        ) {
-            return null
-        }
-
-        val requestedEnd =
-            parts[1]
-                .takeIf {
-                    it.isNotBlank()
-                }
-                ?.toLongOrNull()
-
-        val end =
-            min(
-                requestedEnd
-                    ?: (totalBytes - 1L),
-                totalBytes - 1L
-            )
-
-        if (end < start) {
-            return null
-        }
-
-        return start..end
     }
 
     private fun skipFully(
