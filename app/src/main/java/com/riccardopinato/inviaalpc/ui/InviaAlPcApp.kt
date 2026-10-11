@@ -544,6 +544,12 @@ private fun SelectedFilesCard(
             Spacer(Modifier.height(8.dp))
 
             items.take(20).forEach { item ->
+                val removeDescription =
+                    tr(
+                        "remove",
+                        item.displayName
+                    )
+
                 Row(
                     modifier =
                         Modifier
@@ -593,10 +599,7 @@ private fun SelectedFilesCard(
                         modifier =
                             Modifier.semantics {
                                 contentDescription =
-                                    tr(
-                                        "remove",
-                                        item.displayName
-                                    )
+                                    removeDescription
                             }
                     ) {
                         AppIcon(
@@ -629,6 +632,10 @@ private fun ActiveSessionScreen(
     onStop: () -> Unit
 ) {
     val context = LocalContext.current
+    val appNameLabel = tr("app_name")
+    val addressCopiedLabel =
+        tr("address_copied")
+
     var confirmStop by remember {
         mutableStateOf(false)
     }
@@ -786,14 +793,14 @@ private fun ActiveSessionScreen(
 
                             clipboard.setPrimaryClip(
                                 ClipData.newPlainText(
-                                    tr("app_name"),
+                                    appNameLabel,
                                     session.url
                                 )
                             )
 
                             Toast.makeText(
                                 context,
-                                tr("address_copied"),
+                                addressCopiedLabel,
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -1079,6 +1086,21 @@ private fun RecentsScreen(
                 items = history,
                 key = { it.id }
             ) { entry ->
+                val directionLabel =
+                    if (
+                        entry.direction ==
+                        TransferDirection.PHONE_TO_PC
+                    ) {
+                        tr("sent")
+                    } else {
+                        tr("received")
+                    }
+
+                val historyDateLabel =
+                    formatHistoryDate(
+                        entry.completedAtMillis
+                    )
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1105,14 +1127,7 @@ private fun RecentsScreen(
                             Text(
                                 buildString {
                                     append(
-                                        if (
-                                            entry.direction ==
-                                            TransferDirection.PHONE_TO_PC
-                                        ) {
-                                            tr("sent")
-                                        } else {
-                                            tr("received")
-                                        }
+                                        directionLabel
                                     )
 
                                     entry.sizeBytes?.let {
@@ -1121,7 +1136,9 @@ private fun RecentsScreen(
                                     }
 
                                     append(" • ")
-                                    append(formatHistoryDate(entry.completedAtMillis))
+                                    append(
+                                        historyDateLabel
+                                    )
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1774,6 +1791,20 @@ private fun DevicesScreen(
                 items = devices,
                 key = { it.id }
             ) { device ->
+                val lastSeenLabel =
+                    tr(
+                        "last_seen",
+                        formatHistoryDate(
+                            device.lastSeenAtMillis
+                        )
+                    )
+
+                val revokeDescription =
+                    tr(
+                        "revoke",
+                        device.name
+                    )
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1800,12 +1831,7 @@ private fun DevicesScreen(
                             )
 
                             Text(
-                                tr(
-                                    "last_seen",
-                                    formatHistoryDate(
-                                        device.lastSeenAtMillis
-                                    )
-                                ),
+                                lastSeenLabel,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1818,10 +1844,7 @@ private fun DevicesScreen(
                             modifier =
                                 Modifier.semantics {
                                     contentDescription =
-                                        tr(
-                                            "revoke",
-                                            device.name
-                                        )
+                                        revokeDescription
                                 }
                         ) {
                             AppIcon(
