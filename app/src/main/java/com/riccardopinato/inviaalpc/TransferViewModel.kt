@@ -29,7 +29,14 @@ enum class HomeSection {
     SEND,
     RECEIVE,
     RECENTS,
-    DEVICES
+    DEVICES,
+    SETTINGS
+}
+
+enum class AppThemeMode {
+    SYSTEM,
+    LIGHT,
+    DARK
 }
 
 data class TransferUiState(
@@ -43,7 +50,8 @@ data class TransferUiState(
     val error: String? = null,
     val showOnboarding: Boolean = false,
     val language: AppLanguage = AppLanguage.EN,
-    val languageOverrideCode: String? = null
+    val languageOverrideCode: String? = null,
+    val themeMode: AppThemeMode = AppThemeMode.SYSTEM
 )
 
 class TransferViewModel(
@@ -56,6 +64,7 @@ class TransferViewModel(
     val session = manager.session
     val progress = manager.progress
     val history = manager.history
+    val operationSummary = manager.operationSummary
     val trustedDevices = TransferRuntime.trustedDeviceStore.devices
 
     private val appPrefs =
@@ -76,7 +85,9 @@ class TransferViewModel(
                 language =
                     AppLanguageStore.current(app),
                 languageOverrideCode =
-                    AppLanguageStore.overrideCode(app)
+                    AppLanguageStore.overrideCode(app),
+                themeMode =
+                    loadThemeMode()
             )
         )
 
@@ -163,6 +174,22 @@ class TransferViewModel(
                     AppLanguageStore.current(app),
                 languageOverrideCode =
                     language?.code
+            )
+    }
+
+    fun setThemeMode(
+        mode: AppThemeMode
+    ) {
+        appPrefs.edit()
+            .putString(
+                "theme_mode",
+                mode.name
+            )
+            .apply()
+
+        _uiState.value =
+            _uiState.value.copy(
+                themeMode = mode
             )
     }
 
@@ -412,6 +439,19 @@ class TransferViewModel(
     fun clearTrustedDevices() {
         TransferRuntime.trustedDeviceStore.clear()
     }
+
+    private fun loadThemeMode():
+        AppThemeMode =
+        runCatching {
+            AppThemeMode.valueOf(
+                appPrefs.getString(
+                    "theme_mode",
+                    AppThemeMode.SYSTEM.name
+                ) ?: AppThemeMode.SYSTEM.name
+            )
+        }.getOrDefault(
+            AppThemeMode.SYSTEM
+        )
 
     private fun loadLastSection(): HomeSection =
         runCatching {
