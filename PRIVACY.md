@@ -8,7 +8,7 @@ L'app accede ai contenuti che l'utente seleziona per il trasferimento e ai file,
 
 I contenuti trasferiti non vengono inviati a un cloud dell'app: il trasferimento avviene direttamente sulla rete locale tra telefono e browser del PC.
 
-Il protocollo LAN corrente usa HTTP e non cifra il payload in transito. Usare la funzione solo su reti private o fidate. Poiché i contenuti scelti dall'utente possono includere dati personali o sensibili, questo limite resta un gate di sicurezza da chiudere prima di dichiarare la release Store Ready.
+Il protocollo LAN corrente usa HTTP e non cifra il payload in transito. Usare la funzione solo su reti private o fidate. Questo limite resta un gate di sicurezza da chiudere prima di dichiarare la release Store Ready.
 
 ## Pubblicità e consenso
 
