@@ -171,7 +171,7 @@ object MonetizationController {
             object :
                 AdLoadCallback<
                     InterstitialAd
-                >() {
+                > {
                 override fun onAdLoaded(
                     ad: InterstitialAd
                 ) {
@@ -280,7 +280,7 @@ object MonetizationController {
 
         ad.adEventCallback =
             object :
-                InterstitialAdEventCallback() {
+                InterstitialAdEventCallback {
                 override fun onAdDismissedFullScreenContent() {
                     preloadInterstitial()
                 }
