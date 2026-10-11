@@ -1299,6 +1299,39 @@ class LocalTransferServer(
                 )
             )
 
+        val browserI18n =
+            """const I={
+queue:${jsQuoted("browser_queue")},
+paused:${jsQuoted("browser_paused")},
+pause:${jsQuoted("browser_pause")},
+resume:${jsQuoted("browser_resume")},
+cancel:${jsQuoted("browser_cancel")},
+transfer:${jsQuoted("browser_transfer")},
+cancelled:${jsQuoted("browser_cancelled")},
+completed:${jsQuoted("browser_completed")},
+reconnecting:${jsQuoted("browser_reconnecting")},
+preparing:${jsQuoted("browser_preparing")},
+notTransferred:${jsQuoted("browser_not_transferred")},
+alreadyCompleted:${jsQuoted("browser_already_completed")},
+resumedFrom:${jsQuoted("browser_resumed_from")},
+integrity:${jsQuoted("browser_integrity_verified")},
+hashSkipped:${jsQuoted("browser_hash_skipped")},
+copied:${jsQuoted("browser_copied")},
+copyManual:${jsQuoted("browser_copy_manual")},
+saving:${jsQuoted("browser_saving")},
+pcName:${jsQuoted("browser_pc_name")},
+remembered:${jsQuoted("browser_remembered")},
+trustSaved:${jsQuoted("browser_trust_saved")},
+trustFailed:${jsQuoted("browser_trust_failed")},
+device:${jsQuoted("browser_device")},
+limit:${jsQuoted("browser_limit")},
+summary:${jsQuoted("browser_summary")},
+summaryOk:${jsQuoted("browser_summary_ok")},
+filePosition:${jsQuoted("browser_file_position")}
+};
+function fmt(t,...v){let i=0;return t.replace(/%[ds]/g,()=>String(v[i++]));}
+"""
+
         return """<!doctype html>
 <html lang="${language.code}">
 <head>
@@ -1501,6 +1534,7 @@ htmlEscape(localized("browser_private_wifi")) +
 """</div>
 </div>
 <script>
+""" + browserI18n + """
 const input=document.getElementById('fileInput');
 const zone=document.getElementById('dropZone');
 const progress=document.getElementById('progress');
