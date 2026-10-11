@@ -25,6 +25,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Resolve app version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_VERSION_NAME=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)
+          APP_VERSION_CODE=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' app/build.gradle.kts | head -n 1)
+          test -n "$APP_VERSION_NAME"
+          test -n "$APP_VERSION_CODE"
+          echo "APP_VERSION_NAME=$APP_VERSION_NAME" >> "$GITHUB_ENV"
+          echo "APP_VERSION_CODE=$APP_VERSION_CODE" >> "$GITHUB_ENV"
+
       - name: Set up JDK 17
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
@@ -66,7 +77,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Invia-al-PC-v1.16.0-internal
+          name: Invia-al-PC-v${{ env.APP_VERSION_NAME }}-internal
           path: app/build/outputs/apk/slim/app-slim.apk
           if-no-files-found: error
           retention-days: 30
