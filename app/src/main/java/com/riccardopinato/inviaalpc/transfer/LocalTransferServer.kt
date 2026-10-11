@@ -1896,6 +1896,18 @@ async function trustThisPc(){
             *args
         )
 
+    private fun jsQuoted(
+        key: String
+    ): String =
+        "'" +
+            jsonEscape(
+                localized(key)
+            ).replace(
+                "</",
+                "<\\/"
+            ) +
+            "'"
+
     private fun errorPage(title: String, message: String): String =
         """<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>""" +
             htmlEscape(title) +
