@@ -71,17 +71,26 @@ class ResumableUploadStore(
         contentLength: Long,
         expectedSha256: String?
     ): ResumableUploadStatus {
-        require(validUploadId(uploadId)) {
+        require(
+            TransferReliabilityPolicy
+                .isValidUploadId(
+                    uploadId
+                )
+        ) {
             "Upload id non valido"
         }
-        require(totalBytes in 1..TransferLimits.MAX_SINGLE_UPLOAD_BYTES) {
-            "Dimensione file non valida"
-        }
-        require(offset >= 0L && contentLength > 0L) {
+        require(
+            TransferReliabilityPolicy
+                .isValidChunk(
+                    totalBytes =
+                        totalBytes,
+                    offset =
+                        offset,
+                    contentLength =
+                        contentLength
+                )
+        ) {
             "Chunk non valido"
-        }
-        require(offset + contentLength <= totalBytes) {
-            "Chunk oltre la dimensione del file"
         }
 
         val current =
@@ -541,15 +550,6 @@ class ResumableUploadStore(
                 "%02x".format(it)
             }
     }
-
-    private fun validUploadId(
-        value: String
-    ): Boolean =
-        value.matches(
-            Regex(
-                "[A-Za-z0-9_-]{8,128}"
-            )
-        )
 
     private fun Record.toStatus() =
         ResumableUploadStatus(

@@ -12,6 +12,7 @@ Stato corrente: PREPARED / NOT VERIFIED FOR PRODUCTION
 - Frequency cap interno.
 - Debug/slim/QA forzano gli ID di test ufficiali.
 - Store candidate release fail-closed senza i tre ID production.
+- Store candidate rifiuta ID malformati e gli ID demo ufficiali Google.
 
 ## Configurazione production da completare
 

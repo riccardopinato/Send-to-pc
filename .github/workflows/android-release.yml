@@ -99,6 +99,29 @@ jobs:
             exit 1
           fi
 
+          if [[ ! "$ADMOB_APP_ID" =~ ^ca-app-pub-[0-9]{10,20}~[0-9]{5,20}$ ]]; then
+            echo "::error::ADMOB_APP_ID has an invalid format"
+            exit 1
+          fi
+
+          for pair in \
+            "ADMOB_BANNER_ID:$ADMOB_BANNER_ID" \
+            "ADMOB_INTERSTITIAL_ID:$ADMOB_INTERSTITIAL_ID"; do
+            name="${pair%%:*}"
+            value="${pair#*:}"
+            if [[ ! "$value" =~ ^ca-app-pub-[0-9]{10,20}/[0-9]{5,20}$ ]]; then
+              echo "::error::$name has an invalid format"
+              exit 1
+            fi
+          done
+
+          if [ "$ADMOB_APP_ID" = "ca-app-pub-3940256099942544~3347511713" ] || \
+             [ "$ADMOB_BANNER_ID" = "ca-app-pub-3940256099942544/9214589741" ] || \
+             [ "$ADMOB_INTERSTITIAL_ID" = "ca-app-pub-3940256099942544/1033173712" ]; then
+            echo "::error::Store candidate cannot use Google demo AdMob IDs"
+            exit 1
+          fi
+
       - name: Restore release keystore
         shell: bash
         env:

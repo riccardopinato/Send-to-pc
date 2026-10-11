@@ -87,6 +87,30 @@ class CoreSafetyTest {
     }
 
     @Test
+    fun pinRateLimitBlocksAfterTenFailures() {
+        val client =
+            "unit-test-rate-limit"
+
+        repeat(10) {
+            assertFalse(
+                SessionSecurity.validatePin(
+                    clientKey = client,
+                    expectedPin = "1234",
+                    suppliedPin = "0000"
+                )
+            )
+        }
+
+        assertFalse(
+            SessionSecurity.validatePin(
+                clientKey = client,
+                expectedPin = "1234",
+                suppliedPin = "1234"
+            )
+        )
+    }
+
+    @Test
     fun sessionTokenHasStrongEntropyShape() {
         val token =
             SessionSecurity.generateToken()

@@ -39,8 +39,8 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 La sessione usa:
 - token casuale ad alta entropia nell'URL;
 - PIN a 4 cifre con rate limit;
-- cookie di sessione HttpOnly + SameSite=Strict;
-- credenziale PC fidato HttpOnly, con scadenza a 30 giorni e rotazione dopo ogni riconnessione riuscita;
+- cookie di sessione Secure + HttpOnly + SameSite=Strict;
+- credenziale PC fidato Secure + HttpOnly, con scadenza a 30 giorni e rotazione dopo ogni riconnessione riuscita;
 - CSP, no-store, no-referrer e anti-framing;
 - server in ascolto solo sull'indirizzo LAN attivo.
 
@@ -94,11 +94,7 @@ I file trasferiti restano sulla rete locale e non vengono caricati su un cloud d
 
 ## Store preparation
 
-La cartella [store](store) contiene:
-- bozza Data Safety;
-- checklist AdMob/app-ads.txt;
-- esempio app-ads.txt senza publisher ID reale;
-- checklist Store release.
+La cartella [store](store) contiene Data Safety, AdMob/app-ads.txt, Play Console pack, listing localizzata, specifiche asset e checklist Store. La cartella [docs](docs) contiene una Privacy Policy statica pronta per un hosting HTTPS.
 
 La v1.19 introduce inoltre un gate `store_candidate` nel workflow release: un candidato Store fallisce se gli ID AdMob production non sono configurati.
 

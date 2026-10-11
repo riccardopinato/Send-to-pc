@@ -175,6 +175,44 @@ class LocalTransferServer(
                     return
                 }
 
+                if (
+                    !HttpRequestSecurityPolicy
+                        .isExpectedHost(
+                            hostHeader =
+                                request.headers["host"],
+                            localIp =
+                                session.localIp,
+                            port =
+                                session.port
+                        )
+                ) {
+                    sendJson(
+                        output,
+                        421,
+                        """{"error":"misdirected_request"}"""
+                    )
+                    return
+                }
+
+                if (
+                    !HttpRequestSecurityPolicy
+                        .isAllowedFetchSite(
+                            method =
+                                request.method,
+                            secFetchSite =
+                                request.headers[
+                                    "sec-fetch-site"
+                                ]
+                        )
+                ) {
+                    sendJson(
+                        output,
+                        403,
+                        """{"error":"cross_site_request"}"""
+                    )
+                    return
+                }
+
                 route(
                     request = request,
                     input = input,
@@ -778,19 +816,16 @@ class LocalTransferServer(
                 ?.toLongOrNull()
                 ?: -1L
 
-        val maxBatchBytes =
-            TransferLimits
-                .MAX_SINGLE_UPLOAD_BYTES *
-                TransferLimits
-                    .MAX_SELECTED_FILES
-
         if (
-            batchId.isBlank() ||
-            batchId.length > 100 ||
-            fileCount !in
-                1..TransferLimits.MAX_SELECTED_FILES ||
-            totalBytes < 0L ||
-            totalBytes > maxBatchBytes
+            !TransferReliabilityPolicy
+                .isValidBatch(
+                    batchId =
+                        batchId,
+                    fileCount =
+                        fileCount,
+                    totalBytes =
+                        totalBytes
+                )
         ) {
             sendJson(
                 output,
@@ -1043,9 +1078,10 @@ class LocalTransferServer(
         }
 
         if (
-            totalBytes <= 0L ||
-            totalBytes >
-                TransferLimits.MAX_SINGLE_UPLOAD_BYTES
+            !TransferReliabilityPolicy
+                .isValidFileSize(
+                    totalBytes
+                )
         ) {
             sendJson(
                 output,
@@ -1250,7 +1286,12 @@ class LocalTransferServer(
             return
         }
 
-        if (contentLength > TransferLimits.MAX_SINGLE_UPLOAD_BYTES) {
+        if (
+            !TransferReliabilityPolicy
+                .isValidFileSize(
+                    contentLength
+                )
+        ) {
             sendJson(output, 413, """{"error":"file_too_large"}""")
             return
         }
@@ -1421,11 +1462,29 @@ class LocalTransferServer(
 
             val value = line.substring(separator + 1).trim()
 
-            if (name.isBlank() || value.contains('\r') || value.contains('\n')) {
+            if (
+                name.isBlank() ||
+                value.contains('\r') ||
+                value.contains('\n')
+            ) {
                 error("Header non valido")
             }
 
+            if (headers.containsKey(name)) {
+                error("Header duplicato")
+            }
+
             headers[name] = value
+        }
+
+        if (
+            headers.containsKey(
+                "transfer-encoding"
+            )
+        ) {
+            error(
+                "Transfer-Encoding non supportato"
+            )
         }
 
         val contentLength = headers["content-length"]?.toLongOrNull() ?: 0L
@@ -2469,11 +2528,13 @@ async function trustThisPc(){
             206 -> "Partial Content"
             400 -> "Bad Request"
             401 -> "Unauthorized"
+            403 -> "Forbidden"
             404 -> "Not Found"
             409 -> "Conflict"
             410 -> "Gone"
             413 -> "Payload Too Large"
             416 -> "Range Not Satisfiable"
+            421 -> "Misdirected Request"
             500 -> "Internal Server Error"
             503 -> "Service Unavailable"
             507 -> "Insufficient Storage"

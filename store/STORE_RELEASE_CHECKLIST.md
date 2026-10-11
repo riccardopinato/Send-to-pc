@@ -1,6 +1,6 @@
 # Store release checklist — Invia al PC
 
-Versione target corrente: v1.20.0
+Versione target corrente: v1.26.0
 Package: `com.riccardopinato.inviaalpc`
 
 ## Product / build
@@ -92,5 +92,3 @@ CERTIFIED / NOT CERTIFIED / BLOCKED
 Un AAB firmato e CI GREEN non equivalgono da soli a STORE READY.
 
 La cifratura TLS è implementata; il verdetto Store resta **BLOCKED** finché trust flow, AdMob/UMP, Physical QA e update-in-place non sono verificati.
-
-Con il protocollo LAN HTTP attuale il verdetto Store resta **BLOCKED** finché il relativo gate di sicurezza non viene chiuso.

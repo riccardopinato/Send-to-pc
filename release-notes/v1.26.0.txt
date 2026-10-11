@@ -1,0 +1,16 @@
+Invia al PC v1.26.0 — Hardening & Store Preparation
+
+- Reliability policy centralizzata con limiti e arithmetic overflow-safe.
+- Test automatici per 8 GiB, 100 file, chunk boundary e storage headroom.
+- Host header vincolato alla sessione LAN.
+- POST cross-site bloccati tramite Fetch Metadata.
+- Header HTTP duplicati e Transfer-Encoding non supportato vengono rifiutati.
+- Rate-limit PIN bounded e testato.
+- Fingerprint TLS più leggibile e selezionabile.
+- Matrice Physical QA esatta per device/browser/rete/accessibilità.
+- Store Candidate AdMob rifiuta ID mancanti, malformati o demo.
+- Privacy Policy statica pronta per hosting HTTPS.
+- Play Console pack preparato.
+- Listing Store preparata in EN/IT/ES/FR/DE/PT.
+- Specifiche per icona, feature graphic e screenshot documentate.
+- Gate ancora esterni/fisici: AdMob IDs reali, app-ads.txt/readiness, screenshot finali, Physical QA, update-in-place e Play Console.
