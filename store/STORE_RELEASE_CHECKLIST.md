@@ -44,6 +44,8 @@ Package: `com.riccardopinato.inviaalpc`
 
 ## Privacy / Play Console
 
+[ ] LAN transport security gate CLOSED
+[ ] nessuna dichiarazione falsa "all data encrypted in transit"
 [ ] Privacy Policy pubblicata e raggiungibile
 [ ] Data Safety ricontrollata sulla build finale
 [ ] contenuti LAN distinti chiaramente dai dati trattati dagli SDK advertising
@@ -87,3 +89,7 @@ Solo dopo i gate pertinenti:
 CERTIFIED / NOT CERTIFIED / BLOCKED
 
 Un AAB firmato e CI GREEN non equivalgono da soli a STORE READY.
+
+Con il protocollo LAN HTTP attuale il verdetto Store resta **BLOCKED** finché il relativo gate di sicurezza non viene chiuso.
+
+Con il protocollo LAN HTTP attuale il verdetto Store resta **BLOCKED** finché il relativo gate di sicurezza non viene chiuso.

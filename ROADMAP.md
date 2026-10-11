@@ -49,11 +49,23 @@ Stato: IMPLEMENTED — CI GREEN
 - Preparazione documentale Data Safety.
 - Checklist app-ads.txt / AdMob readiness.
 - Checklist Store release.
-- Store release candidate predisposta, ma non ancora certificata fisicamente.
+- Store release candidate predisposta a livello di build/configurazione, ma non ancora certificata fisicamente.
+- Hardening 12/10/2026: ACCESS_LOCAL_NETWORK rimosso finché targetSdk resta 36; guida hotspot allineata al percorso supportabile (hotspot del PC).
+- Gate sicurezza Store aperto: il trasporto LAN core usa HTTP non cifrato.
+
+## Step successivo — Store security gate
+
+Prima del gate finale va risolto o formalmente chiuso il rischio del trasporto LAN HTTP rispetto alla Google Play User Data policy.
+
+Restano inoltre esterni al codice:
+- AdMob production IDs;
+- app-ads.txt;
+- AdMob app readiness;
+- physical validation UMP/ads.
 
 ## Gate finale
 
-Dopo la feature freeze:
+Dopo la feature freeze e la chiusura dei blocker Store:
 
 1. nuova release firmata con la signing identity permanente;
 2. Physical QA sull'esatto APK candidato;

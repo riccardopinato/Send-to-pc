@@ -290,7 +290,7 @@ object AppText {
         "network_help_step1" to "Connect phone and PC to the same Wi-Fi.",
         "network_help_step2" to "If the PC cannot open the address, disable VPN or guest/client isolation and try again.",
         "network_help_step3" to "Keep the app open during the first connection; large transfers can continue with the foreground service.",
-        "network_help_hotspot" to "A phone hotspot may work on some devices, but it still needs physical validation on the target phone/OEM.",
+        "network_help_hotspot" to "No shared Wi-Fi? Turn on Mobile Hotspot on the PC, connect the phone to that hotspot, then create a new session.",
     )
 
     private val it = mapOf(
@@ -417,7 +417,7 @@ object AppText {
         "network_help_step1" to "Collega telefono e PC alla stessa Wi-Fi.",
         "network_help_step2" to "Se il PC non apre l'indirizzo, disattiva VPN o isolamento guest/client e riprova.",
         "network_help_step3" to "Tieni l'app aperta durante la prima connessione; i trasferimenti grandi possono continuare con il servizio in primo piano.",
-        "network_help_hotspot" to "L'hotspot del telefono può funzionare su alcuni dispositivi, ma richiede ancora validazione fisica sul telefono/OEM target.",
+        "network_help_hotspot" to "Nessuna Wi-Fi condivisa? Attiva Hotspot mobile sul PC, collega il telefono a quell’hotspot e crea una nuova sessione.",
     )
 
     private val es = mapOf(
@@ -581,7 +581,7 @@ object AppText {
         "network_help_step1" to "Conecta el teléfono y el PC a la misma Wi-Fi.",
         "network_help_step2" to "Si el PC no puede abrir la dirección, desactiva la VPN o el aislamiento de invitados/clientes y vuelve a intentarlo.",
         "network_help_step3" to "Mantén la app abierta durante la primera conexión; las transferencias grandes pueden continuar con el servicio en primer plano.",
-        "network_help_hotspot" to "El punto de acceso del teléfono puede funcionar en algunos dispositivos, pero aún requiere validación física en el teléfono/OEM objetivo.",
+        "network_help_hotspot" to "¿No hay una Wi-Fi compartida? Activa el punto de acceso móvil en el PC, conecta el teléfono a ese punto y crea una nueva sesión.",
     )
 
     private val fr = mapOf(
@@ -747,7 +747,7 @@ object AppText {
         "network_help_step1" to "Connectez le téléphone et le PC au même Wi-Fi.",
         "network_help_step2" to "Si le PC ne peut pas ouvrir l'adresse, désactivez le VPN ou l'isolation invité/client et réessayez.",
         "network_help_step3" to "Gardez l'app ouverte pendant la première connexion ; les gros transferts peuvent continuer avec le service au premier plan.",
-        "network_help_hotspot" to "Le point d'accès du téléphone peut fonctionner sur certains appareils, mais il doit encore être validé physiquement sur le téléphone/OEM cible.",
+        "network_help_hotspot" to "Pas de Wi-Fi partagé ? Activez le point d’accès mobile sur le PC, connectez le téléphone à ce point d’accès, puis créez une nouvelle session.",
     )
 
     private val de = mapOf(
@@ -913,7 +913,7 @@ object AppText {
         "network_help_step1" to "Smartphone und PC mit demselben WLAN verbinden.",
         "network_help_step2" to "Wenn der PC die Adresse nicht öffnen kann, VPN oder Gast-/Client-Isolation deaktivieren und erneut versuchen.",
         "network_help_step3" to "Lass die App während der ersten Verbindung geöffnet; große Übertragungen können mit dem Vordergrunddienst weiterlaufen.",
-        "network_help_hotspot" to "Ein Smartphone-Hotspot kann auf manchen Geräten funktionieren, muss aber noch auf dem Zielgerät/OEM physisch validiert werden.",
+        "network_help_hotspot" to "Kein gemeinsames WLAN? Aktiviere den mobilen Hotspot am PC, verbinde das Smartphone damit und erstelle anschließend eine neue Sitzung.",
     )
 
     private val pt = mapOf(
@@ -1079,7 +1079,7 @@ object AppText {
         "network_help_step1" to "Conecte o telefone e o PC à mesma Wi-Fi.",
         "network_help_step2" to "Se o PC não conseguir abrir o endereço, desative VPN ou isolamento de convidados/clientes e tente novamente.",
         "network_help_step3" to "Mantenha o app aberto durante a primeira conexão; transferências grandes podem continuar com o serviço em primeiro plano.",
-        "network_help_hotspot" to "O hotspot do telefone pode funcionar em alguns dispositivos, mas ainda precisa de validação física no telefone/OEM alvo.",
+        "network_help_hotspot" to "Sem Wi-Fi compartilhada? Ative o Hotspot móvel no PC, conecte o telefone a esse hotspot e depois crie uma nova sessão.",
     )
 
     fun missingKeys(

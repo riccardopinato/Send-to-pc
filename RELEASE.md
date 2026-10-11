@@ -116,3 +116,5 @@ Il workflow `Android release` accetta l'input `store_candidate`.
 Il nome degli artifact e RELEASE_IDENTITY vengono derivati dinamicamente da `versionName` e `versionCode`, evitando mismatch tra Gradle e workflow.
 
 Un run Store Candidate verde non sostituisce Physical QA, app-ads.txt/readiness o Final Certification.
+
+Finché il core telefono ↔ browser usa HTTP LAN non cifrato, la v1.19 non va dichiarata Store Ready: il gate è tracciato in THREAT_MODEL.md e store/DATA_SAFETY.md.

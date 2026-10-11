@@ -44,7 +44,7 @@ La sessione usa:
 - CSP, no-store, no-referrer e anti-framing;
 - server in ascolto solo sull'indirizzo LAN attivo.
 
-Il traffico locale usa HTTP e **non è cifrato**. Usare l'app solo su Wi-Fi privata o fidata. Vedi [THREAT_MODEL.md](THREAT_MODEL.md).
+Il traffico locale usa HTTP e **non è cifrato**. Usare l'app solo su Wi-Fi privata o fidata. Questo resta un gate di sicurezza prima di dichiarare la release Store Ready. Vedi [THREAT_MODEL.md](THREAT_MODEL.md) e [store/DATA_SAFETY.md](store/DATA_SAFETY.md).
 
 ## Lingue
 

@@ -58,6 +58,7 @@
 - [ ] cookie trusted non leggibile da JavaScript
 - [ ] HTML escaping su nomi file/testo/link
 - [ ] warning Wi-Fi non fidata visibile
+- [ ] nessuna UI/documentazione dichiara il trasferimento LAN come cifrato
 
 ## UX / visual
 
@@ -99,7 +100,7 @@ Per EN / IT / ES / FR / DE / PT:
 - [ ] IP/rete locale mostrati correttamente in Impostazioni
 - [ ] guida same-Wi-Fi comprensibile
 - [ ] indicazioni VPN / guest-client isolation visibili
-- [ ] hotspot dichiarato come percorso da validare, non come garanzia
+- [ ] hotspot del PC → telefono collegato come client
 
 ## Monetizzazione / AdMob
 
@@ -124,7 +125,8 @@ Per EN / IT / ES / FR / DE / PT:
 
 ## Android 17 / API 37
 
-Quando disponibile:
+Solo quando il progetto passerà anche a targetSdk 37:
+- [ ] manifest dichiara ACCESS_LOCAL_NETWORK
 - [ ] prompt ACCESS_LOCAL_NETWORK just-in-time
 - [ ] grant -> sessione parte
 - [ ] deny -> recovery chiara
