@@ -9,5 +9,7 @@ Invia al PC v1.19.0 — Polish & Store Preparation
 - Aggiunto gate Store Candidate che richiede gli ID AdMob production.
 - Preparata documentazione Data Safety, app-ads.txt, AdMob readiness e checklist Store.
 - ACCESS_LOCAL_NETWORK rimandato correttamente al futuro targetSdk 37.
+- ACCESS_LOCAL_NETWORK rimandato correttamente al futuro targetSdk 37.
 - Il Physical QA e l'update-in-place restano il gate finale dopo la feature freeze.
+- Store Ready resta bloccato finché il rischio del trasporto LAN HTTP non viene chiuso.
 - Store Ready resta bloccato finché il rischio del trasporto LAN HTTP non viene chiuso.
