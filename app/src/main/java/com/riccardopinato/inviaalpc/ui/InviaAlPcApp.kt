@@ -2051,7 +2051,7 @@ private fun DevicesScreen(
 }
 
 @Composable
-private fun ErrorCard(
+internal fun ErrorCard(
     text: String,
     onDismiss: (() -> Unit)? = null
 ) {
