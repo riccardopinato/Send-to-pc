@@ -251,6 +251,36 @@ class LocalTransferServer(
                 downloadItem(request, output, session, itemId)
             }
 
+            request.method == "POST" &&
+                path == "/upload/batch/" + session.token -> {
+
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                registerUploadBatch(
+                    request,
+                    input,
+                    output
+                )
+            }
+
+            request.method == "POST" &&
+                path == "/content/" + session.token -> {
+
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                receiveContent(
+                    request,
+                    input,
+                    output
+                )
+            }
+
             request.method == "GET" &&
                 path.startsWith("/upload/status/" + session.token + "/") -> {
 
@@ -713,6 +743,222 @@ class LocalTransferServer(
                 )
             }
         }
+    }
+
+    private fun registerUploadBatch(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream
+    ) {
+        val length =
+            request.contentLength
+                .coerceAtMost(4096L)
+                .toInt()
+
+        val body =
+            readExact(
+                input,
+                length
+            ).toString(
+                StandardCharsets.UTF_8
+            )
+
+        val values =
+            parseUrlEncoded(body)
+
+        val batchId =
+            values["batchId"]
+                ?.trim()
+                .orEmpty()
+
+        val fileCount =
+            values["fileCount"]
+                ?.toIntOrNull()
+                ?: 0
+
+        val totalBytes =
+            values["totalBytes"]
+                ?.toLongOrNull()
+                ?: -1L
+
+        val maxBatchBytes =
+            TransferLimits
+                .MAX_SINGLE_UPLOAD_BYTES *
+                TransferLimits
+                    .MAX_SELECTED_FILES
+
+        if (
+            batchId.isBlank() ||
+            batchId.length > 100 ||
+            fileCount !in
+                1..TransferLimits.MAX_SELECTED_FILES ||
+            totalBytes < 0L ||
+            totalBytes > maxBatchBytes
+        ) {
+            sendJson(
+                output,
+                400,
+                """{"error":"invalid_batch"}"""
+            )
+            return
+        }
+
+        sessionManager
+            .registerExpectedBatch(
+                batchId = batchId,
+                fileCount = fileCount,
+                totalBytes = totalBytes
+            )
+
+        sendJson(
+            output,
+            200,
+            """{"ok":true}"""
+        )
+    }
+
+    private fun receiveContent(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream
+    ) {
+        val maxEncodedBody =
+            TransferLimits
+                .MAX_SHARED_TEXT_LENGTH
+                .toLong() *
+                4L
+
+        if (
+            request.contentLength <= 0L ||
+            request.contentLength >
+                maxEncodedBody
+        ) {
+            sendJson(
+                output,
+                413,
+                """{"error":"content_too_large"}"""
+            )
+            return
+        }
+
+        val body =
+            readExact(
+                input,
+                request.contentLength
+                    .toInt()
+            ).toString(
+                StandardCharsets.UTF_8
+            )
+
+        val values =
+            parseUrlEncoded(body)
+
+        val type =
+            values["type"]
+                ?.trim()
+                ?.lowercase(
+                    Locale.ROOT
+                )
+                .orEmpty()
+
+        val rawValue =
+            values["value"]
+                ?.trim()
+                .orEmpty()
+
+        when (type) {
+            "text" -> {
+                if (
+                    rawValue.isBlank() ||
+                    rawValue.length >
+                        TransferLimits
+                            .MAX_SHARED_TEXT_LENGTH
+                ) {
+                    sendJson(
+                        output,
+                        400,
+                        """{"error":"invalid_text"}"""
+                    )
+                    return
+                }
+
+                sessionManager
+                    .completeTransfer(
+                        fileName =
+                            localized("text"),
+                        sizeBytes =
+                            rawValue
+                                .toByteArray(
+                                    StandardCharsets.UTF_8
+                                ).size
+                                .toLong(),
+                        direction =
+                            TransferDirection
+                                .PC_TO_PHONE,
+                        kind =
+                            TransferContentKind
+                                .TEXT,
+                        mimeType =
+                            "text/plain",
+                        textContent =
+                            rawValue
+                    )
+            }
+
+            "link" -> {
+                val normalized =
+                    UrlValidator
+                        .normalize(
+                            rawValue
+                        )
+
+                if (normalized == null) {
+                    sendJson(
+                        output,
+                        400,
+                        """{"error":"invalid_link"}"""
+                    )
+                    return
+                }
+
+                sessionManager
+                    .completeTransfer(
+                        fileName =
+                            localized("link"),
+                        sizeBytes =
+                            normalized
+                                .toByteArray(
+                                    StandardCharsets.UTF_8
+                                ).size
+                                .toLong(),
+                        direction =
+                            TransferDirection
+                                .PC_TO_PHONE,
+                        kind =
+                            TransferContentKind
+                                .LINK,
+                        mimeType =
+                            "text/uri-list",
+                        textContent =
+                            normalized
+                    )
+            }
+
+            else -> {
+                sendJson(
+                    output,
+                    400,
+                    """{"error":"invalid_content_type"}"""
+                )
+                return
+            }
+        }
+
+        sendJson(
+            output,
+            200,
+            """{"ok":true}"""
+        )
     }
 
     private fun uploadStatus(
