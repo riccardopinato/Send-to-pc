@@ -116,13 +116,14 @@ data class TransferSession(
     val expiresAtMillis: Long,
     val port: Int,
     val localIp: String,
+    val tlsFingerprintSha256: String,
     val sharedItems: List<SharedItem> = emptyList(),
     val sharedText: String? = null,
     val sharedLink: String? = null,
     val status: TransferStatus = TransferStatus.WAITING
 ) {
     val url: String
-        get() = "http://$localIp:$port/s/$token"
+        get() = "https://$localIp:$port/s/$token"
 
     fun isExpired(now: Long = System.currentTimeMillis()): Boolean =
         now >= expiresAtMillis
@@ -364,6 +365,7 @@ class TransferSessionManager(context: Context) {
     fun create(
         localIp: String,
         port: Int,
+        tlsFingerprintSha256: String,
         sharedItems: List<SharedItem>,
         sharedText: String?,
         sharedLink: String?,
@@ -377,6 +379,8 @@ class TransferSessionManager(context: Context) {
             expiresAtMillis = now + lifetimeMillis,
             port = port,
             localIp = localIp,
+            tlsFingerprintSha256 =
+                tlsFingerprintSha256,
             sharedItems = sharedItems,
             sharedText = sharedText,
             sharedLink = sharedLink
