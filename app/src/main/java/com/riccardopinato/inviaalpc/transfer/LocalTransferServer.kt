@@ -1,6 +1,8 @@
 package com.riccardopinato.inviaalpc.transfer
 
 import android.content.Context
+import com.riccardopinato.inviaalpc.AppLanguageStore
+import com.riccardopinato.inviaalpc.AppText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1750,6 +1752,16 @@ async function trustThisPc(){
 </body>
 </html>"""
     }
+
+    private fun localized(
+        key: String,
+        vararg args: Any
+    ): String =
+        AppText.get(
+            AppLanguageStore.current(context),
+            key,
+            *args
+        )
 
     private fun errorPage(title: String, message: String): String =
         """<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>""" +
