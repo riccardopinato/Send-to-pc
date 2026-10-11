@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.riccardopinato.inviaalpc.R
 import com.riccardopinato.inviaalpc.transfer.TransferContentKind
 import com.riccardopinato.inviaalpc.transfer.TransferDirection
 import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
