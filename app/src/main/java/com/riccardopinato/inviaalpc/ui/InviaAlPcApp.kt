@@ -1,6 +1,7 @@
 package com.riccardopinato.inviaalpc.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -41,15 +42,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.riccardopinato.inviaalpc.AppLanguage
+import com.riccardopinato.inviaalpc.AppThemeMode
 import com.riccardopinato.inviaalpc.AppLanguageStore
 import com.riccardopinato.inviaalpc.AppText
 import com.riccardopinato.inviaalpc.BuildConfig
 import com.riccardopinato.inviaalpc.R
 import com.riccardopinato.inviaalpc.HomeSection
 import com.riccardopinato.inviaalpc.TransferViewModel
+import com.riccardopinato.inviaalpc.monetization.AdaptiveBannerAd
+import com.riccardopinato.inviaalpc.monetization.MonetizationController
 import com.riccardopinato.inviaalpc.transfer.SharedItem
 import com.riccardopinato.inviaalpc.transfer.TransferDirection
 import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
+import com.riccardopinato.inviaalpc.transfer.TransferOperationSummary
 import com.riccardopinato.inviaalpc.transfer.TransferProgress
 import com.riccardopinato.inviaalpc.transfer.TransferSession
 import com.riccardopinato.inviaalpc.transfer.TransferStatus
@@ -69,9 +74,15 @@ fun InviaAlPcApp(
     val session by viewModel.session.collectAsState()
     val progress by viewModel.progress.collectAsState()
     val history by viewModel.history.collectAsState()
+    val operationSummary by viewModel.operationSummary.collectAsState()
     val trustedDevices by viewModel.trustedDevices.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val monetizationState by
+        MonetizationController.state
+            .collectAsState()
     val context = LocalContext.current
+    val activity =
+        context as? Activity
 
     val filePicker =
         rememberLauncherForActivityResult(
@@ -253,6 +264,22 @@ fun InviaAlPcApp(
                             Text(tr("pc"))
                         }
                     )
+
+                    NavigationBarItem(
+                        selected = uiState.section == HomeSection.SETTINGS,
+                        onClick = {
+                            viewModel.setSection(HomeSection.SETTINGS)
+                        },
+                        icon = {
+                            AppIcon(
+                                R.drawable.ic_settings,
+                                tr("settings")
+                            )
+                        },
+                        label = {
+                            Text(tr("settings"))
+                        }
+                    )
                 }
             }
         }
@@ -261,64 +288,176 @@ fun InviaAlPcApp(
 
         if (activeSession != null) {
             ActiveSessionScreen(
-                modifier = Modifier.padding(padding),
-                session = activeSession,
-                progress = progress,
-                history = history,
-                remainingSeconds = uiState.remainingSeconds,
-                onOpenRecent = viewModel::openHistoryEntry,
-                onStop = viewModel::stopSession
+                modifier =
+                    Modifier.padding(
+                        padding
+                    ),
+                session =
+                    activeSession,
+                progress =
+                    progress,
+                history =
+                    history,
+                operationSummary =
+                    operationSummary,
+                remainingSeconds =
+                    uiState.remainingSeconds,
+                onOpenRecent =
+                    viewModel::openHistoryEntry,
+                onStop =
+                    viewModel::stopSession,
+                onCompletedStop = {
+                    val summary =
+                        operationSummary
+
+                    viewModel.stopSession()
+
+                    if (
+                        activity != null &&
+                        summary != null
+                    ) {
+                        MonetizationController
+                            .showInterstitialIfEligible(
+                                activity,
+                                summary
+                            )
+                    }
+                }
             )
         } else {
-            when (uiState.section) {
-                HomeSection.SEND,
-                HomeSection.RECEIVE -> {
-                    SendScreen(
-                        modifier = Modifier.padding(padding),
-                        items = uiState.selectedItems,
-                        text = uiState.sharedText,
-                        link = uiState.sharedLink,
-                        preparing = uiState.preparing,
-                        error = uiState.error,
-                        onPickFiles = {
-                            filePicker.launch(arrayOf("*/*"))
-                        },
-                        onPickPhotos = {
-                            photoPicker.launch(
-                                PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                                )
+            Column(
+                modifier =
+                    Modifier
+                        .padding(padding)
+                        .fillMaxSize()
+            ) {
+                AdaptiveBannerAd(
+                    adsEnabled =
+                        monetizationState
+                            .canRequestAds &&
+                            monetizationState
+                                .mobileAdsInitialized,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                vertical = 4.dp
                             )
-                        },
-                        onRemove = viewModel::removeItem,
-                        onTextChange = viewModel::setSharedText,
-                        onLinkChange = viewModel::setSharedLink,
-                        onDismissError = viewModel::clearError,
-                        onStart = {
-                            startConnection()
+                )
+
+                Box(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                ) {
+                    when (uiState.section) {
+                        HomeSection.SEND,
+                        HomeSection.RECEIVE -> {
+                            SendScreen(
+                                modifier =
+                                    Modifier.fillMaxSize(),
+                                items =
+                                    uiState.selectedItems,
+                                text =
+                                    uiState.sharedText,
+                                link =
+                                    uiState.sharedLink,
+                                preparing =
+                                    uiState.preparing,
+                                error =
+                                    uiState.error,
+                                onPickFiles = {
+                                    filePicker.launch(
+                                        arrayOf("*/*")
+                                    )
+                                },
+                                onPickPhotos = {
+                                    photoPicker.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts
+                                                .PickVisualMedia
+                                                .ImageOnly
+                                        )
+                                    )
+                                },
+                                onRemove =
+                                    viewModel::removeItem,
+                                onTextChange =
+                                    viewModel::setSharedText,
+                                onLinkChange =
+                                    viewModel::setSharedLink,
+                                onDismissError =
+                                    viewModel::clearError,
+                                onStart = {
+                                    startConnection()
+                                }
+                            )
                         }
-                    )
-                }
 
-                HomeSection.RECENTS -> {
-                    RecentsScreen(
-                        modifier = Modifier.padding(padding),
-                        history = history,
-                        error = uiState.error,
-                        onClear = viewModel::clearHistory,
-                        onDismissError = viewModel::clearError,
-                        onOpen = viewModel::openHistoryEntry,
-                        onReuse = viewModel::reuseHistoryEntry
-                    )
-                }
+                        HomeSection.RECENTS -> {
+                            RecentsScreen(
+                                modifier =
+                                    Modifier.fillMaxSize(),
+                                history =
+                                    history,
+                                error =
+                                    uiState.error,
+                                onClear =
+                                    viewModel::clearHistory,
+                                onDismissError =
+                                    viewModel::clearError,
+                                onOpen =
+                                    viewModel::openHistoryEntry,
+                                onReuse =
+                                    viewModel::reuseHistoryEntry
+                            )
+                        }
 
-                HomeSection.DEVICES -> {
-                    DevicesScreen(
-                        modifier = Modifier.padding(padding),
-                        devices = trustedDevices,
-                        onRemove = viewModel::removeTrustedDevice,
-                        onClear = viewModel::clearTrustedDevices
-                    )
+                        HomeSection.DEVICES -> {
+                            DevicesScreen(
+                                modifier =
+                                    Modifier.fillMaxSize(),
+                                devices =
+                                    trustedDevices,
+                                onRemove =
+                                    viewModel::removeTrustedDevice,
+                                onClear =
+                                    viewModel::clearTrustedDevices
+                            )
+                        }
+
+                        HomeSection.SETTINGS -> {
+                            SettingsScreen(
+                                modifier =
+                                    Modifier.fillMaxSize(),
+                                language =
+                                    uiState.language,
+                                languageOverrideCode =
+                                    uiState.languageOverrideCode,
+                                themeMode =
+                                    uiState.themeMode,
+                                privacyOptionsRequired =
+                                    monetizationState
+                                        .privacyOptionsRequired,
+                                productionAdsConfigured =
+                                    monetizationState
+                                        .productionConfigured,
+                                onLanguageChange =
+                                    viewModel::setLanguageOverride,
+                                onThemeChange =
+                                    viewModel::setThemeMode,
+                                onPrivacyChoices = {
+                                    activity?.let {
+                                        MonetizationController
+                                            .showPrivacyOptions(
+                                                it
+                                            )
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
