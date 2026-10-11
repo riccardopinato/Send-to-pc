@@ -1,0 +1,11 @@
+Invia al PC v1.19.0 — Polish & Store Preparation
+
+- Parità completa EN/IT/ES/FR/DE/PT con test automatico anti-regressione.
+- Nuova guida integrata per Wi-Fi locale, VPN, reti guest e hotspot del PC.
+- Dopo un cambio rete la guida richiede una nuova sessione/QR.
+- ACCESS_LOCAL_NETWORK allineato al targetSdk 36 e rimandato correttamente al futuro target 37.
+- Privacy e checklist Data Safety aggiornate per GMA Next-Gen / UMP.
+- Preparazione app-ads.txt e AdMob app readiness documentata.
+- Cleanup UI mirato senza riscritture cosmetiche del core transfer.
+- Store readiness ora usa gate espliciti e non confonde CI verde con certificazione.
+- Gate ancora aperti: AdMob production config, app-ads.txt/readiness, physical QA e sicurezza del trasporto LAN HTTP.
