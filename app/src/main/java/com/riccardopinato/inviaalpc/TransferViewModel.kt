@@ -41,7 +41,9 @@ data class TransferUiState(
     val localIp: String? = null,
     val preparing: Boolean = false,
     val error: String? = null,
-    val showOnboarding: Boolean = false
+    val showOnboarding: Boolean = false,
+    val language: AppLanguage = AppLanguage.EN,
+    val languageOverrideCode: String? = null
 )
 
 class TransferViewModel(
@@ -70,7 +72,11 @@ class TransferViewModel(
                     !appPrefs.getBoolean(
                         "onboarding_complete",
                         false
-                    )
+                    ),
+                language =
+                    AppLanguageStore.current(app),
+                languageOverrideCode =
+                    AppLanguageStore.overrideCode(app)
             )
         )
 
@@ -143,6 +149,23 @@ class TransferViewModel(
             )
     }
 
+    fun setLanguageOverride(
+        language: AppLanguage?
+    ) {
+        AppLanguageStore.setOverride(
+            app,
+            language
+        )
+
+        _uiState.value =
+            _uiState.value.copy(
+                language =
+                    AppLanguageStore.current(app),
+                languageOverrideCode =
+                    language?.code
+            )
+    }
+
     fun clearError() {
         _uiState.value =
             _uiState.value.copy(
@@ -169,9 +192,7 @@ class TransferViewModel(
             _uiState.value =
                 current.copy(
                     error =
-                        "Puoi condividere fino a " +
-                            TransferLimits.MAX_SELECTED_FILES +
-                            " file per sessione."
+                        t("err_file_limit", TransferLimits.MAX_SELECTED_FILES)
                 )
             return
         }
@@ -192,12 +213,10 @@ class TransferViewModel(
                 error =
                     when {
                         resolved.isEmpty() ->
-                            "Non riesco ad accedere ai file selezionati. Prova a sceglierli di nuovo dal selettore di sistema."
+                            t("err_file_access")
 
                         uris.size > remaining ->
-                            "Sono stati aggiunti solo i primi " +
-                                TransferLimits.MAX_SELECTED_FILES +
-                                " file."
+                            t("err_first_files", TransferLimits.MAX_SELECTED_FILES)
 
                         else ->
                             null
@@ -251,7 +270,7 @@ class TransferViewModel(
             _uiState.value =
                 state.copy(
                     error =
-                        "Il link non è valido. Usa un indirizzo http:// o https://."
+                        t("err_invalid_link")
                 )
             return
         }
@@ -290,7 +309,7 @@ class TransferViewModel(
                     localIp = null,
                     preparing = false,
                     error =
-                        "Telefono e PC devono essere collegati alla stessa rete Wi-Fi."
+                        t("err_same_wifi")
                 )
             return
         }
@@ -407,7 +426,7 @@ class TransferViewModel(
         if (uriString.isNullOrBlank()) {
             _uiState.value =
                 _uiState.value.copy(
-                    error = "Il file non è più disponibile."
+                    error = t("err_file_missing")
                 )
             return
         }
@@ -432,7 +451,7 @@ class TransferViewModel(
         if (!opened) {
             _uiState.value =
                 _uiState.value.copy(
-                    error = "Nessuna app disponibile per aprire questo file."
+                    error = t("err_no_app_open")
                 )
         }
     }
@@ -447,7 +466,7 @@ class TransferViewModel(
         if (uriString.isNullOrBlank()) {
             _uiState.value =
                 _uiState.value.copy(
-                    error = "Il file originale non è più disponibile."
+                    error = t("err_original_missing")
                 )
             return
         }
@@ -465,7 +484,7 @@ class TransferViewModel(
         if (!readable) {
             _uiState.value =
                 _uiState.value.copy(
-                    error = "Il file originale non è più accessibile. Selezionalo di nuovo."
+                    error = t("err_original_unreadable")
                 )
             return
         }
@@ -511,6 +530,16 @@ class TransferViewModel(
             }
     }
 
+    private fun t(
+        key: String,
+        vararg args: Any
+    ): String =
+        AppText.get(
+            _uiState.value.language,
+            key,
+            *args
+        )
+
     private fun sessionEndMessage(
         reason: SessionEndReason?
     ): String? =
@@ -520,19 +549,19 @@ class TransferViewModel(
                 null
 
             SessionEndReason.EXPIRED ->
-                "La sessione è scaduta. Crea un nuovo collegamento."
+                t("end_expired")
 
             SessionEndReason.NETWORK_LOST ->
-                "La Wi-Fi è rimasta non disponibile per più di 12 secondi. Riconnettiti e crea una nuova sessione."
+                t("end_network_lost")
 
             SessionEndReason.IP_CHANGED ->
-                "L'indirizzo di rete del telefono è cambiato. Crea un nuovo QR per continuare."
+                t("end_ip_changed")
 
             SessionEndReason.ANDROID_TIMEOUT ->
-                "Android ha terminato il servizio di trasferimento in background. Crea una nuova sessione."
+                t("end_android_timeout")
 
             SessionEndReason.SERVER_ERROR ->
-                "Il server locale si è arrestato in modo inatteso. Riprova a creare la sessione."
+                t("end_server_error")
         }
 
     private fun friendlySessionError(
@@ -540,13 +569,13 @@ class TransferViewModel(
     ): String =
         when (throwable) {
             is SecurityException ->
-                "Android ha bloccato l'avvio della sessione. Controlla i permessi dell'app e riprova."
+                t("err_android_block")
 
             is java.net.BindException ->
-                "La porta di rete è occupata. Ho provato anche una porta alternativa: chiudi eventuali sessioni precedenti e riprova."
+                t("err_port_busy")
 
             else ->
-                "Non riesco ad avviare il trasferimento sulla rete locale. Verifica che telefono e PC siano sulla stessa Wi-Fi e riprova."
+                t("err_start_session")
         }
 
     override fun onCleared() {
