@@ -778,19 +778,16 @@ class LocalTransferServer(
                 ?.toLongOrNull()
                 ?: -1L
 
-        val maxBatchBytes =
-            TransferLimits
-                .MAX_SINGLE_UPLOAD_BYTES *
-                TransferLimits
-                    .MAX_SELECTED_FILES
-
         if (
-            batchId.isBlank() ||
-            batchId.length > 100 ||
-            fileCount !in
-                1..TransferLimits.MAX_SELECTED_FILES ||
-            totalBytes < 0L ||
-            totalBytes > maxBatchBytes
+            !TransferReliabilityPolicy
+                .isValidBatch(
+                    batchId =
+                        batchId,
+                    fileCount =
+                        fileCount,
+                    totalBytes =
+                        totalBytes
+                )
         ) {
             sendJson(
                 output,
@@ -1043,9 +1040,10 @@ class LocalTransferServer(
         }
 
         if (
-            totalBytes <= 0L ||
-            totalBytes >
-                TransferLimits.MAX_SINGLE_UPLOAD_BYTES
+            !TransferReliabilityPolicy
+                .isValidFileSize(
+                    totalBytes
+                )
         ) {
             sendJson(
                 output,
@@ -1250,7 +1248,12 @@ class LocalTransferServer(
             return
         }
 
-        if (contentLength > TransferLimits.MAX_SINGLE_UPLOAD_BYTES) {
+        if (
+            !TransferReliabilityPolicy
+                .isValidFileSize(
+                    contentLength
+                )
+        ) {
             sendJson(output, 413, """{"error":"file_too_large"}""")
             return
         }
