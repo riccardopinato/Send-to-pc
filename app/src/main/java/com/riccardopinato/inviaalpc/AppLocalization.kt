@@ -251,7 +251,23 @@ object AppText {
         "notification_active" to "Local transfer session active",
         "notification_end" to "End",
         "notification_channel" to "Local transfer",
-        "notification_channel_desc" to "File transfer sessions over the local network"
+        "notification_channel_desc" to "File transfer sessions over the local network",
+        "settings" to "Settings",
+        "theme" to "Theme",
+        "theme_system" to "System",
+        "theme_light" to "Light",
+        "theme_dark" to "Dark",
+        "privacy_choices" to "Privacy choices",
+        "privacy_not_required" to "No additional privacy choice is required right now.",
+        "ads_title" to "Advertising",
+        "ads_description" to "Google AdMob can show ads in the app. Your transferred files stay on the local network and are not sent to AdMob.",
+        "ads_test_mode" to "Test ads are active. Production AdMob IDs are not configured yet.",
+        "ads_production_mode" to "Production AdMob configuration is active.",
+        "transfer_summary" to "Transfer summary",
+        "files_count" to "%d files",
+        "transferred_size" to "%s transferred",
+        "elapsed_time" to "Duration %s",
+        "done" to "Done"
     )
 
     private val it = mapOf(
@@ -348,7 +364,18 @@ object AppText {
         "browser_session_expired" to "Sessione scaduta", "browser_session_expired_body" to "Crea un nuovo QR dal telefono.",
         "browser_not_found" to "Non trovato", "browser_not_found_body" to "La risorsa richiesta non esiste.",
         "notification_active" to "Sessione locale attiva", "notification_end" to "Termina",
-        "notification_channel" to "Trasferimento locale", "notification_channel_desc" to "Sessioni di trasferimento file tramite rete locale"
+        "notification_channel" to "Trasferimento locale", "notification_channel_desc" to "Sessioni di trasferimento file tramite rete locale",
+        "settings" to "Impostazioni", "theme" to "Tema",
+        "theme_system" to "Sistema", "theme_light" to "Chiaro", "theme_dark" to "Scuro",
+        "privacy_choices" to "Scelte sulla privacy",
+        "privacy_not_required" to "Al momento non sono richieste ulteriori scelte sulla privacy.",
+        "ads_title" to "Pubblicità",
+        "ads_description" to "Google AdMob può mostrare annunci nell'app. I file trasferiti restano sulla rete locale e non vengono inviati ad AdMob.",
+        "ads_test_mode" to "Sono attivi annunci di test. Gli ID AdMob di produzione non sono ancora configurati.",
+        "ads_production_mode" to "La configurazione AdMob di produzione è attiva.",
+        "transfer_summary" to "Riepilogo trasferimento", "files_count" to "%d file",
+        "transferred_size" to "%s trasferiti", "elapsed_time" to "Durata %s",
+        "done" to "Fatto"
     )
 
     private val es = mapOf(

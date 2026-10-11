@@ -1,0 +1,12 @@
+Invia al PC v1.17.0 — Monetization Foundation
+
+- Integrato Google Mobile Ads Next-Gen SDK con configurazione test-safe.
+- Integrato UMP per consenso e scelte privacy.
+- Banner adaptive mostrato solo fuori dalle sessioni di trasferimento attive.
+- Interstitial ammesso solo alla chiusura di una sessione completata e significativa.
+- Frequency cap: una volta per sessione e almeno 5 minuti tra interstitial.
+- Nuovo riepilogo trasferimento con file, dimensione e durata.
+- Nuova schermata Impostazioni con lingua, tema e privacy advertising.
+- Tema Sistema / Chiaro / Scuro persistente.
+- Gli ID AdMob production restano separati dal codice e opzionali fino alla configurazione.
+- I file trasferiti continuano a restare sulla rete locale; AdMob è una connessione esterna separata.

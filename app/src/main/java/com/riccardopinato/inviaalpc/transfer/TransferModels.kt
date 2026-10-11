@@ -73,6 +73,32 @@ data class TransferHistoryEntry(
     val completedAtMillis: Long = System.currentTimeMillis()
 )
 
+data class TransferOperationSummary(
+    val sessionId: String,
+    val startedAtMillis: Long,
+    val firstTransferAtMillis: Long? = null,
+    val lastCompletedAtMillis: Long? = null,
+    val completedFiles: Int = 0,
+    val completedBytes: Long = 0L,
+    val phoneToPcFiles: Int = 0,
+    val pcToPhoneFiles: Int = 0,
+    val expectedFiles: Int? = null,
+    val expectedBytes: Long? = null
+) {
+    val durationMillis: Long
+        get() {
+            val start =
+                firstTransferAtMillis
+                    ?: startedAtMillis
+            val end =
+                lastCompletedAtMillis
+                    ?: System.currentTimeMillis()
+
+            return (end - start)
+                .coerceAtLeast(0L)
+        }
+}
+
 data class TransferSession(
     val id: String = UUID.randomUUID().toString(),
     val token: String,
@@ -258,6 +284,15 @@ class TransferSessionManager(context: Context) {
     private val _history = MutableStateFlow(historyStore.load())
     val history: StateFlow<List<TransferHistoryEntry>> = _history.asStateFlow()
 
+    private val _operationSummary =
+        MutableStateFlow<TransferOperationSummary?>(null)
+    val operationSummary:
+        StateFlow<TransferOperationSummary?> =
+        _operationSummary.asStateFlow()
+
+    private val registeredBatchIds =
+        mutableSetOf<String>()
+
     private val _lastEndReason =
         MutableStateFlow<SessionEndReason?>(null)
     val lastEndReason: StateFlow<SessionEndReason?> =
@@ -286,6 +321,12 @@ class TransferSessionManager(context: Context) {
         )
         _progress.value = null
         _lastEndReason.value = null
+        registeredBatchIds.clear()
+        _operationSummary.value =
+            TransferOperationSummary(
+                sessionId = value.id,
+                startedAtMillis = now
+            )
         _session.value = value
         return value
     }
@@ -315,7 +356,52 @@ class TransferSessionManager(context: Context) {
 
     fun updateProgress(value: TransferProgress) {
         _progress.value = value
+
+        val currentSummary =
+            _operationSummary.value
+
+        if (
+            currentSummary != null &&
+            currentSummary.firstTransferAtMillis == null
+        ) {
+            _operationSummary.value =
+                currentSummary.copy(
+                    firstTransferAtMillis =
+                        System.currentTimeMillis()
+                )
+        }
+
         updateStatus(TransferStatus.TRANSFERRING)
+    }
+
+    @Synchronized
+    fun registerExpectedBatch(
+        batchId: String,
+        fileCount: Int,
+        totalBytes: Long
+    ) {
+        if (
+            batchId.isBlank() ||
+            fileCount <= 0 ||
+            totalBytes < 0L ||
+            !registeredBatchIds.add(batchId)
+        ) {
+            return
+        }
+
+        val current =
+            _operationSummary.value
+                ?: return
+
+        _operationSummary.value =
+            current.copy(
+                expectedFiles =
+                    (current.expectedFiles ?: 0) +
+                        fileCount,
+                expectedBytes =
+                    (current.expectedBytes ?: 0L) +
+                        totalBytes
+            )
     }
 
     @Synchronized
@@ -338,6 +424,49 @@ class TransferSessionManager(context: Context) {
 
         _history.value = updated
         historyStore.save(updated)
+
+        _operationSummary.value
+            ?.let { current ->
+                val completedSize =
+                    sizeBytes
+                        ?.coerceAtLeast(0L)
+                        ?: 0L
+
+                _operationSummary.value =
+                    current.copy(
+                        firstTransferAtMillis =
+                            current.firstTransferAtMillis
+                                ?: System.currentTimeMillis(),
+                        lastCompletedAtMillis =
+                            System.currentTimeMillis(),
+                        completedFiles =
+                            current.completedFiles + 1,
+                        completedBytes =
+                            current.completedBytes +
+                                completedSize,
+                        phoneToPcFiles =
+                            current.phoneToPcFiles +
+                                if (
+                                    direction ==
+                                    TransferDirection.PHONE_TO_PC
+                                ) {
+                                    1
+                                } else {
+                                    0
+                                },
+                        pcToPhoneFiles =
+                            current.pcToPhoneFiles +
+                                if (
+                                    direction ==
+                                    TransferDirection.PC_TO_PHONE
+                                ) {
+                                    1
+                                } else {
+                                    0
+                                }
+                    )
+            }
+
         _progress.value = null
         updateStatus(TransferStatus.COMPLETED)
     }
@@ -376,5 +505,7 @@ class TransferSessionManager(context: Context) {
     fun destroy() {
         _session.value = null
         _progress.value = null
+        _operationSummary.value = null
+        registeredBatchIds.clear()
     }
 }

@@ -8,6 +8,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.riccardopinato.inviaalpc.monetization.MonetizationController
 import com.riccardopinato.inviaalpc.ui.InviaAlPcApp
 import com.riccardopinato.inviaalpc.ui.theme.InviaAlPcTheme
 
@@ -22,12 +25,22 @@ class MainActivity : ComponentActivity() {
         processIntent(intent)
 
         setContent {
-            InviaAlPcTheme {
+            val uiState by
+                viewModel.uiState
+                    .collectAsState()
+
+            InviaAlPcTheme(
+                themeMode =
+                    uiState.themeMode
+            ) {
                 InviaAlPcApp(
                     viewModel = viewModel
                 )
             }
         }
+
+        MonetizationController
+            .initialize(this)
     }
 
     override fun onNewIntent(intent: Intent) {

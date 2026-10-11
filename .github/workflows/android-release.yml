@@ -78,11 +78,18 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_BANNER_ID: ${{ secrets.ADMOB_BANNER_ID }}
+          ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
         run: |
           ./gradlew assembleRelease bundleRelease --stacktrace
 
       - name: Verify release signing and collect identity
         shell: bash
+        env:
+          ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+          ADMOB_BANNER_ID: ${{ secrets.ADMOB_BANNER_ID }}
+          ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
         run: |
           set -euo pipefail
           APK=app/build/outputs/apk/release/app-release.apk
@@ -91,8 +98,8 @@ jobs:
           test -s "$AAB"
 
           mkdir -p build/release-artifacts
-          cp "$APK" build/release-artifacts/Invia-al-PC-v1.16.0.apk
-          cp "$AAB" build/release-artifacts/Invia-al-PC-v1.16.0.aab
+          cp "$APK" build/release-artifacts/Invia-al-PC-v1.17.0.apk
+          cp "$AAB" build/release-artifacts/Invia-al-PC-v1.17.0.aab
 
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" \
             > build/release-artifacts/SIGNING.txt
@@ -119,16 +126,21 @@ jobs:
           fi
 
           sha256sum \
-            build/release-artifacts/Invia-al-PC-v1.16.0.apk \
-            build/release-artifacts/Invia-al-PC-v1.16.0.aab \
+            build/release-artifacts/Invia-al-PC-v1.17.0.apk \
+            build/release-artifacts/Invia-al-PC-v1.17.0.aab \
             > build/release-artifacts/SHA256SUMS.txt
 
           {
             echo "source_sha=${GITHUB_SHA}"
             echo "workflow_run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo "package_id=com.riccardopinato.inviaalpc"
-            echo "version_name=1.16.0"
-            echo "version_code=27"
+            echo "version_name=1.17.0"
+            echo "version_code=28"
+            if [ -n "${ADMOB_APP_ID:-}" ] && [ -n "${ADMOB_BANNER_ID:-}" ] && [ -n "${ADMOB_INTERSTITIAL_ID:-}" ]; then
+              echo "admob_production_configured=true"
+            else
+              echo "admob_production_configured=false"
+            fi
             echo "expected_upload_certificate_sha256=$EXPECTED_UPLOAD_CERT_SHA256"
             echo "actual_upload_certificate_sha256=$ACTUAL_CERT_SHA256"
           } > build/release-artifacts/RELEASE_IDENTITY.txt
@@ -139,23 +151,23 @@ jobs:
       - name: Upload signed APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Invia-al-PC-v1.16.0-apk
-          path: build/release-artifacts/Invia-al-PC-v1.16.0.apk
+          name: Invia-al-PC-v1.17.0-apk
+          path: build/release-artifacts/Invia-al-PC-v1.17.0.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload Play AAB
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Invia-al-PC-v1.16.0-aab
-          path: build/release-artifacts/Invia-al-PC-v1.16.0.aab
+          name: Invia-al-PC-v1.17.0-aab
+          path: build/release-artifacts/Invia-al-PC-v1.17.0.aab
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload release evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Invia-al-PC-v1.16.0-release-evidence
+          name: Invia-al-PC-v1.17.0-release-evidence
           path: |
             build/release-artifacts/SHA256SUMS.txt
             build/release-artifacts/SIGNING.txt

@@ -31,6 +31,16 @@ Richiede i GitHub Secrets:
 
 La keystore non deve essere committata.
 
+AdMob production può essere configurato con tre secret aggiuntivi:
+
+- `ADMOB_APP_ID`
+- `ADMOB_BANNER_ID`
+- `ADMOB_INTERSTITIAL_ID`
+
+Questi identificatori non sono credenziali private, ma vengono tenuti fuori dal codice per separare chiaramente test traffic e production traffic.
+
+Se i tre valori non sono presenti, la release resta buildabile usando gli ID demo ufficiali Google e `ADMOB_PRODUCTION_CONFIGURED=false`. Tale artifact NON è la release monetizzata destinata allo Store.
+
 Output:
 - APK release firmato;
 - AAB;
@@ -85,8 +95,12 @@ Il gate signing è quindi chiuso. Restano separati i gate di physical QA, update
 
 L'APK fisicamente verificato deve essere lo stesso artifact, con lo stesso SHA-256, poi distribuito. Una rebuild produce un artifact diverso e richiede nuova evidence.
 
-## Versione roadmap
+## Versione sviluppo corrente
 
-- versionName: 1.16.0
-- versionCode: 27
+- versionName: 1.17.0
+- versionCode: 28
 - package: com.riccardopinato.inviaalpc
+- signing identity: invariata
+- AdMob production IDs: PENDING
+
+La v1.16.0 sopra resta l'ultima release con Production Signing VERIFIED finché non viene eseguito un nuovo workflow release per la versione corrente.

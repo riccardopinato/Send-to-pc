@@ -9,6 +9,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.riccardopinato.inviaalpc.AppThemeMode
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF4F63F2),
@@ -68,9 +69,21 @@ private val AppShapes = Shapes(
 
 @Composable
 fun InviaAlPcTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
+    val darkTheme =
+        when (themeMode) {
+            AppThemeMode.SYSTEM ->
+                isSystemInDarkTheme()
+
+            AppThemeMode.LIGHT ->
+                false
+
+            AppThemeMode.DARK ->
+                true
+        }
+
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
         shapes = AppShapes,
