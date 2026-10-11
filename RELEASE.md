@@ -97,8 +97,8 @@ L'APK fisicamente verificato deve essere lo stesso artifact, con lo stesso SHA-2
 
 ## Versione sviluppo corrente
 
-- versionName: 1.17.0
-- versionCode: 28
+- versionName: 1.18.0
+- versionCode: 29
 - package: com.riccardopinato.inviaalpc
 - signing identity: invariata
 - AdMob production IDs: PENDING
