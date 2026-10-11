@@ -118,6 +118,7 @@ fun InviaAlPcApp(
     fun startConnection() {
         val requiresRuntimePermission =
             Build.VERSION.SDK_INT >= 37 &&
+                context.applicationInfo.targetSdkVersion >= 37 &&
                 ContextCompat.checkSelfPermission(
                     context,
                     LOCAL_NETWORK_PERMISSION
