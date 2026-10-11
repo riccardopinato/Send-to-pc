@@ -81,6 +81,15 @@ Finché il trasporto resta HTTP:
 - non dichiarare protezione contro un attaccante sulla stessa LAN;
 - non suggerire l'uso su Wi-Fi pubbliche/non fidate.
 
+## Store security gate
+
+Per build INTERNAL/QA il rischio è esplicitamente visibile e può essere testato su rete privata.
+
+Per una release Google Play, invece, il trasferimento arbitrario di file/testo/link può includere dati personali o sensibili. La User Data policy richiede protezione con crittografia moderna durante la trasmissione. Di conseguenza il trasporto HTTP LAN è un blocker da risolvere o chiudere con evidence/policy interpretation adeguata prima di STORE READY.
+
+Riferimento:
+https://support.google.com/googleplay/android-developer/answer/18258653
+
 ## Possibile hardening futuro
 
-TLS locale con certificato/pairing o un trasporto P2P cifrato può ridurre il rischio di sniffing, ma richiede una valutazione separata di UX, compatibilità browser, footprint e gestione certificati.
+TLS locale con certificato/pairing, un trasporto P2P cifrato o un'altra soluzione end-to-end compatibile con il requisito browser-only richiedono una valutazione separata di UX, compatibilità browser, footprint e gestione certificati.
