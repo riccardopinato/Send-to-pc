@@ -2,24 +2,36 @@
 
 Invia al PC trasferisce file, foto, testo e link direttamente tra telefono e computer sulla rete locale.
 
-## Dati trattati
+## Dati trasferiti
 
-L'app può accedere esclusivamente ai contenuti che l'utente seleziona per il trasferimento e ai file ricevuti dal computer.
+L'app accede ai contenuti che l'utente seleziona per il trasferimento e ai file ricevuti dal computer.
 
-## Nessun cloud
+I contenuti trasferiti non vengono inviati a un cloud dell'app: il trasferimento avviene direttamente sulla rete locale tra telefono e browser del PC.
 
-I contenuti trasferiti non vengono inviati a server esterni dell'app. Il trasferimento avviene direttamente sulla rete locale tra i dispositivi.
+## Pubblicità e consenso
 
-## Cronologia
+L'app integra Google AdMob per la pubblicità e Google User Messaging Platform (UMP) per gestire le scelte privacy quando richieste.
+
+AdMob e UMP possono effettuare connessioni Internet verso i servizi Google indipendenti dal trasferimento locale dei file.
+
+L'integrazione dell'app non invia ad AdMob il contenuto dei file, del testo o dei link trasferiti.
+
+Le scelte privacy possono essere riaperte dalle Impostazioni quando UMP indica che il relativo punto di accesso è richiesto.
+
+## Cronologia e PC fidati
 
 La cronologia dei trasferimenti e l'elenco dei PC fidati vengono conservati localmente sul dispositivo. Possono essere cancellati dall'utente dall'app.
 
-## Account e analisi
+## Account
 
-L'app non richiede un account e non integra sistemi pubblicitari o di analytics.
+L'app non richiede un account.
 
-## Permessi
+## Permessi e rete
 
-Il permesso Internet viene utilizzato per la comunicazione HTTP sulla rete locale. Il servizio in primo piano mantiene attiva una sessione di trasferimento mentre è in uso.
+Il permesso Internet viene utilizzato sia per la comunicazione HTTP sulla rete locale sia per i servizi pubblicitari/privacy quando attivi.
 
-Ultimo aggiornamento: 21 settembre 2026.
+Il servizio in primo piano mantiene attiva una sessione di trasferimento mentre è in uso.
+
+Il traffico dei trasferimenti locali usa HTTP e non è cifrato: usare la funzione di trasferimento solo su Wi-Fi privata o fidata.
+
+Ultimo aggiornamento: 11 ottobre 2026.
