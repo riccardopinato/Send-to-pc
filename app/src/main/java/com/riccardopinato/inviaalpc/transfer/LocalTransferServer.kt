@@ -155,8 +155,11 @@ class LocalTransferServer(
                     sendHtml(
                         output,
                         503,
-                        "Sessione non disponibile",
-                        errorPage("Sessione non disponibile", "Avvia una nuova sessione dal telefono.")
+                        localized("browser_session_missing"),
+                        errorPage(
+                            localized("browser_session_missing"),
+                            localized("browser_session_missing_body")
+                        )
                     )
                     return
                 }
@@ -166,8 +169,11 @@ class LocalTransferServer(
                     sendHtml(
                         output,
                         410,
-                        "Sessione scaduta",
-                        errorPage("Sessione scaduta", "Crea un nuovo QR dal telefono.")
+                        localized("browser_session_expired"),
+                        errorPage(
+                            localized("browser_session_expired"),
+                            localized("browser_session_expired_body")
+                        )
                     )
                     return
                 }
@@ -203,7 +209,12 @@ class LocalTransferServer(
             request.method == "GET" && path == "/s/" + session.token -> {
                 if (isAuthenticated(request)) {
                     sessionManager.updateStatus(TransferStatus.CONNECTED)
-                    sendHtml(output, 200, "Invia al PC", dashboardPage(session))
+                    sendHtml(
+                        output,
+                        200,
+                        localized("app_name"),
+                        dashboardPage(session)
+                    )
                 } else {
                     sendHtml(output, 200, "PIN", pinPage(session.token))
                 }
@@ -291,8 +302,11 @@ class LocalTransferServer(
                 sendHtml(
                     output,
                     404,
-                    "Non trovato",
-                    errorPage("404", "La risorsa richiesta non esiste.")
+                    localized("browser_not_found"),
+                    errorPage(
+                        "404",
+                        localized("browser_not_found_body")
+                    )
                 )
             }
         }
@@ -319,8 +333,11 @@ class LocalTransferServer(
             sendHtml(
                 output,
                 401,
-                "PIN errato",
-                pinPage(session.token, "PIN errato. Riprova.")
+                localized("browser_wrong_pin"),
+                pinPage(
+                    session.token,
+                    localized("browser_wrong_pin")
+                )
             )
             return
         }
