@@ -10,6 +10,7 @@ import com.riccardopinato.inviaalpc.transfer.LocalTransferServer
 import com.riccardopinato.inviaalpc.transfer.NetworkUtils
 import com.riccardopinato.inviaalpc.transfer.SharedItem
 import com.riccardopinato.inviaalpc.transfer.SharedItemResolver
+import com.riccardopinato.inviaalpc.transfer.SessionEndReason
 import com.riccardopinato.inviaalpc.transfer.TransferForegroundService
 import com.riccardopinato.inviaalpc.transfer.TransferDirection
 import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
@@ -91,6 +92,20 @@ class TransferViewModel(
                             preparing = false
                         )
                 }
+            }
+        }
+
+        viewModelScope.launch {
+            manager.lastEndReason.collect { reason ->
+                val message =
+                    sessionEndMessage(reason)
+                        ?: return@collect
+
+                _uiState.value =
+                    _uiState.value.copy(
+                        error = message,
+                        preparing = false
+                    )
             }
         }
     }
@@ -307,7 +322,7 @@ class TransferViewModel(
                     sessionManager = manager
                 )
 
-            val port = server.start()
+            val port = server.start(ip)
             TransferRuntime.attachServer(server)
 
             val created =
@@ -337,7 +352,9 @@ class TransferViewModel(
                     preparing = false
                 )
         } catch (throwable: Throwable) {
-            TransferRuntime.stopEverything()
+            TransferRuntime.stopEverything(
+                SessionEndReason.SERVER_ERROR
+            )
 
             _uiState.value =
                 _uiState.value.copy(
@@ -499,6 +516,30 @@ class TransferViewModel(
                 }
             }
     }
+
+    private fun sessionEndMessage(
+        reason: SessionEndReason?
+    ): String? =
+        when (reason) {
+            null,
+            SessionEndReason.USER_STOP ->
+                null
+
+            SessionEndReason.EXPIRED ->
+                "La sessione è scaduta. Crea un nuovo collegamento."
+
+            SessionEndReason.NETWORK_LOST ->
+                "La Wi-Fi è rimasta non disponibile per più di 12 secondi. Riconnettiti e crea una nuova sessione."
+
+            SessionEndReason.IP_CHANGED ->
+                "L'indirizzo di rete del telefono è cambiato. Crea un nuovo QR per continuare."
+
+            SessionEndReason.ANDROID_TIMEOUT ->
+                "Android ha terminato il servizio di trasferimento in background. Crea una nuova sessione."
+
+            SessionEndReason.SERVER_ERROR ->
+                "Il server locale si è arrestato in modo inatteso. Riprova a creare la sessione."
+        }
 
     private fun friendlySessionError(
         throwable: Throwable
