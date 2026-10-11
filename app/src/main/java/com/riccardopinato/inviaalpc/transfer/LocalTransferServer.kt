@@ -1942,14 +1942,23 @@ async function trustThisPc(){
             ) +
             "'"
 
-    private fun errorPage(title: String, message: String): String =
-        """<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>""" +
+    private fun errorPage(
+        title: String,
+        message: String
+    ): String {
+        val language =
+            AppLanguageStore.current(
+                context
+            )
+
+        return """<!doctype html><html lang="${language.code}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>""" +
             htmlEscape(title) +
             """</title></head><body style="font-family:system-ui;background:#f4f6fb;padding:30px"><div style="max-width:500px;margin:auto;background:white;padding:28px;border-radius:24px"><h1>""" +
             htmlEscape(title) +
             """</h1><p>""" +
             htmlEscape(message) +
             """</p></div></body></html>"""
+    }
 
     private fun sendHtml(
         output: OutputStream,
