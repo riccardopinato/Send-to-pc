@@ -52,6 +52,7 @@ import com.riccardopinato.inviaalpc.TransferViewModel
 import com.riccardopinato.inviaalpc.monetization.AdaptiveBannerAd
 import com.riccardopinato.inviaalpc.monetization.MonetizationController
 import com.riccardopinato.inviaalpc.transfer.SharedItem
+import com.riccardopinato.inviaalpc.transfer.TransferContentKind
 import com.riccardopinato.inviaalpc.transfer.TransferDirection
 import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
 import com.riccardopinato.inviaalpc.transfer.TransferOperationSummary
@@ -410,7 +411,11 @@ fun InviaAlPcApp(
                                 onOpen =
                                     viewModel::openHistoryEntry,
                                 onReuse =
-                                    viewModel::reuseHistoryEntry
+                                    viewModel::reuseHistoryEntry,
+                                onCopy =
+                                    viewModel::copyHistoryText,
+                                onShare =
+                                    viewModel::shareHistoryEntry
                             )
                         }
 
@@ -958,6 +963,24 @@ private fun ActiveSessionScreen(
             }
         }
 
+        if (
+            operationSummary != null &&
+            progress != null &&
+            (
+                operationSummary.expectedFiles != null ||
+                    operationSummary.expectedBytes != null
+                )
+        ) {
+            item {
+                OverallProgressCard(
+                    summary =
+                        operationSummary,
+                    progress =
+                        progress
+                )
+            }
+        }
+
         progress?.let { current ->
             item {
                 TransferProgressCard(current)
@@ -1056,6 +1079,105 @@ private fun ActiveSessionScreen(
 }
 
 @Composable
+private fun OverallProgressCard(
+    summary: TransferOperationSummary,
+    progress: TransferProgress
+) {
+    val expectedFiles =
+        summary.expectedFiles
+
+    val expectedBytes =
+        summary.expectedBytes
+
+    val transferredBytes =
+        (
+            summary.completedBytes +
+                progress.transferredBytes
+            ).coerceAtLeast(
+            summary.completedBytes
+        )
+
+    Card(
+        modifier =
+            Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                tr("overall_progress"),
+                fontWeight =
+                    FontWeight.Bold
+            )
+
+            if (
+                expectedBytes != null &&
+                expectedBytes > 0L
+            ) {
+                val percent =
+                    (
+                        transferredBytes
+                            .coerceAtMost(
+                                expectedBytes
+                            )
+                            .toDouble() /
+                            expectedBytes
+                                .toDouble()
+                        ).toFloat()
+
+                LinearProgressIndicator(
+                    progress = {
+                        percent
+                    },
+                    modifier =
+                        Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    formatBytes(
+                        transferredBytes
+                            .coerceAtMost(
+                                expectedBytes
+                            )
+                    ) +
+                        " / " +
+                        formatBytes(
+                            expectedBytes
+                        ),
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall
+                )
+            }
+
+            if (
+                expectedFiles != null &&
+                expectedFiles > 0
+            ) {
+                Text(
+                    tr(
+                        "items_progress",
+                        summary.completedFiles
+                            .coerceAtMost(
+                                expectedFiles
+                            ),
+                        expectedFiles
+                    ),
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun TransferProgressCard(
     progress: TransferProgress
 ) {
@@ -1137,6 +1259,22 @@ private fun TransferProgressCard(
 private fun TransferSummaryCard(
     summary: TransferOperationSummary
 ) {
+    val durationSeconds =
+        (
+            summary.durationMillis /
+                1000L
+            ).coerceAtLeast(0L)
+
+    val averageBytesPerSecond =
+        if (
+            durationSeconds > 0L
+        ) {
+            summary.completedBytes /
+                durationSeconds
+        } else {
+            0L
+        }
+
     Card(
         modifier =
             Modifier.fillMaxWidth(),
@@ -1175,6 +1313,25 @@ private fun TransferSummaryCard(
                         .onSecondaryContainer
             )
 
+            if (
+                summary.phoneToPcFiles > 0 ||
+                summary.pcToPhoneFiles > 0
+            ) {
+                Text(
+                    tr("sent") +
+                        ": " +
+                        summary.phoneToPcFiles +
+                        " • " +
+                        tr("received") +
+                        ": " +
+                        summary.pcToPhoneFiles,
+                    color =
+                        MaterialTheme
+                            .colorScheme
+                            .onSecondaryContainer
+                )
+            }
+
             Text(
                 tr(
                     "transferred_size",
@@ -1192,8 +1349,7 @@ private fun TransferSummaryCard(
                 tr(
                     "elapsed_time",
                     formatDuration(
-                        summary.durationMillis /
-                            1000L
+                        durationSeconds
                     )
                 ),
                 color =
@@ -1201,6 +1357,24 @@ private fun TransferSummaryCard(
                         .colorScheme
                         .onSecondaryContainer
             )
+
+            if (
+                averageBytesPerSecond > 0L
+            ) {
+                Text(
+                    formatBytes(
+                        averageBytesPerSecond
+                    ) + "/s",
+                    style =
+                        MaterialTheme
+                            .typography
+                            .bodySmall,
+                    color =
+                        MaterialTheme
+                            .colorScheme
+                            .onSecondaryContainer
+                )
+            }
         }
     }
 }
@@ -1213,11 +1387,24 @@ private fun RecentsScreen(
     onClear: () -> Unit,
     onDismissError: () -> Unit,
     onOpen: (TransferHistoryEntry) -> Unit,
-    onReuse: (TransferHistoryEntry) -> Unit
+    onReuse: (TransferHistoryEntry) -> Unit,
+    onCopy: (TransferHistoryEntry) -> Unit,
+    onShare: (TransferHistoryEntry) -> Unit
 ) {
     var confirmClear by remember {
         mutableStateOf(false)
     }
+
+    val sessionGroups =
+        remember(history) {
+            history
+                .groupBy {
+                    it.sessionId
+                        ?: it.id
+                }
+                .values
+                .toList()
+        }
 
     if (confirmClear) {
         AlertDialog(
@@ -1225,11 +1412,17 @@ private fun RecentsScreen(
                 confirmClear = false
             },
             title = {
-                Text(tr("clear_history_title"))
+                Text(
+                    tr(
+                        "clear_history_title"
+                    )
+                )
             },
             text = {
                 Text(
-                    tr("clear_history_body")
+                    tr(
+                        "clear_history_body"
+                    )
                 )
             },
             confirmButton = {
@@ -1258,30 +1451,56 @@ private fun RecentsScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(bottom = 24.dp)
+                .padding(
+                    horizontal = 18.dp
+                ),
+        verticalArrangement =
+            Arrangement.spacedBy(
+                10.dp
+            ),
+        contentPadding =
+            PaddingValues(
+                bottom = 24.dp
+            )
     ) {
         item {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier.fillMaxWidth(),
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
                 IconBadge(
-                    iconRes = R.drawable.ic_history,
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    iconRes =
+                        R.drawable.ic_history,
+                    containerColor =
+                        MaterialTheme
+                            .colorScheme
+                            .primaryContainer,
+                    contentColor =
+                        MaterialTheme
+                            .colorScheme
+                            .onPrimaryContainer
                 )
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(
+                    Modifier.width(
+                        12.dp
+                    )
+                )
 
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 ) {
                     Text(
                         tr("recents"),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        style =
+                            MaterialTheme
+                                .typography
+                                .headlineSmall,
+                        fontWeight =
+                            FontWeight.Bold
                     )
 
                     Text(
@@ -1289,13 +1508,18 @@ private fun RecentsScreen(
                     )
                 }
 
-                if (history.isNotEmpty()) {
+                if (
+                    history.isNotEmpty()
+                ) {
                     TextButton(
                         onClick = {
-                            confirmClear = true
+                            confirmClear =
+                                true
                         }
                     ) {
-                        Text(tr("clear"))
+                        Text(
+                            tr("clear")
+                        )
                     }
                 }
             }
@@ -1305,7 +1529,8 @@ private fun RecentsScreen(
             item {
                 ErrorCard(
                     text = it,
-                    onDismiss = onDismissError
+                    onDismiss =
+                        onDismissError
                 )
             }
         }
@@ -1313,117 +1538,319 @@ private fun RecentsScreen(
         if (history.isEmpty()) {
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
                 ) {
                     Text(
-                        tr("recent_empty"),
-                        modifier = Modifier.padding(22.dp)
+                        tr(
+                            "recent_empty"
+                        ),
+                        modifier =
+                            Modifier.padding(
+                                22.dp
+                            )
                     )
                 }
             }
         } else {
             items(
-                items = history,
-                key = { it.id }
-            ) { entry ->
-                val directionLabel =
-                    if (
-                        entry.direction ==
-                        TransferDirection.PHONE_TO_PC
-                    ) {
-                        tr("sent")
-                    } else {
-                        tr("received")
+                items =
+                    sessionGroups,
+                key = { group ->
+                    group.first().sessionId
+                        ?: group.first().id
+                }
+            ) { group ->
+                val totalBytes =
+                    group
+                        .mapNotNull {
+                            it.sizeBytes
+                        }
+                        .sum()
+
+                val latestDate =
+                    group.maxOf {
+                        it.completedAtMillis
                     }
 
-                val historyDateLabel =
-                    formatHistoryDate(
-                        entry.completedAtMillis
-                    )
-
                 Card(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier =
+                            Modifier.padding(
+                                16.dp
+                            ),
+                        verticalArrangement =
+                            Arrangement.spacedBy(
+                                10.dp
+                            )
                     ) {
-                        DirectionBadge(
-                            direction = entry.direction
+                        Text(
+                            tr(
+                                "session_group",
+                                group.size,
+                                formatBytes(
+                                    totalBytes
+                                )
+                            ),
+                            fontWeight =
+                                FontWeight.Bold
                         )
 
-                        Spacer(Modifier.width(14.dp))
+                        Text(
+                            formatHistoryDate(
+                                latestDate
+                            ),
+                            style =
+                                MaterialTheme
+                                    .typography
+                                    .bodySmall,
+                            color =
+                                MaterialTheme
+                                    .colorScheme
+                                    .onSurfaceVariant
+                        )
 
-                        Column(
-                            modifier = Modifier.weight(1f)
+                        group.forEachIndexed {
+                                index,
+                                entry ->
+                            if (index > 0) {
+                                HorizontalDivider()
+                            }
+
+                            HistoryEntryRow(
+                                entry =
+                                    entry,
+                                onOpen =
+                                    onOpen,
+                                onReuse =
+                                    onReuse,
+                                onCopy =
+                                    onCopy,
+                                onShare =
+                                    onShare
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryEntryRow(
+    entry: TransferHistoryEntry,
+    onOpen: (TransferHistoryEntry) -> Unit,
+    onReuse: (TransferHistoryEntry) -> Unit,
+    onCopy: (TransferHistoryEntry) -> Unit,
+    onShare: (TransferHistoryEntry) -> Unit
+) {
+    val directionLabel =
+        if (
+            entry.direction ==
+                TransferDirection
+                    .PHONE_TO_PC
+        ) {
+            tr("sent")
+        } else {
+            tr("received")
+        }
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(
+                    vertical = 2.dp
+                ),
+        verticalAlignment =
+            Alignment.Top
+    ) {
+        DirectionBadge(
+            direction =
+                entry.direction
+        )
+
+        Spacer(
+            Modifier.width(12.dp)
+        )
+
+        Column(
+            modifier =
+                Modifier.weight(1f)
+        ) {
+            Text(
+                when (entry.kind) {
+                    TransferContentKind.FILE ->
+                        entry.fileName
+
+                    TransferContentKind.TEXT ->
+                        tr("text_received")
+
+                    TransferContentKind.LINK ->
+                        tr("link_received")
+                },
+                maxLines = 1,
+                overflow =
+                    TextOverflow.Ellipsis,
+                fontWeight =
+                    FontWeight.SemiBold
+            )
+
+            Text(
+                buildString {
+                    append(
+                        directionLabel
+                    )
+
+                    entry.sizeBytes
+                        ?.let {
+                            append(" • ")
+                            append(
+                                formatBytes(
+                                    it
+                                )
+                            )
+                        }
+                },
+                style =
+                    MaterialTheme
+                        .typography
+                        .bodySmall,
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSurfaceVariant
+            )
+
+            entry.textContent
+                ?.takeIf {
+                    it.isNotBlank()
+                }
+                ?.let {
+                    Text(
+                        it,
+                        modifier =
+                            Modifier.padding(
+                                top = 4.dp
+                            ),
+                        maxLines = 2,
+                        overflow =
+                            TextOverflow
+                                .Ellipsis,
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall
+                    )
+                }
+
+            Row(
+                modifier =
+                    Modifier.padding(
+                        top = 4.dp
+                    ),
+                horizontalArrangement =
+                    Arrangement.spacedBy(
+                        4.dp
+                    )
+            ) {
+                when (entry.kind) {
+                    TransferContentKind.FILE -> {
+                        if (
+                            entry.direction ==
+                                TransferDirection
+                                    .PC_TO_PHONE &&
+                            !entry.contentUri
+                                .isNullOrBlank()
                         ) {
-                            Text(
-                                entry.fileName,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                fontWeight = FontWeight.SemiBold
-                            )
-
-                            Text(
-                                buildString {
-                                    append(
-                                        directionLabel
+                            TextButton(
+                                onClick = {
+                                    onOpen(
+                                        entry
                                     )
-
-                                    entry.sizeBytes?.let {
-                                        append(" • ")
-                                        append(formatBytes(it))
-                                    }
-
-                                    append(" • ")
-                                    append(
-                                        historyDateLabel
-                                    )
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            if (!entry.contentUri.isNullOrBlank()) {
-                                Row(
-                                    modifier = Modifier.padding(top = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    if (
-                                        entry.direction ==
-                                        TransferDirection.PC_TO_PHONE
-                                    ) {
-                                        TextButton(
-                                            onClick = {
-                                                onOpen(entry)
-                                            }
-                                        ) {
-                                            AppIcon(
-                                                R.drawable.ic_open,
-                                                null,
-                                                Modifier.size(18.dp)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(tr("open"))
-                                        }
-                                    } else {
-                                        TextButton(
-                                            onClick = {
-                                                onReuse(entry)
-                                            }
-                                        ) {
-                                            AppIcon(
-                                                R.drawable.ic_refresh,
-                                                null,
-                                                Modifier.size(18.dp)
-                                            )
-                                            Spacer(Modifier.width(4.dp))
-                                            Text(tr("send_again"))
-                                        }
-                                    }
                                 }
+                            ) {
+                                Text(
+                                    tr("open")
+                                )
+                            }
+                        } else if (
+                            entry.direction ==
+                                TransferDirection
+                                    .PHONE_TO_PC &&
+                            !entry.contentUri
+                                .isNullOrBlank()
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    onReuse(
+                                        entry
+                                    )
+                                }
+                            ) {
+                                Text(
+                                    tr(
+                                        "send_again"
+                                    )
+                                )
                             }
                         }
+                    }
+
+                    TransferContentKind.TEXT -> {
+                        TextButton(
+                            onClick = {
+                                onCopy(entry)
+                            }
+                        ) {
+                            Text(
+                                tr("copy")
+                            )
+                        }
+                    }
+
+                    TransferContentKind.LINK -> {
+                        TextButton(
+                            onClick = {
+                                onOpen(entry)
+                            }
+                        ) {
+                            Text(
+                                tr(
+                                    "open_link"
+                                )
+                            )
+                        }
+                    }
+                }
+
+                val canShare =
+                    when (entry.kind) {
+                        TransferContentKind.FILE ->
+                            !entry.contentUri
+                                .isNullOrBlank()
+
+                        TransferContentKind.TEXT,
+                        TransferContentKind.LINK ->
+                            !entry.textContent
+                                .isNullOrBlank()
+                    }
+
+                if (canShare) {
+                    TextButton(
+                        onClick = {
+                            onShare(entry)
+                        }
+                    ) {
+                        Text(
+                            tr("share")
+                        )
                     }
                 }
             }

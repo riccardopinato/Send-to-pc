@@ -18,6 +18,12 @@ enum class TransferDirection {
     PC_TO_PHONE
 }
 
+enum class TransferContentKind {
+    FILE,
+    TEXT,
+    LINK
+}
+
 enum class TransferStatus {
     WAITING,
     CONNECTED,
@@ -65,11 +71,14 @@ data class TransferProgress(
 
 data class TransferHistoryEntry(
     val id: String = UUID.randomUUID().toString(),
+    val sessionId: String? = null,
     val fileName: String,
     val sizeBytes: Long?,
     val direction: TransferDirection,
+    val kind: TransferContentKind = TransferContentKind.FILE,
     val contentUri: String? = null,
     val mimeType: String? = null,
+    val textContent: String? = null,
     val completedAtMillis: Long = System.currentTimeMillis()
 )
 
@@ -234,12 +243,42 @@ private class TransferHistoryStore(context: Context) {
                     add(
                         TransferHistoryEntry(
                             id = item.getString("id"),
+                            sessionId =
+                                item.optString("sessionId", "")
+                                    .takeIf { it.isNotBlank() },
                             fileName = item.getString("name"),
-                            sizeBytes = if (item.isNull("size")) null else item.getLong("size"),
-                            direction = TransferDirection.valueOf(item.getString("direction")),
-                            contentUri = item.optString("uri", "").takeIf { it.isNotBlank() },
-                            mimeType = item.optString("mime", "").takeIf { it.isNotBlank() },
-                            completedAtMillis = item.getLong("date")
+                            sizeBytes =
+                                if (item.isNull("size")) {
+                                    null
+                                } else {
+                                    item.getLong("size")
+                                },
+                            direction =
+                                TransferDirection.valueOf(
+                                    item.getString("direction")
+                                ),
+                            kind =
+                                runCatching {
+                                    TransferContentKind.valueOf(
+                                        item.optString(
+                                            "kind",
+                                            TransferContentKind.FILE.name
+                                        )
+                                    )
+                                }.getOrDefault(
+                                    TransferContentKind.FILE
+                                ),
+                            contentUri =
+                                item.optString("uri", "")
+                                    .takeIf { it.isNotBlank() },
+                            mimeType =
+                                item.optString("mime", "")
+                                    .takeIf { it.isNotBlank() },
+                            textContent =
+                                item.optString("text", "")
+                                    .takeIf { it.isNotBlank() },
+                            completedAtMillis =
+                                item.getLong("date")
                         )
                     )
                 }
@@ -254,11 +293,34 @@ private class TransferHistoryStore(context: Context) {
             array.put(
                 JSONObject().apply {
                     put("id", entry.id)
+                    if (entry.sessionId == null) {
+                        put("sessionId", JSONObject.NULL)
+                    } else {
+                        put("sessionId", entry.sessionId)
+                    }
                     put("name", entry.fileName)
-                    if (entry.sizeBytes == null) put("size", JSONObject.NULL) else put("size", entry.sizeBytes)
+                    if (entry.sizeBytes == null) {
+                        put("size", JSONObject.NULL)
+                    } else {
+                        put("size", entry.sizeBytes)
+                    }
                     put("direction", entry.direction.name)
-                    if (entry.contentUri == null) put("uri", JSONObject.NULL) else put("uri", entry.contentUri)
-                    if (entry.mimeType == null) put("mime", JSONObject.NULL) else put("mime", entry.mimeType)
+                    put("kind", entry.kind.name)
+                    if (entry.contentUri == null) {
+                        put("uri", JSONObject.NULL)
+                    } else {
+                        put("uri", entry.contentUri)
+                    }
+                    if (entry.mimeType == null) {
+                        put("mime", JSONObject.NULL)
+                    } else {
+                        put("mime", entry.mimeType)
+                    }
+                    if (entry.textContent == null) {
+                        put("text", JSONObject.NULL)
+                    } else {
+                        put("text", entry.textContent)
+                    }
                     put("date", entry.completedAtMillis)
                 }
             )
@@ -322,10 +384,28 @@ class TransferSessionManager(context: Context) {
         _progress.value = null
         _lastEndReason.value = null
         registeredBatchIds.clear()
+        val expectedFileCount =
+            sharedItems.size
+                .takeIf { it > 0 }
+
+        val knownExpectedBytes =
+            sharedItems
+                .mapNotNull { it.sizeBytes }
+                .sum()
+                .takeIf {
+                    sharedItems.isNotEmpty() &&
+                        sharedItems.all {
+                            item ->
+                            item.sizeBytes != null
+                        }
+                }
+
         _operationSummary.value =
             TransferOperationSummary(
                 sessionId = value.id,
-                startedAtMillis = now
+                startedAtMillis = now,
+                expectedFiles = expectedFileCount,
+                expectedBytes = knownExpectedBytes
             )
         _session.value = value
         return value
@@ -409,16 +489,22 @@ class TransferSessionManager(context: Context) {
         fileName: String,
         sizeBytes: Long?,
         direction: TransferDirection,
+        kind: TransferContentKind = TransferContentKind.FILE,
         contentUri: String? = null,
-        mimeType: String? = null
+        mimeType: String? = null,
+        textContent: String? = null
     ) {
         val updated = listOf(
             TransferHistoryEntry(
+                sessionId =
+                    _session.value?.id,
                 fileName = fileName,
                 sizeBytes = sizeBytes,
                 direction = direction,
+                kind = kind,
                 contentUri = contentUri,
-                mimeType = mimeType
+                mimeType = mimeType,
+                textContent = textContent
             )
         ) + _history.value.take(49)
 

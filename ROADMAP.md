@@ -25,13 +25,16 @@ Gate:
 
 ## v1.18 — Transfer Experience
 
-Stato: PLANNED
+Stato: IMPLEMENTED — CI/QA AUTOMATED PENDING
 
-- PC -> telefono: testo e link.
-- Progress complessivo per batch PC -> telefono.
-- Riepilogo operazione più ricco.
-- Condividi file ricevuto tramite Android share sheet.
-- Migliore gestione/aggregazione della cronologia.
+- PC -> telefono: testo e link dal browser con endpoint autenticato e validazione URL.
+- Registrazione batch PC -> telefono con conteggio file e byte attesi.
+- Progress complessivo di sessione oltre al progress del file corrente.
+- Riepilogo operazione con direzione, volume, durata e velocità media.
+- Condivisione Android per file, testo e link ricevuti.
+- Copia testo e apertura link dalla cronologia.
+- Cronologia raggruppata per sessione con compatibilità per record legacy.
+- Metadata di cronologia estesi con sessionId e tipo contenuto.
 
 ## v1.19 — Polish & Store Preparation
 

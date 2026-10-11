@@ -251,6 +251,36 @@ class LocalTransferServer(
                 downloadItem(request, output, session, itemId)
             }
 
+            request.method == "POST" &&
+                path == "/upload/batch/" + session.token -> {
+
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                registerUploadBatch(
+                    request,
+                    input,
+                    output
+                )
+            }
+
+            request.method == "POST" &&
+                path == "/content/" + session.token -> {
+
+                if (!isAuthenticated(request)) {
+                    sendJson(output, 401, """{"error":"authentication_required"}""")
+                    return
+                }
+
+                receiveContent(
+                    request,
+                    input,
+                    output
+                )
+            }
+
             request.method == "GET" &&
                 path.startsWith("/upload/status/" + session.token + "/") -> {
 
@@ -713,6 +743,222 @@ class LocalTransferServer(
                 )
             }
         }
+    }
+
+    private fun registerUploadBatch(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream
+    ) {
+        val length =
+            request.contentLength
+                .coerceAtMost(4096L)
+                .toInt()
+
+        val body =
+            readExact(
+                input,
+                length
+            ).toString(
+                StandardCharsets.UTF_8
+            )
+
+        val values =
+            parseUrlEncoded(body)
+
+        val batchId =
+            values["batchId"]
+                ?.trim()
+                .orEmpty()
+
+        val fileCount =
+            values["fileCount"]
+                ?.toIntOrNull()
+                ?: 0
+
+        val totalBytes =
+            values["totalBytes"]
+                ?.toLongOrNull()
+                ?: -1L
+
+        val maxBatchBytes =
+            TransferLimits
+                .MAX_SINGLE_UPLOAD_BYTES *
+                TransferLimits
+                    .MAX_SELECTED_FILES
+
+        if (
+            batchId.isBlank() ||
+            batchId.length > 100 ||
+            fileCount !in
+                1..TransferLimits.MAX_SELECTED_FILES ||
+            totalBytes < 0L ||
+            totalBytes > maxBatchBytes
+        ) {
+            sendJson(
+                output,
+                400,
+                """{"error":"invalid_batch"}"""
+            )
+            return
+        }
+
+        sessionManager
+            .registerExpectedBatch(
+                batchId = batchId,
+                fileCount = fileCount,
+                totalBytes = totalBytes
+            )
+
+        sendJson(
+            output,
+            200,
+            """{"ok":true}"""
+        )
+    }
+
+    private fun receiveContent(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream
+    ) {
+        val maxEncodedBody =
+            TransferLimits
+                .MAX_SHARED_TEXT_LENGTH
+                .toLong() *
+                4L
+
+        if (
+            request.contentLength <= 0L ||
+            request.contentLength >
+                maxEncodedBody
+        ) {
+            sendJson(
+                output,
+                413,
+                """{"error":"content_too_large"}"""
+            )
+            return
+        }
+
+        val body =
+            readExact(
+                input,
+                request.contentLength
+                    .toInt()
+            ).toString(
+                StandardCharsets.UTF_8
+            )
+
+        val values =
+            parseUrlEncoded(body)
+
+        val type =
+            values["type"]
+                ?.trim()
+                ?.lowercase(
+                    Locale.ROOT
+                )
+                .orEmpty()
+
+        val rawValue =
+            values["value"]
+                ?.trim()
+                .orEmpty()
+
+        when (type) {
+            "text" -> {
+                if (
+                    rawValue.isBlank() ||
+                    rawValue.length >
+                        TransferLimits
+                            .MAX_SHARED_TEXT_LENGTH
+                ) {
+                    sendJson(
+                        output,
+                        400,
+                        """{"error":"invalid_text"}"""
+                    )
+                    return
+                }
+
+                sessionManager
+                    .completeTransfer(
+                        fileName =
+                            localized("text"),
+                        sizeBytes =
+                            rawValue
+                                .toByteArray(
+                                    StandardCharsets.UTF_8
+                                ).size
+                                .toLong(),
+                        direction =
+                            TransferDirection
+                                .PC_TO_PHONE,
+                        kind =
+                            TransferContentKind
+                                .TEXT,
+                        mimeType =
+                            "text/plain",
+                        textContent =
+                            rawValue
+                    )
+            }
+
+            "link" -> {
+                val normalized =
+                    UrlValidator
+                        .normalize(
+                            rawValue
+                        )
+
+                if (normalized == null) {
+                    sendJson(
+                        output,
+                        400,
+                        """{"error":"invalid_link"}"""
+                    )
+                    return
+                }
+
+                sessionManager
+                    .completeTransfer(
+                        fileName =
+                            localized("link"),
+                        sizeBytes =
+                            normalized
+                                .toByteArray(
+                                    StandardCharsets.UTF_8
+                                ).size
+                                .toLong(),
+                        direction =
+                            TransferDirection
+                                .PC_TO_PHONE,
+                        kind =
+                            TransferContentKind
+                                .LINK,
+                        mimeType =
+                            "text/uri-list",
+                        textContent =
+                            normalized
+                    )
+            }
+
+            else -> {
+                sendJson(
+                    output,
+                    400,
+                    """{"error":"invalid_content_type"}"""
+                )
+                return
+            }
+        }
+
+        sendJson(
+            output,
+            200,
+            """{"ok":true}"""
+        )
     }
 
     private fun uploadStatus(
@@ -1468,7 +1714,10 @@ device:${jsQuoted("browser_device")},
 limit:${jsQuoted("browser_limit")},
 summary:${jsQuoted("browser_summary")},
 summaryOk:${jsQuoted("browser_summary_ok")},
-filePosition:${jsQuoted("browser_file_position")}
+filePosition:${jsQuoted("browser_file_position")},
+contentSent:${jsQuoted("browser_content_sent")},
+contentFailed:${jsQuoted("browser_content_failed")},
+invalidLink:${jsQuoted("browser_invalid_link")}
 };
 function fmt(t,...v){let i=0;return t.replace(/%[ds]/g,()=>String(v[i++]));}
 """
@@ -1481,8 +1730,8 @@ function fmt(t,...v){let i=0;return t.replace(/%[ds]/g,()=>String(v[i++]));}
 <title>""" + htmlEscape(localized("app_name")) + """</title>
 <style>
 :root{--primary:#4f63f2;--primary-soft:#e9ecff;--secondary:#008c95;--secondary-soft:#d8f5f4;--text:#17181d;--muted:#6c7180;--surface:#fff;--surface-2:#f5f6fa;--bg:#f7f8fc;--line:#e2e5ed;--danger:#b3261e}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#f0f2ff 0,#f7f8fc 240px);color:var(--text)}.page{width:min(960px,calc(100% - 28px));margin:34px auto 64px}.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px;font-size:29px;font-weight:850;letter-spacing:-.035em}.brandMark{width:42px;height:42px;border-radius:14px;background:var(--primary);position:relative;box-shadow:0 10px 24px rgba(79,99,242,.22)}.brandMark:before{content:"";position:absolute;left:8px;top:10px;width:19px;height:13px;border:2px solid white;border-radius:2px}.brandMark:after{content:"";position:absolute;right:7px;bottom:8px;width:7px;height:15px;border:2px solid white;border-radius:2px}.local{padding:9px 14px;border-radius:999px;background:var(--secondary-soft);color:#176f72;font-size:13px;font-weight:780}.card{background:var(--surface);border:1px solid rgba(79,99,242,.06);border-radius:28px;padding:26px;margin-bottom:18px;box-shadow:0 14px 44px rgba(26,34,77,.07)}h2{margin:0 0 8px;font-size:22px;letter-spacing:-.02em}.muted{color:var(--muted);line-height:1.5}.file{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);padding:14px 0}.file:last-child{border-bottom:0}.fileInfo{min-width:0;flex:1}.fileName{font-weight:740;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fileSize{font-size:13px;color:var(--muted);margin-top:3px}.download,.secondary{border:0;text-decoration:none;cursor:pointer;font-weight:760;border-radius:15px;padding:11px 16px}.download{background:var(--primary);color:white;box-shadow:0 8px 20px rgba(79,99,242,.18)}.secondary{background:var(--primary-soft);color:#25327e;margin-top:14px}.drop{border:2px dashed #b7bdd0;border-radius:24px;padding:44px 20px;text-align:center;cursor:pointer;transition:.15s;background:linear-gradient(180deg,#fbfbfe,#f7f8fc)}.drop:hover,.drop.active{border-color:var(--primary);background:var(--primary-soft)}.dropTitle{font-size:20px;font-weight:820}.dropSub{margin-top:6px;color:var(--muted)}input[type=file]{display:none}.progress{display:none;height:10px;border-radius:999px;overflow:hidden;margin-top:18px;background:#e7e9ef}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),#7282ff)}.status{margin-top:10px;color:var(--muted);font-size:14px}.queue{margin-top:16px;display:grid;gap:8px}.queueItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 13px;border-radius:15px;background:var(--surface-2);border:1px solid var(--line)}.queueName{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.queueMeta{font-size:12px;color:var(--muted)}.queueOk{color:#19733f}.queueErr{color:var(--danger)}.queueActions{display:flex;gap:6px;align-items:center}.queueActions button{border:0;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:750;cursor:pointer;background:#e9ecf4;color:#25282e}.queueActions button.cancel{background:#fff0ef;color:var(--danger)}.queueHash{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);overflow-wrap:anywhere}.contentCard{margin-top:18px;background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:18px}.label{font-size:11px;font-weight:850;letter-spacing:.1em;color:var(--muted)}.sharedText{margin-top:10px;white-space:pre-wrap;line-height:1.5}.sharedLink{display:block;margin-top:10px;overflow-wrap:anywhere;color:var(--primary);font-weight:700}.empty{color:var(--muted);padding:12px 0}.footer{text-align:center;color:#8b9099;font-size:13px;margin-top:28px}
-@media(max-width:600px){.header{align-items:flex-start;flex-direction:column}.file{align-items:flex-start}.download{padding:9px 11px}.queueItem{grid-template-columns:1fr}.queueActions{justify-content:flex-start}}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#f0f2ff 0,#f7f8fc 240px);color:var(--text)}.page{width:min(960px,calc(100% - 28px));margin:34px auto 64px}.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px;font-size:29px;font-weight:850;letter-spacing:-.035em}.brandMark{width:42px;height:42px;border-radius:14px;background:var(--primary);position:relative;box-shadow:0 10px 24px rgba(79,99,242,.22)}.brandMark:before{content:"";position:absolute;left:8px;top:10px;width:19px;height:13px;border:2px solid white;border-radius:2px}.brandMark:after{content:"";position:absolute;right:7px;bottom:8px;width:7px;height:15px;border:2px solid white;border-radius:2px}.local{padding:9px 14px;border-radius:999px;background:var(--secondary-soft);color:#176f72;font-size:13px;font-weight:780}.card{background:var(--surface);border:1px solid rgba(79,99,242,.06);border-radius:28px;padding:26px;margin-bottom:18px;box-shadow:0 14px 44px rgba(26,34,77,.07)}h2{margin:0 0 8px;font-size:22px;letter-spacing:-.02em}.muted{color:var(--muted);line-height:1.5}.file{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);padding:14px 0}.file:last-child{border-bottom:0}.fileInfo{min-width:0;flex:1}.fileName{font-weight:740;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fileSize{font-size:13px;color:var(--muted);margin-top:3px}.download,.secondary{border:0;text-decoration:none;cursor:pointer;font-weight:760;border-radius:15px;padding:11px 16px}.download{background:var(--primary);color:white;box-shadow:0 8px 20px rgba(79,99,242,.18)}.secondary{background:var(--primary-soft);color:#25327e;margin-top:14px}.drop{border:2px dashed #b7bdd0;border-radius:24px;padding:44px 20px;text-align:center;cursor:pointer;transition:.15s;background:linear-gradient(180deg,#fbfbfe,#f7f8fc)}.drop:hover,.drop.active{border-color:var(--primary);background:var(--primary-soft)}.dropTitle{font-size:20px;font-weight:820}.dropSub{margin-top:6px;color:var(--muted)}input[type=file]{display:none}.progress{display:none;height:10px;border-radius:999px;overflow:hidden;margin-top:18px;background:#e7e9ef}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),#7282ff)}.status{margin-top:10px;color:var(--muted);font-size:14px}.queue{margin-top:16px;display:grid;gap:8px}.queueItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 13px;border-radius:15px;background:var(--surface-2);border:1px solid var(--line)}.queueName{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.queueMeta{font-size:12px;color:var(--muted)}.queueOk{color:#19733f}.queueErr{color:var(--danger)}.queueActions{display:flex;gap:6px;align-items:center}.queueActions button{border:0;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:750;cursor:pointer;background:#e9ecf4;color:#25282e}.queueActions button.cancel{background:#fff0ef;color:var(--danger)}.queueHash{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);overflow-wrap:anywhere}.contentCard{margin-top:18px;background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:18px}.label{font-size:11px;font-weight:850;letter-spacing:.1em;color:var(--muted)}.sharedText{margin-top:10px;white-space:pre-wrap;line-height:1.5}.sharedLink{display:block;margin-top:10px;overflow-wrap:anywhere;color:var(--primary);font-weight:700}.sendGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.sendBox{background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:16px}.sendBox textarea,.sendBox input{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:13px;padding:11px 12px;font:inherit;color:var(--text);background:var(--surface);outline:none}.sendBox textarea{min-height:104px;resize:vertical}.sendBox textarea:focus,.sendBox input:focus{border-color:var(--primary)}.contentStatus{margin-top:12px;color:var(--muted);font-size:13px}.empty{color:var(--muted);padding:12px 0}.footer{text-align:center;color:#8b9099;font-size:13px;margin-top:28px}
+@media(max-width:600px){.header{align-items:flex-start;flex-direction:column}.file{align-items:flex-start}.download{padding:9px 11px}.queueItem{grid-template-columns:1fr}.queueActions{justify-content:flex-start}.sendGrid{grid-template-columns:1fr}}
 @media(prefers-color-scheme:dark){:root{--text:#e7e7ef;--muted:#b8bac5;--surface:#181920;--surface-2:#22242c;--bg:#111217;--line:#353844;--primary-soft:#29305f;--secondary-soft:#173c3f}.card{border-color:#262936}.secondary{color:#dfe2ff}.drop{background:#20222a}.queueActions button{background:#2c2f39;color:#e7e7ef}body{background:linear-gradient(180deg,#20254a 0,#111217 240px)}}
 </style>
 </head>
@@ -1516,6 +1765,35 @@ htmlEscape(localized("browser_choose")) +
 htmlEscape(localized("browser_ready")) +
 """</div>
 <div class="queue" id="queue"></div>
+<div class="sendGrid">
+<div class="sendBox">
+<div class="label">""" +
+htmlEscape(localized("browser_text_to_phone")).uppercase(
+    Locale.forLanguageTag(language.code)
+) +
+"""</div>
+<textarea id="textToPhone" maxlength="250000" placeholder="""" +
+htmlEscape(localized("browser_text_hint")) +
+""""></textarea>
+<button class="secondary" type="button" onclick="sendTextToPhone()">""" +
+htmlEscape(localized("browser_send_text")) +
+"""</button>
+</div>
+<div class="sendBox">
+<div class="label">""" +
+htmlEscape(localized("browser_link_to_phone")).uppercase(
+    Locale.forLanguageTag(language.code)
+) +
+"""</div>
+<input id="linkToPhone" type="url" maxlength="4096" placeholder="""" +
+htmlEscape(localized("browser_link_hint")) +
+"""">
+<button class="secondary" type="button" onclick="sendLinkToPhone()">""" +
+htmlEscape(localized("browser_send_link")) +
+"""</button>
+</div>
+</div>
+<div class="contentStatus" id="contentStatus"></div>
 </section>
 <section class="card" id="trustCard">
 <h2>""" +
@@ -1540,6 +1818,7 @@ const zone=document.getElementById('dropZone');
 const progress=document.getElementById('progress');
 const bar=document.getElementById('bar');
 const status=document.getElementById('status');
+const contentStatus=document.getElementById('contentStatus');
 zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('active')});
 zone.addEventListener('dragleave',()=>zone.classList.remove('active'));
 zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('active');uploadFiles(Array.from(e.dataTransfer.files))});
@@ -1649,6 +1928,24 @@ async function fetchUploadStatus(uploadId){
   if(r.status===404)return {received:0,completed:false};
   if(!r.ok)throw new Error('status_'+r.status);
   return await r.json();
+}
+
+async function registerUploadBatch(batchId,files){
+  const totalBytes=files.reduce((sum,file)=>sum+file.size,0);
+  const body=
+    'batchId='+encodeURIComponent(batchId)+
+    '&fileCount='+encodeURIComponent(String(files.length))+
+    '&totalBytes='+encodeURIComponent(String(totalBytes));
+
+  const r=await fetch('/upload/batch/""" +
+            session.token +
+            """',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body
+  });
+
+  if(!r.ok)throw new Error('batch_'+r.status);
 }
 
 function waitWhilePaused(state,row){
@@ -1851,6 +2148,14 @@ async function uploadFiles(files){
     status.textContent=fmt(I.limit,MAX_BROWSER_FILES);
   }
 
+  const batchId=
+    'batch_'+Date.now().toString(36)+'_'+
+    Math.random().toString(36).slice(2,10);
+
+  try{
+    await registerUploadBatch(batchId,files);
+  }catch(e){}
+
   const rows=files.map((f,i)=>queueRow(f,i,files.length));
   let ok=0,failed=0,cancelled=0;
 
@@ -1886,6 +2191,44 @@ async function uploadFiles(files){
 }
 
 async function copyText(){const el=document.getElementById('sharedText');if(!el)return;const value=el.innerText;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove()}status.textContent=I.copied}catch(e){status.textContent=I.copyManual}}
+
+async function sendContentToPhone(type,value){
+  const clean=(value||'').trim();
+  if(!clean)return false;
+
+  if(type==='link'&&!/^https?:\/\//i.test(clean)){
+    contentStatus.textContent=I.invalidLink;
+    return false;
+  }
+
+  try{
+    const r=await fetch('/content/""" +
+            session.token +
+            """',{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'type='+encodeURIComponent(type)+'&value='+encodeURIComponent(clean)
+    });
+
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    contentStatus.textContent=I.contentSent;
+    return true;
+  }catch(e){
+    contentStatus.textContent=I.contentFailed;
+    return false;
+  }
+}
+
+async function sendTextToPhone(){
+  const field=document.getElementById('textToPhone');
+  if(await sendContentToPhone('text',field.value))field.value='';
+}
+
+async function sendLinkToPhone(){
+  const field=document.getElementById('linkToPhone');
+  if(await sendContentToPhone('link',field.value))field.value='';
+}
+
 async function trustThisPc(){
   const trustStatus=document.getElementById('trustStatus');
   const current=localStorage.getItem('inviaalpc.trustedName');
