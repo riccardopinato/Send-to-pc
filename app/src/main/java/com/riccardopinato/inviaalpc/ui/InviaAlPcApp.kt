@@ -766,9 +766,11 @@ private fun ActiveSessionScreen(
     session: TransferSession,
     progress: TransferProgress?,
     history: List<TransferHistoryEntry>,
+    operationSummary: TransferOperationSummary?,
     remainingSeconds: Long,
     onOpenRecent: (TransferHistoryEntry) -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onCompletedStop: () -> Unit
 ) {
     val context = LocalContext.current
     val appNameLabel = tr("app_name")
@@ -962,6 +964,20 @@ private fun ActiveSessionScreen(
             }
         }
 
+        if (
+            session.status ==
+                TransferStatus.COMPLETED &&
+            operationSummary != null &&
+            operationSummary.completedFiles > 0
+        ) {
+            item {
+                TransferSummaryCard(
+                    summary =
+                        operationSummary
+                )
+            }
+        }
+
         val latestReceived =
             history.firstOrNull {
                 it.direction == TransferDirection.PC_TO_PHONE &&
@@ -1009,18 +1025,31 @@ private fun ActiveSessionScreen(
         item {
             FilledTonalButton(
                 onClick = {
-                    if (
-                        session.status ==
-                        TransferStatus.TRANSFERRING
+                    when (
+                        session.status
                     ) {
-                        confirmStop = true
-                    } else {
-                        onStop()
+                        TransferStatus.TRANSFERRING ->
+                            confirmStop = true
+
+                        TransferStatus.COMPLETED ->
+                            onCompletedStop()
+
+                        else ->
+                            onStop()
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(tr("end_session"))
+                Text(
+                    if (
+                        session.status ==
+                        TransferStatus.COMPLETED
+                    ) {
+                        tr("done")
+                    } else {
+                        tr("end_session")
+                    }
+                )
             }
         }
     }
@@ -1100,6 +1129,78 @@ private fun TransferProgressCard(
                         etaText
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun TransferSummaryCard(
+    summary: TransferOperationSummary
+) {
+    Card(
+        modifier =
+            Modifier.fillMaxWidth(),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    MaterialTheme
+                        .colorScheme
+                        .secondaryContainer
+            )
+    ) {
+        Column(
+            modifier =
+                Modifier.padding(18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                tr("transfer_summary"),
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSecondaryContainer
+            )
+
+            Text(
+                tr(
+                    "files_count",
+                    summary.completedFiles
+                ),
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSecondaryContainer
+            )
+
+            Text(
+                tr(
+                    "transferred_size",
+                    formatBytes(
+                        summary.completedBytes
+                    )
+                ),
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSecondaryContainer
+            )
+
+            Text(
+                tr(
+                    "elapsed_time",
+                    formatDuration(
+                        summary.durationMillis /
+                            1000L
+                    )
+                ),
+                color =
+                    MaterialTheme
+                        .colorScheme
+                        .onSecondaryContainer
+            )
         }
     }
 }
