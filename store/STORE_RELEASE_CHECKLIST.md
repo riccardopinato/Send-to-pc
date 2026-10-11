@@ -1,6 +1,6 @@
 # Store release checklist — Invia al PC
 
-Versione target corrente: v1.19.0
+Versione target corrente: v1.20.0
 Package: `com.riccardopinato.inviaalpc`
 
 ## Product / build
@@ -44,8 +44,9 @@ Package: `com.riccardopinato.inviaalpc`
 
 ## Privacy / Play Console
 
-[ ] LAN transport security gate CLOSED
-[ ] nessuna dichiarazione falsa "all data encrypted in transit"
+[ ] TLS 1.2/1.3 LAN verificato sull'esatto candidato
+[ ] fingerprint telefono == certificato browser
+[ ] nessun endpoint di trasferimento HTTP presente nell'artifact finale
 [ ] Privacy Policy pubblicata e raggiungibile
 [ ] Data Safety ricontrollata sulla build finale
 [ ] contenuti LAN distinti chiaramente dai dati trattati dagli SDK advertising
@@ -90,6 +91,6 @@ CERTIFIED / NOT CERTIFIED / BLOCKED
 
 Un AAB firmato e CI GREEN non equivalgono da soli a STORE READY.
 
-Con il protocollo LAN HTTP attuale il verdetto Store resta **BLOCKED** finché il relativo gate di sicurezza non viene chiuso.
+La cifratura TLS è implementata; il verdetto Store resta **BLOCKED** finché trust flow, AdMob/UMP, Physical QA e update-in-place non sono verificati.
 
 Con il protocollo LAN HTTP attuale il verdetto Store resta **BLOCKED** finché il relativo gate di sicurezza non viene chiuso.

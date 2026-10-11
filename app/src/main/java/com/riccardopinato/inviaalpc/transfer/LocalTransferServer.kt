@@ -14,8 +14,6 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.BindException
-import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
@@ -47,6 +45,10 @@ class LocalTransferServer(
 
     private val running = AtomicBoolean(false)
     private var serverSocket: ServerSocket? = null
+    private val tlsIdentity = LocalTlsIdentity()
+
+    val certificateFingerprintSha256: String
+        get() = tlsIdentity.certificateFingerprintSha256
     private var scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val receivedFileStore = ReceivedFileStore(context)
     private val resumableUploadStore = ResumableUploadStore(context)
@@ -65,19 +67,14 @@ class LocalTransferServer(
 
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        val bindAddress =
-            InetAddress.getByName(localIp)
-
-        fun bind(requestedPort: Int): ServerSocket =
-            ServerSocket().apply {
-                reuseAddress = true
-                bind(
-                    InetSocketAddress(
-                        bindAddress,
-                        requestedPort
-                    )
+        fun bind(
+            requestedPort: Int
+        ): ServerSocket =
+            tlsIdentity
+                .createServerSocket(
+                    localIp = localIp,
+                    port = requestedPort
                 )
-            }
 
         val socket =
             if (port != 0) {
@@ -2342,7 +2339,7 @@ async function trustThisPc(){
         sid: String
     ): String =
         "sid=" + sid +
-            "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
+            "; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=3600"
 
     private fun trustedCookie(
         token: String
@@ -2350,7 +2347,7 @@ async function trustThisPc(){
         TRUSTED_COOKIE +
             "=" +
             token +
-            "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" +
+            "; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=" +
             TRUSTED_COOKIE_MAX_AGE_SECONDS
 
     private fun sendJsonWithCookie(

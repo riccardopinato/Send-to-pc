@@ -97,8 +97,8 @@ L'APK fisicamente verificato deve essere lo stesso artifact, con lo stesso SHA-2
 
 ## Versione sviluppo corrente
 
-- versionName: 1.19.0
-- versionCode: 30
+- versionName: 1.20.0
+- versionCode: 31
 - package: com.riccardopinato.inviaalpc
 - signing identity: invariata
 - AdMob production IDs: PENDING
@@ -117,4 +117,4 @@ Il nome degli artifact e RELEASE_IDENTITY vengono derivati dinamicamente da `ver
 
 Un run Store Candidate verde non sostituisce Physical QA, app-ads.txt/readiness o Final Certification.
 
-Finché il core telefono ↔ browser usa HTTP LAN non cifrato, la v1.19 non va dichiarata Store Ready: il gate è tracciato in THREAT_MODEL.md e store/DATA_SAFETY.md.
+La v1.20 implementa TLS locale con identity persistente Android Keystore. Store Ready resta separato finché il trust flow self-signed/fingerprint non è validato fisicamente e i gate AdMob/Store non sono chiusi.

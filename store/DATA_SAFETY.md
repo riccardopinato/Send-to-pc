@@ -55,15 +55,17 @@ Restano comunque da distinguere le connessioni esterne degli SDK Google.
 
 ## Sicurezza del trasporto core
 
-Il trasferimento telefono ↔ browser usa attualmente HTTP sulla LAN.
+Dalla v1.20 il trasferimento telefono ↔ browser usa TLS 1.2/1.3 sulla LAN.
 
-Conseguenze:
-- il payload applicativo non è cifrato in transito;
-- non è corretto dichiarare che tutti i dati dell'app sono cifrati in transito;
-- file, foto, testo e link scelti dall'utente possono includere dati personali o sensibili;
-- la sola raccomandazione di usare una rete fidata non chiude automaticamente la Google Play User Data policy, che richiede gestione sicura dei dati personali/sensibili e crittografia moderna durante la trasmissione.
+- private key persistente nell'Android Keystore;
+- certificato self-signed;
+- fingerprint SHA-256 visibile sul telefono;
+- cookie session/trusted Secure;
+- nessun endpoint di trasferimento intenzionalmente HTTP.
 
-Stato: **BLOCKED FOR STORE REVIEW** finché il rischio non viene risolto tecnicamente o chiuso con evidence/policy interpretation adeguata.
+Stato: **IMPLEMENTED / PHYSICAL VALIDATION PENDING**.
+
+La dichiarazione Data Safety finale deve essere basata sull'esatto artifact e sulla verifica reale del trust flow browser/fingerprint.
 
 Riferimento:
 https://support.google.com/googleplay/android-developer/answer/18258653
@@ -93,7 +95,7 @@ Prima di Store Ready:
 [ ] completare il questionario Play Console in modo coerente;
 [ ] verificare Privacy Policy pubblicata e raggiungibile;
 [ ] conservare evidence della configurazione finale;
-[ ] chiudere il gate LAN transport security;
-[ ] non selezionare "all data encrypted in transit" se l'artifact mantiene HTTP LAN.
+[ ] validare fisicamente TLS/fingerprint sui browser target;
+[ ] confermare sull'artifact finale che nessun payload di trasferimento usa HTTP LAN;
 
 CI GREEN != DATA SAFETY VERIFIED.

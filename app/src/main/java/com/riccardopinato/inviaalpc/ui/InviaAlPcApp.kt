@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -1033,11 +1034,54 @@ private fun ActiveSessionScreen(
         }
 
         item {
-            Text(
-                tr("direct_local"),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier =
+                        Modifier.padding(16.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        tr("tls_secure"),
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+
+                    Text(
+                        tr("direct_local"),
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        tr("tls_fingerprint"),
+                        style =
+                            MaterialTheme.typography.labelMedium,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    SelectionContainer {
+                        Text(
+                            session.tlsFingerprintSha256,
+                            style =
+                                MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    Text(
+                        tr("tls_browser_warning"),
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
 
         item {

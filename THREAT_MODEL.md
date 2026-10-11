@@ -17,7 +17,7 @@ Il prodotto trasferisce contenuti direttamente tra Android e un browser PC sulla
 
 La rete Wi-Fi deve essere privata o fidata.
 
-Il protocollo applicativo usa HTTP locale, quindi **non offre cifratura del traffico**. Un attaccante con capacità di osservare/intercettare il traffico LAN resta fuori dal threat model mitigato completamente.
+Dalla v1.20 il protocollo applicativo usa TLS 1.2/1.3 locale. La private key resta nell'Android Keystore. Il certificato è self-signed e richiede verifica del fingerprint SHA-256 mostrato sul telefono.
 
 ## Minacce e mitigazioni
 
@@ -41,7 +41,8 @@ Mitigazioni:
 - sul telefono viene salvato solo l'hash SHA-256.
 
 Rischio residuo:
-- essendo HTTP, il cookie non può essere marcato Secure e può essere osservato da un attaccante LAN capace di sniffing.
+- se l'utente accetta un certificato diverso senza confrontare il fingerprint, un attaccante attivo sulla LAN può tentare impersonation/MITM.
+- i cookie sono ora Secure + HttpOnly + SameSite=Strict.
 
 ### XSS / contenuti utente
 
@@ -76,9 +77,9 @@ Mitigazioni:
 
 ## Non dichiarare
 
-Finché il trasporto resta HTTP:
-- non dichiarare “trasferimento cifrato”;
-- non dichiarare protezione contro un attaccante sulla stessa LAN;
+Finché non esiste Physical QA del trust flow:
+- non dichiarare protezione MITM completa senza verifica fingerprint;
+- non dichiarare compatibilità browser universale;
 - non suggerire l'uso su Wi-Fi pubbliche/non fidate.
 
 ## Store security gate

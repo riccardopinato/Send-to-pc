@@ -137,7 +137,7 @@ object AppText {
         "end_transfer_body" to "The current file will remain resumable when possible, but the current session will be closed.",
         "end" to "End",
         "continue" to "Continue",
-        "direct_local" to "Direct connection over the local network. No file is uploaded to external servers.",
+        "direct_local" to "Direct encrypted TLS connection over the local network. No file is uploaded to external servers.",
         "recent_transfers" to "Recent transfers",
         "recent_empty" to "No completed transfers yet.",
         "clear" to "Clear",
@@ -207,7 +207,7 @@ object AppText {
         "browser_check_trusted" to "Checking trusted PC...",
         "browser_wrong_pin" to "Wrong PIN. Try again.",
         "browser_connect" to "Connect",
-        "browser_local_connection" to "Local connection",
+        "browser_local_connection" to "Encrypted local connection",
         "browser_from_phone" to "From phone",
         "browser_available" to "Content available in this session.",
         "browser_no_files" to "No file shared from the phone.",
@@ -291,6 +291,9 @@ object AppText {
         "network_help_step2" to "If the PC cannot open the address, disable VPN or guest/client isolation and try again.",
         "network_help_step3" to "Keep the app open during the first connection; large transfers can continue with the foreground service.",
         "network_help_hotspot" to "No shared Wi-Fi? Turn on Mobile Hotspot on the PC, connect the phone to that hotspot, then create a new session.",
+        "tls_secure" to "Encrypted local connection",
+        "tls_fingerprint" to "Certificate SHA-256",
+        "tls_browser_warning" to "On the first connection, the browser may warn about the local self-signed certificate. Continue only if the certificate fingerprint matches the one shown on this phone.",
     )
 
     private val it = mapOf(
@@ -315,7 +318,7 @@ object AppText {
         "end_session" to "Termina sessione", "end_transfer_title" to "Interrompere il trasferimento?",
         "end_transfer_body" to "Il file in corso resterà riprendibile quando possibile, ma la sessione corrente verrà chiusa.",
         "end" to "Termina", "continue" to "Continua",
-        "direct_local" to "Connessione diretta sulla rete locale. Nessun file viene caricato su server esterni.",
+        "direct_local" to "Connessione TLS cifrata diretta sulla rete locale. Nessun file viene caricato su server esterni.",
         "recent_transfers" to "Trasferimenti recenti", "recent_empty" to "Nessun trasferimento completato.",
         "clear" to "Cancella", "clear_history_title" to "Cancellare la cronologia?",
         "clear_history_body" to "Verrà rimossa solo la cronologia locale. I file trasferiti non saranno eliminati.",
@@ -367,7 +370,7 @@ object AppText {
         "last_seen" to "Ultimo accesso %s",
         "browser_pin_hint" to "Inserisci il PIN mostrato sul telefono.", "browser_check_trusted" to "Controllo PC fidato...",
         "browser_wrong_pin" to "PIN errato. Riprova.", "browser_connect" to "Connetti",
-        "browser_local_connection" to "Connessione locale", "browser_from_phone" to "Dal telefono",
+        "browser_local_connection" to "Connessione locale cifrata", "browser_from_phone" to "Dal telefono",
         "browser_available" to "Contenuti disponibili in questa sessione.", "browser_no_files" to "Nessun file condiviso dal telefono.",
         "browser_unknown_size" to "Dimensione sconosciuta", "browser_download" to "Scarica",
         "browser_copy_text" to "Copia testo", "browser_to_phone" to "Invia al telefono",
@@ -418,6 +421,9 @@ object AppText {
         "network_help_step2" to "Se il PC non apre l'indirizzo, disattiva VPN o isolamento guest/client e riprova.",
         "network_help_step3" to "Tieni l'app aperta durante la prima connessione; i trasferimenti grandi possono continuare con il servizio in primo piano.",
         "network_help_hotspot" to "Nessuna Wi-Fi condivisa? Attiva Hotspot mobile sul PC, collega il telefono a quell’hotspot e crea una nuova sessione.",
+        "tls_secure" to "Connessione locale cifrata",
+        "tls_fingerprint" to "SHA-256 certificato",
+        "tls_browser_warning" to "Al primo collegamento il browser può avvisare che il certificato locale è autofirmato. Continua solo se il fingerprint del certificato coincide con quello mostrato su questo telefono.",
     )
 
     private val es = mapOf(
@@ -462,7 +468,7 @@ object AppText {
         "session_stopped" to "Sesión finalizada.",
         "expires_in" to "Caduca en %s",
         "end_transfer_body" to "El archivo actual podrá reanudarse cuando sea posible, pero la sesión actual se cerrará.",
-        "direct_local" to "Conexión directa por la red local. Ningún archivo se sube a servidores externos.",
+        "direct_local" to "Conexión TLS cifrada directa por la red local. Ningún archivo se sube a servidores externos.",
         "recent_empty" to "Todavía no hay transferencias completadas.",
         "clear_history_body" to "Solo se eliminará el historial local. Los archivos transferidos no se borrarán.",
         "share" to "Compartir",
@@ -508,7 +514,7 @@ object AppText {
         "browser_pin_hint" to "Introduce el PIN que aparece en el teléfono.",
         "browser_check_trusted" to "Comprobando PC de confianza...",
         "browser_wrong_pin" to "PIN incorrecto. Inténtalo de nuevo.",
-        "browser_local_connection" to "Conexión local",
+        "browser_local_connection" to "Conexión local cifrada",
         "browser_from_phone" to "Desde el teléfono",
         "browser_available" to "Contenido disponible en esta sesión.",
         "browser_no_files" to "No hay archivos compartidos desde el teléfono.",
@@ -582,6 +588,9 @@ object AppText {
         "network_help_step2" to "Si el PC no puede abrir la dirección, desactiva la VPN o el aislamiento de invitados/clientes y vuelve a intentarlo.",
         "network_help_step3" to "Mantén la app abierta durante la primera conexión; las transferencias grandes pueden continuar con el servicio en primer plano.",
         "network_help_hotspot" to "¿No hay una Wi-Fi compartida? Activa el punto de acceso móvil en el PC, conecta el teléfono a ese punto y crea una nueva sesión.",
+        "tls_secure" to "Conexión local cifrada",
+        "tls_fingerprint" to "SHA-256 del certificado",
+        "tls_browser_warning" to "En la primera conexión, el navegador puede advertir sobre el certificado local autofirmado. Continúa solo si la huella del certificado coincide con la mostrada en este teléfono.",
     )
 
     private val fr = mapOf(
@@ -625,7 +634,7 @@ object AppText {
         "session_stopped" to "Session terminée.",
         "expires_in" to "Expire dans %s",
         "end_transfer_body" to "Le fichier en cours restera reprenable lorsque c'est possible, mais la session actuelle sera fermée.",
-        "direct_local" to "Connexion directe sur le réseau local. Aucun fichier n'est envoyé vers des serveurs externes.",
+        "direct_local" to "Connexion TLS chiffrée directe sur le réseau local. Aucun fichier n'est envoyé vers des serveurs externes.",
         "recent_empty" to "Aucun transfert terminé pour le moment.",
         "clear_history_body" to "Seul l'historique local sera supprimé. Les fichiers transférés ne seront pas effacés.",
         "share" to "Partager",
@@ -674,7 +683,7 @@ object AppText {
         "browser_pin_hint" to "Saisissez le PIN affiché sur le téléphone.",
         "browser_check_trusted" to "Vérification du PC de confiance...",
         "browser_wrong_pin" to "PIN incorrect. Réessayez.",
-        "browser_local_connection" to "Connexion locale",
+        "browser_local_connection" to "Connexion locale chiffrée",
         "browser_from_phone" to "Depuis le téléphone",
         "browser_available" to "Contenu disponible dans cette session.",
         "browser_no_files" to "Aucun fichier partagé depuis le téléphone.",
@@ -748,6 +757,9 @@ object AppText {
         "network_help_step2" to "Si le PC ne peut pas ouvrir l'adresse, désactivez le VPN ou l'isolation invité/client et réessayez.",
         "network_help_step3" to "Gardez l'app ouverte pendant la première connexion ; les gros transferts peuvent continuer avec le service au premier plan.",
         "network_help_hotspot" to "Pas de Wi-Fi partagé ? Activez le point d’accès mobile sur le PC, connectez le téléphone à ce point d’accès, puis créez une nouvelle session.",
+        "tls_secure" to "Connexion locale chiffrée",
+        "tls_fingerprint" to "SHA-256 du certificat",
+        "tls_browser_warning" to "Lors de la première connexion, le navigateur peut signaler le certificat local auto-signé. Continuez uniquement si l’empreinte du certificat correspond à celle affichée sur ce téléphone.",
     )
 
     private val de = mapOf(
@@ -791,7 +803,7 @@ object AppText {
         "session_stopped" to "Sitzung beendet.",
         "expires_in" to "Läuft in %s ab",
         "end_transfer_body" to "Die aktuelle Datei bleibt nach Möglichkeit fortsetzbar, die aktuelle Sitzung wird jedoch geschlossen.",
-        "direct_local" to "Direkte Verbindung über das lokale Netzwerk. Keine Datei wird auf externe Server hochgeladen.",
+        "direct_local" to "Direkte verschlüsselte TLS-Verbindung über das lokale Netzwerk. Keine Datei wird auf externe Server hochgeladen.",
         "recent_empty" to "Noch keine abgeschlossenen Übertragungen.",
         "clear_history_body" to "Nur der lokale Verlauf wird entfernt. Übertragene Dateien werden nicht gelöscht.",
         "share" to "Teilen",
@@ -840,7 +852,7 @@ object AppText {
         "browser_pin_hint" to "Gib den auf dem Smartphone angezeigten PIN ein.",
         "browser_check_trusted" to "Vertrauenswürdiger PC wird geprüft...",
         "browser_wrong_pin" to "Falscher PIN. Versuche es erneut.",
-        "browser_local_connection" to "Lokale Verbindung",
+        "browser_local_connection" to "Verschlüsselte lokale Verbindung",
         "browser_from_phone" to "Vom Smartphone",
         "browser_available" to "In dieser Sitzung verfügbare Inhalte.",
         "browser_no_files" to "Keine Datei vom Smartphone freigegeben.",
@@ -914,6 +926,9 @@ object AppText {
         "network_help_step2" to "Wenn der PC die Adresse nicht öffnen kann, VPN oder Gast-/Client-Isolation deaktivieren und erneut versuchen.",
         "network_help_step3" to "Lass die App während der ersten Verbindung geöffnet; große Übertragungen können mit dem Vordergrunddienst weiterlaufen.",
         "network_help_hotspot" to "Kein gemeinsames WLAN? Aktiviere den mobilen Hotspot am PC, verbinde das Smartphone damit und erstelle anschließend eine neue Sitzung.",
+        "tls_secure" to "Verschlüsselte lokale Verbindung",
+        "tls_fingerprint" to "Zertifikat SHA-256",
+        "tls_browser_warning" to "Bei der ersten Verbindung kann der Browser vor dem selbstsignierten lokalen Zertifikat warnen. Fahre nur fort, wenn der Zertifikat-Fingerabdruck mit dem auf diesem Smartphone übereinstimmt.",
     )
 
     private val pt = mapOf(
@@ -957,7 +972,7 @@ object AppText {
         "session_stopped" to "Sessão encerrada.",
         "expires_in" to "Expira em %s",
         "end_transfer_body" to "O arquivo atual continuará retomável quando possível, mas a sessão atual será encerrada.",
-        "direct_local" to "Conexão direta pela rede local. Nenhum arquivo é enviado para servidores externos.",
+        "direct_local" to "Conexão TLS criptografada direta pela rede local. Nenhum arquivo é enviado para servidores externos.",
         "recent_empty" to "Ainda não há transferências concluídas.",
         "clear_history_body" to "Somente o histórico local será removido. Os arquivos transferidos não serão apagados.",
         "share" to "Compartilhar",
@@ -1006,7 +1021,7 @@ object AppText {
         "browser_pin_hint" to "Digite o PIN mostrado no telefone.",
         "browser_check_trusted" to "Verificando PC confiável...",
         "browser_wrong_pin" to "PIN incorreto. Tente novamente.",
-        "browser_local_connection" to "Conexão local",
+        "browser_local_connection" to "Conexão local criptografada",
         "browser_from_phone" to "Do telefone",
         "browser_available" to "Conteúdo disponível nesta sessão.",
         "browser_no_files" to "Nenhum arquivo compartilhado pelo telefone.",
@@ -1080,6 +1095,9 @@ object AppText {
         "network_help_step2" to "Se o PC não conseguir abrir o endereço, desative VPN ou isolamento de convidados/clientes e tente novamente.",
         "network_help_step3" to "Mantenha o app aberto durante a primeira conexão; transferências grandes podem continuar com o serviço em primeiro plano.",
         "network_help_hotspot" to "Sem Wi-Fi compartilhada? Ative o Hotspot móvel no PC, conecte o telefone a esse hotspot e depois crie uma nova sessão.",
+        "tls_secure" to "Conexão local criptografada",
+        "tls_fingerprint" to "SHA-256 do certificado",
+        "tls_browser_warning" to "Na primeira conexão, o navegador pode avisar sobre o certificado local autoassinado. Continue somente se a impressão digital do certificado corresponder à exibida neste telefone.",
     )
 
     fun missingKeys(
