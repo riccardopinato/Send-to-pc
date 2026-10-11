@@ -1354,11 +1354,27 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
     }
 
     private fun dashboardPage(session: TransferSession): String {
+        val language =
+            AppLanguageStore.current(
+                context
+            )
+
         val filesHtml = if (session.sharedItems.isEmpty()) {
-            "<div class=\"empty\">Nessun file condiviso dal telefono.</div>"
+            "<div class=\"empty\">" +
+                htmlEscape(
+                    localized(
+                        "browser_no_files"
+                    )
+                ) +
+                "</div>"
         } else {
             session.sharedItems.joinToString("\n") { item ->
-                val size = item.sizeBytes?.let { humanBytes(it) } ?: "Dimensione sconosciuta"
+                val size =
+                    item.sizeBytes
+                        ?.let { humanBytes(it) }
+                        ?: localized(
+                            "browser_unknown_size"
+                        )
 
                 """<div class="file">
 <div class="fileInfo"><div class="fileName">""" +
@@ -1370,7 +1386,13 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
                     session.token +
                     "/" +
                     item.id +
-                    """">Scarica</a>
+                    """">""" +
+                    htmlEscape(
+                        localized(
+                            "browser_download"
+                        )
+                    ) +
+                    """</a>
 </div>"""
             }
         }
@@ -1378,9 +1400,23 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
         val textHtml = session.sharedText
             ?.takeIf { it.isNotBlank() }
             ?.let {
-                """<div class="contentCard"><div class="label">TESTO</div><div id="sharedText" class="sharedText">""" +
+                """<div class="contentCard"><div class="label">""" +
+                    htmlEscape(
+                        localized("text")
+                    ).uppercase(
+                        Locale.forLanguageTag(
+                            language.code
+                        )
+                    ) +
+                    """</div><div id="sharedText" class="sharedText">""" +
                     htmlEscape(it) +
-                    """</div><button class="secondary" onclick="copyText()">Copia testo</button></div>"""
+                    """</div><button class="secondary" onclick="copyText()">""" +
+                    htmlEscape(
+                        localized(
+                            "browser_copy_text"
+                        )
+                    ) +
+                    """</button></div>"""
             }
             .orEmpty()
 
@@ -1388,7 +1424,15 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
             ?.takeIf { it.isNotBlank() }
             ?.let {
                 val escaped = htmlEscape(it)
-                """<div class="contentCard"><div class="label">LINK</div><a class="sharedLink" target="_blank" rel="noopener noreferrer" href="""" +
+                """<div class="contentCard"><div class="label">""" +
+                    htmlEscape(
+                        localized("link")
+                    ).uppercase(
+                        Locale.forLanguageTag(
+                            language.code
+                        )
+                    ) +
+                    """</div><a class="sharedLink" target="_blank" rel="noopener noreferrer" href="""" +
                     escaped +
                     """">""" +
                     escaped +
@@ -1397,11 +1441,11 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
             .orEmpty()
 
         return """<!doctype html>
-<html lang="it">
+<html lang="${language.code}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invia al PC</title>
+<title>""" + htmlEscape(localized("app_name")) + """</title>
 <style>
 :root{--primary:#4f63f2;--primary-soft:#e9ecff;--secondary:#008c95;--secondary-soft:#d8f5f4;--text:#17181d;--muted:#6c7180;--surface:#fff;--surface-2:#f5f6fa;--bg:#f7f8fc;--line:#e2e5ed;--danger:#b3261e}
 *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#f0f2ff 0,#f7f8fc 240px);color:var(--text)}.page{width:min(960px,calc(100% - 28px));margin:34px auto 64px}.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px;font-size:29px;font-weight:850;letter-spacing:-.035em}.brandMark{width:42px;height:42px;border-radius:14px;background:var(--primary);position:relative;box-shadow:0 10px 24px rgba(79,99,242,.22)}.brandMark:before{content:"";position:absolute;left:8px;top:10px;width:19px;height:13px;border:2px solid white;border-radius:2px}.brandMark:after{content:"";position:absolute;right:7px;bottom:8px;width:7px;height:15px;border:2px solid white;border-radius:2px}.local{padding:9px 14px;border-radius:999px;background:var(--secondary-soft);color:#176f72;font-size:13px;font-weight:780}.card{background:var(--surface);border:1px solid rgba(79,99,242,.06);border-radius:28px;padding:26px;margin-bottom:18px;box-shadow:0 14px 44px rgba(26,34,77,.07)}h2{margin:0 0 8px;font-size:22px;letter-spacing:-.02em}.muted{color:var(--muted);line-height:1.5}.file{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);padding:14px 0}.file:last-child{border-bottom:0}.fileInfo{min-width:0;flex:1}.fileName{font-weight:740;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fileSize{font-size:13px;color:var(--muted);margin-top:3px}.download,.secondary{border:0;text-decoration:none;cursor:pointer;font-weight:760;border-radius:15px;padding:11px 16px}.download{background:var(--primary);color:white;box-shadow:0 8px 20px rgba(79,99,242,.18)}.secondary{background:var(--primary-soft);color:#25327e;margin-top:14px}.drop{border:2px dashed #b7bdd0;border-radius:24px;padding:44px 20px;text-align:center;cursor:pointer;transition:.15s;background:linear-gradient(180deg,#fbfbfe,#f7f8fc)}.drop:hover,.drop.active{border-color:var(--primary);background:var(--primary-soft)}.dropTitle{font-size:20px;font-weight:820}.dropSub{margin-top:6px;color:var(--muted)}input[type=file]{display:none}.progress{display:none;height:10px;border-radius:999px;overflow:hidden;margin-top:18px;background:#e7e9ef}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),#7282ff)}.status{margin-top:10px;color:var(--muted);font-size:14px}.queue{margin-top:16px;display:grid;gap:8px}.queueItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 13px;border-radius:15px;background:var(--surface-2);border:1px solid var(--line)}.queueName{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.queueMeta{font-size:12px;color:var(--muted)}.queueOk{color:#19733f}.queueErr{color:var(--danger)}.queueActions{display:flex;gap:6px;align-items:center}.queueActions button{border:0;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:750;cursor:pointer;background:#e9ecf4;color:#25282e}.queueActions button.cancel{background:#fff0ef;color:var(--danger)}.queueHash{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);overflow-wrap:anywhere}.contentCard{margin-top:18px;background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:18px}.label{font-size:11px;font-weight:850;letter-spacing:.1em;color:var(--muted)}.sharedText{margin-top:10px;white-space:pre-wrap;line-height:1.5}.sharedLink{display:block;margin-top:10px;overflow-wrap:anywhere;color:var(--primary);font-weight:700}.empty{color:var(--muted);padding:12px 0}.footer{text-align:center;color:#8b9099;font-size:13px;margin-top:28px}
@@ -1411,24 +1455,50 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
 </head>
 <body>
 <div class="page">
-<div class="header"><div class="brand"><span class="brandMark" aria-hidden="true"></span><span>Invia al PC</span></div><div class="local">● Connessione locale</div></div>
-<section class="card"><h2>Dal telefono</h2><p class="muted">Contenuti disponibili in questa sessione.</p>
+<div class="header"><div class="brand"><span class="brandMark" aria-hidden="true"></span><span>""" +
+htmlEscape(localized("app_name")) +
+"""</span></div><div class="local">● """ +
+htmlEscape(localized("browser_local_connection")) +
+"""</div></div>
+<section class="card"><h2>""" +
+htmlEscape(localized("browser_from_phone")) +
+"""</h2><p class="muted">""" +
+htmlEscape(localized("browser_available")) +
+"""</p>
 """ + filesHtml + textHtml + linkHtml + """
 </section>
-<section class="card"><h2>Invia al telefono</h2><p class="muted">I file verranno salvati in Download/Invia al PC.</p>
-<label class="drop" id="dropZone" for="fileInput"><div class="dropTitle">Trascina qui i file</div><div class="dropSub">oppure clicca per selezionarli</div></label>
+<section class="card"><h2>""" +
+htmlEscape(localized("browser_to_phone")) +
+"""</h2><p class="muted">""" +
+htmlEscape(localized("browser_save_path")) +
+"""</p>
+<label class="drop" id="dropZone" for="fileInput"><div class="dropTitle">""" +
+htmlEscape(localized("browser_drop")) +
+"""</div><div class="dropSub">""" +
+htmlEscape(localized("browser_choose")) +
+"""</div></label>
 <input id="fileInput" type="file" multiple>
 <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
-<div class="status" id="status">Pronto.</div>
+<div class="status" id="status">""" +
+htmlEscape(localized("browser_ready")) +
+"""</div>
 <div class="queue" id="queue"></div>
 </section>
 <section class="card" id="trustCard">
-<h2>Connessione rapida</h2>
-<p class="muted">Puoi ricordare questo PC per 30 giorni. La credenziale viene ruotata a ogni riconnessione e non è leggibile dagli script della pagina.</p>
-<button class="secondary" id="trustButton" onclick="trustThisPc()">Ricorda questo PC</button>
+<h2>""" +
+htmlEscape(localized("browser_quick")) +
+"""</h2>
+<p class="muted">""" +
+htmlEscape(localized("browser_trust_desc")) +
+"""</p>
+<button class="secondary" id="trustButton" onclick="trustThisPc()">""" +
+htmlEscape(localized("browser_remember")) +
+"""</button>
 <div class="status" id="trustStatus"></div>
 </section>
-<div class="footer">Trasferimento diretto sulla rete locale. Usa una Wi-Fi privata o fidata: HTTP locale non cifra il traffico.</div>
+<div class="footer">""" +
+htmlEscape(localized("browser_private_wifi")) +
+"""</div>
 </div>
 <script>
 const input=document.getElementById('fileInput');
