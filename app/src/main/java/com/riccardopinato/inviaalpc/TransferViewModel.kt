@@ -239,19 +239,6 @@ class TransferViewModel(
     fun startSendSession() {
         val state = _uiState.value
 
-        if (
-            state.selectedItems.isEmpty() &&
-            state.sharedText.isBlank() &&
-            state.sharedLink.isBlank()
-        ) {
-            _uiState.value =
-                state.copy(
-                    error =
-                        "Seleziona almeno un file, una foto, un testo o un link."
-                )
-            return
-        }
-
         val normalizedLink =
             state.sharedLink
                 .takeIf { it.isNotBlank() }
@@ -406,6 +393,13 @@ class TransferViewModel(
                 ) ?: HomeSection.SEND.name
             )
         }.getOrDefault(HomeSection.SEND)
+            .let {
+                if (it == HomeSection.RECEIVE) {
+                    HomeSection.SEND
+                } else {
+                    it
+                }
+            }
 
     fun openHistoryEntry(entry: TransferHistoryEntry) {
         val uriString = entry.contentUri
