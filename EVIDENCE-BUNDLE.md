@@ -24,7 +24,21 @@ Feature branch PR #15 automated gate:
 
 Merged source:
 - main commit: `10d6e44f5bdf6d4726709127c467d88388f1a1ab`
-- post-merge CI: to be recorded after completion.
+- post-merge Android checks run: `38184362992`
+- result: PASS
+- unit tests: PASS
+- Android Lint: PASS
+- Slim/R8 build: PASS
+- unsigned release bundle gate: PASS
+- internal APK signature verify: PASS
+- checksum: PASS
+- internal artifact: `Invia-al-PC-v1.26.0-internal`
+- internal APK size: 6.3 MB
+- internal APK SHA-256:
+  `34144f189ce3906199084d68dc6d2af6452b9ed2848699285da5a338e0ae1f8b`
+- uploaded artifact ID: `11718878010`
+- uploaded artifact ZIP digest:
+  `63a98110b541bd5b2fe26c34f5e217d70ee1df0a63b80381dc19cd92a9c0a964`
 
 ## Automated coverage
 
