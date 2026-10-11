@@ -1570,7 +1570,7 @@ function queueRow(file,index,total){
 
   const meta=document.createElement('div');
   meta.className='queueMeta';
-  meta.textContent='In coda • '+humanBytes(file.size);
+  meta.textContent=I.queue+' • '+humanBytes(file.size);
 
   const hash=document.createElement('div');
   hash.className='queueHash';
@@ -1583,11 +1583,11 @@ function queueRow(file,index,total){
   actions.className='queueActions';
 
   const pause=document.createElement('button');
-  pause.textContent='Pausa';
+  pause.textContent=I.pause;
 
   const cancel=document.createElement('button');
   cancel.className='cancel';
-  cancel.textContent='Annulla';
+  cancel.textContent=I.cancel;
 
   actions.appendChild(pause);
   actions.appendChild(cancel);
@@ -1656,7 +1656,7 @@ function waitWhilePaused(state,row){
     const tick=()=>{
       if(state.cancelled){reject(new Error('cancelled'));return;}
       if(!state.paused){resolve();return;}
-      row.meta.textContent='In pausa • '+humanBytes(state.offset)+' / '+humanBytes(state.file.size);
+      row.meta.textContent=I.paused+' • '+humanBytes(state.offset)+' / '+humanBytes(state.file.size);
       setTimeout(tick,200);
     };
     tick();
@@ -1701,7 +1701,7 @@ function uploadChunk(file,state,row,expectedHash){
       const absolute=start+e.loaded;
       const p=Math.min(100,Math.round(absolute/file.size*100));
       bar.style.width=p+'%';
-      row.meta.textContent='Trasferimento • '+p+'% • '+humanBytes(absolute)+' / '+humanBytes(file.size);
+      row.meta.textContent=I.transfer+' • '+p+'% • '+humanBytes(absolute)+' / '+humanBytes(file.size);
       status.textContent=file.name+' — '+p+'%';
     };
 
@@ -1748,7 +1748,7 @@ async function uploadResumable(file,row){
   uploadStates.set(uploadId,state);
 
   if(remote.completed){
-    row.meta.textContent='Già completato • '+humanBytes(file.size);
+    row.meta.textContent=I.alreadyCompleted+' • '+humanBytes(file.size);
     row.meta.className='queueMeta queueOk';
     row.pause.disabled=true;
     row.cancel.disabled=true;
@@ -1759,7 +1759,7 @@ async function uploadResumable(file,row){
   row.pause.onclick=()=>{
     if(state.cancelled)return;
     state.paused=!state.paused;
-    row.pause.textContent=state.paused?'Riprendi':'Pausa';
+    row.pause.textContent=state.paused?I.resume:I.pause;
     if(state.paused && state.xhr)state.xhr.abort();
   };
 
@@ -1768,14 +1768,14 @@ async function uploadResumable(file,row){
     state.cancelled=true;
     if(state.xhr)state.xhr.abort();
     await cancelRemote(uploadId);
-    row.meta.textContent='Annullato';
+    row.meta.textContent=I.cancelled;
     row.meta.className='queueMeta queueErr';
     row.pause.disabled=true;
     row.cancel.disabled=true;
   };
 
   if(state.offset>0){
-    row.meta.textContent='Ripresa da '+humanBytes(state.offset)+' • '+Math.round(state.offset/file.size*100)+'%';
+    row.meta.textContent=fmt(I.resumedFrom,humanBytes(state.offset))+' • '+Math.round(state.offset/file.size*100)+'%';
   }
 
   let finalData=remote;
@@ -1809,7 +1809,7 @@ async function uploadResumable(file,row){
         attempt++;
         if(attempt>4)throw e;
 
-        row.meta.textContent='Riconnessione '+attempt+'/4...';
+        row.meta.textContent=I.reconnecting+' '+attempt+'/4...';
         await new Promise(r=>setTimeout(r,800*attempt));
 
         try{
@@ -1829,10 +1829,10 @@ async function uploadResumable(file,row){
   if(remote.sha256){
     row.hash.textContent=
       expectedHash
-        ? 'Integrità verificata • SHA-256 '+remote.sha256
+        ? I.integrity+' • SHA-256 '+remote.sha256
         : 'SHA-256 '+remote.sha256;
   }else if(file.size>256*1024*1024){
-    row.hash.textContent='Hash completo saltato per file molto grande';
+    row.hash.textContent=I.hashSkipped;
   }
 
   return remote;
@@ -1848,7 +1848,7 @@ async function uploadFiles(files){
   progress.style.display='block';
 
   if(requestedCount>MAX_BROWSER_FILES){
-    status.textContent='Per stabilità verranno elaborati i primi '+MAX_BROWSER_FILES+' file.';
+    status.textContent=fmt(I.limit,MAX_BROWSER_FILES);
   }
 
   const rows=files.map((f,i)=>queueRow(f,i,files.length));
@@ -1857,21 +1857,21 @@ async function uploadFiles(files){
   for(let i=0;i<files.length;i++){
     const file=files[i];
     const row=rows[i];
-    status.textContent='File '+(i+1)+' di '+files.length;
-    row.meta.textContent='Preparazione...';
+    status.textContent=fmt(I.filePosition,i+1,files.length);
+    row.meta.textContent=I.preparing;
 
     try{
       await uploadResumable(file,row);
       ok++;
-      row.meta.textContent='Completato • '+humanBytes(file.size);
+      row.meta.textContent=I.completed+' • '+humanBytes(file.size);
       row.meta.className='queueMeta queueOk';
     }catch(e){
       if(e.message==='cancelled'){
         cancelled++;
-        row.meta.textContent='Annullato';
+        row.meta.textContent=I.cancelled;
       }else{
         failed++;
-        row.meta.textContent='Non trasferito • seleziona di nuovo lo stesso file per riprendere';
+        row.meta.textContent=I.notTransferred;
       }
       row.meta.className='queueMeta queueErr';
     }
@@ -1879,20 +1879,20 @@ async function uploadFiles(files){
 
   if(failed===0 && cancelled===0){
     bar.style.width='100%';
-    status.textContent='Completati '+ok+' file.';
+    status.textContent=fmt(I.summaryOk,ok);
   }else{
-    status.textContent='Completati '+ok+' • errori '+failed+' • annullati '+cancelled+'.';
+    status.textContent=fmt(I.summary,ok,failed,cancelled);
   }
 }
 
-async function copyText(){const el=document.getElementById('sharedText');if(!el)return;const value=el.innerText;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove()}status.textContent='Testo copiato.'}catch(e){status.textContent='Seleziona il testo e copialo manualmente.'}}
+async function copyText(){const el=document.getElementById('sharedText');if(!el)return;const value=el.innerText;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove()}status.textContent=I.copied}catch(e){status.textContent=I.copyManual}}
 async function trustThisPc(){
   const trustStatus=document.getElementById('trustStatus');
   const current=localStorage.getItem('inviaalpc.trustedName');
   const suggested=current||((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||'PC');
-  const name=prompt('Nome di questo PC',suggested);
+  const name=prompt(I.pcName,suggested);
   if(!name)return;
-  trustStatus.textContent='Salvataggio...';
+  trustStatus.textContent=I.saving;
   try{
     const r=await fetch('/trust/""" + session.token + """',{
       method:'POST',
@@ -1902,17 +1902,17 @@ async function trustThisPc(){
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
     localStorage.setItem('inviaalpc.trustedName',data.name);
-    document.getElementById('trustButton').textContent='PC ricordato';
-    trustStatus.textContent='Connessione rapida attivata per '+data.name+'.';
+    document.getElementById('trustButton').textContent=I.remembered;
+    trustStatus.textContent=fmt(I.trustSaved,data.name);
   }catch(e){
-    trustStatus.textContent='Impossibile ricordare questo PC.';
+    trustStatus.textContent=I.trustFailed;
   }
 }
 (function(){
   const name=localStorage.getItem('inviaalpc.trustedName');
   if(name){
-    document.getElementById('trustButton').textContent='PC ricordato';
-    document.getElementById('trustStatus').textContent='Dispositivo: '+name;
+    document.getElementById('trustButton').textContent=I.remembered;
+    document.getElementById('trustStatus').textContent=fmt(I.device,name);
   }
 })();
 </script>
