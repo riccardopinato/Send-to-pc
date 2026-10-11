@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.riccardopinato.inviaalpc.AppLanguage
 import com.riccardopinato.inviaalpc.AppLanguageStore
 import com.riccardopinato.inviaalpc.AppText
@@ -56,6 +58,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private const val LOCAL_NETWORK_PERMISSION =
+    "android.permission.ACCESS_LOCAL_NETWORK"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InviaAlPcApp(
@@ -66,6 +71,7 @@ fun InviaAlPcApp(
     val history by viewModel.history.collectAsState()
     val trustedDevices by viewModel.trustedDevices.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     val filePicker =
         rememberLauncherForActivityResult(
@@ -85,6 +91,34 @@ fun InviaAlPcApp(
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) {}
+
+    val localNetworkPermission =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                viewModel.startSendSession()
+            } else {
+                viewModel.reportLocalNetworkPermissionDenied()
+            }
+        }
+
+    fun startConnection() {
+        val requiresRuntimePermission =
+            Build.VERSION.SDK_INT >= 37 &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    LOCAL_NETWORK_PERMISSION
+                ) != PackageManager.PERMISSION_GRANTED
+
+        if (requiresRuntimePermission) {
+            localNetworkPermission.launch(
+                LOCAL_NETWORK_PERMISSION
+            )
+        } else {
+            viewModel.startSendSession()
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshNetwork()
@@ -260,7 +294,9 @@ fun InviaAlPcApp(
                         onTextChange = viewModel::setSharedText,
                         onLinkChange = viewModel::setSharedLink,
                         onDismissError = viewModel::clearError,
-                        onStart = viewModel::startSendSession
+                        onStart = {
+                            startConnection()
+                        }
                     )
                 }
 
