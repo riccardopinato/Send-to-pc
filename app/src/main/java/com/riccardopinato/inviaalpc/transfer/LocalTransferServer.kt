@@ -1248,17 +1248,63 @@ class LocalTransferServer(
         return if (offset == length) result else result.copyOf(offset)
     }
 
-    private fun pinPage(token: String, error: String? = null): String {
-        val errorHtml = error
-            ?.let { "<div class=\"error\">" + htmlEscape(it) + "</div>" }
-            .orEmpty()
+    private fun pinPage(
+        token: String,
+        error: String? = null
+    ): String {
+        val language =
+            AppLanguageStore.current(
+                context
+            )
+
+        val errorHtml =
+            error
+                ?.let {
+                    "<div class=\"error\">" +
+                        htmlEscape(it) +
+                        "</div>"
+                }
+                .orEmpty()
+
+        val appName =
+            htmlEscape(
+                localized("app_name")
+            )
+
+        val hint =
+            htmlEscape(
+                localized(
+                    "browser_pin_hint"
+                )
+            )
+
+        val connect =
+            htmlEscape(
+                localized(
+                    "browser_connect"
+                )
+            )
+
+        val checkingJs =
+            jsonEscape(
+                localized(
+                    "browser_check_trusted"
+                )
+            )
+
+        val hintJs =
+            jsonEscape(
+                localized(
+                    "browser_pin_hint"
+                )
+            )
 
         return """<!doctype html>
-<html lang="it">
+<html lang="${language.code}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invia al PC</title>
+<title>""" + appName + """</title>
 <style>
 :root{--primary:#4f63f2;--primary-soft:#e9ecff;--text:#17181d;--muted:#6c7180;--surface:#fff;--bg:#f7f8fc;--line:#dde1eb;--danger:#b3261e}
 *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top,#eef0ff 0,#f7f8fc 42%,#f7f8fc 100%);color:var(--text);min-height:100vh;display:grid;place-items:center;padding:24px}
@@ -1271,17 +1317,17 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
 </head>
 <body>
 <div class="card">
-<h1>Invia al PC</h1>
-<p class="muted" id="hint">Inserisci il PIN mostrato sul telefono.</p>
+<h1>""" + appName + """</h1>
+<p class="muted" id="hint">""" + hint + """</p>
 """ + errorHtml + """
 <form id="pinForm" method="post" action="/auth/""" + htmlEscape(token) + """">
 <input class="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" autofocus required>
-<button type="submit">Connetti</button>
+<button type="submit">""" + connect + """</button>
 </form>
 <script>
 (async function(){
   try{
-    document.getElementById('hint').textContent='Controllo PC fidato...';
+    document.getElementById('hint').textContent='""" + checkingJs + """';
     document.getElementById('pinForm').style.opacity='.45';
 
     const r=await fetch('/auth/trusted/""" + htmlEscape(token) + """',{
@@ -1294,10 +1340,10 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
       return;
     }
 
-    document.getElementById('hint').textContent='Inserisci il PIN mostrato sul telefono.';
+    document.getElementById('hint').textContent='""" + hintJs + """';
     document.getElementById('pinForm').style.opacity='1';
   }catch(e){
-    document.getElementById('hint').textContent='Inserisci il PIN mostrato sul telefono.';
+    document.getElementById('hint').textContent='""" + hintJs + """';
     document.getElementById('pinForm').style.opacity='1';
   }
 })();
