@@ -72,61 +72,67 @@ Gate residuo:
 
 ## v1.21 — Transfer Reliability Final
 
-Stato: NEXT
+Stato: IMPLEMENTED — AUTOMATED CI PENDING / PHYSICAL QA PENDING
 
-- large file / batch / resume;
-- Wi-Fi interruption e cambio IP;
-- background / screen-off / service recovery;
-- storage pressure / duplicate / partial cleanup;
-- progress e summary consistency.
+- policy centralizzata per limiti file/batch/chunk;
+- arithmetic chunk overflow-safe;
+- storage headroom overflow-safe;
+- boundary tests su 8 GiB, 100 file e Long overflow;
+- resume/Range/partial cleanup già presenti e mantenuti;
+- Wi-Fi recovery 12 s già coperta da test policy;
+- background/FGS/wake lock restano da verificare fisicamente.
 
 ## v1.22 — Security Hardening
 
-Stato: PLANNED
+Stato: IMPLEMENTED — AUTOMATED CI PENDING / PHYSICAL QA PENDING
 
-- endpoint abuse / malformed request tests;
-- rate limiting / trusted rotation / expiry;
-- XSS/header/path validation;
-- concurrency/size limits;
-- no sensitive logging;
-- downgrade/transport regression tests.
+- Host header vincolato a IP/porta sessione;
+- cross-site POST bloccati tramite Fetch Metadata;
+- header duplicati rifiutati;
+- Transfer-Encoding non supportato e rifiutato;
+- rate-limit PIN bounded + lockout test;
+- input/filename/link/CSP/security headers riesaminati;
+- audit evidence in RELIABILITY-SECURITY-AUDIT.md.
 
 ## v1.23 — UX / Physical QA Polish
 
-Stato: PLANNED
+Stato: PREPARED — PHYSICAL QA PENDING
 
-- small/large phone;
-- portrait/landscape;
-- font scale / navigation modes / dark;
-- EN/IT/ES/FR/DE/PT;
-- browser trust/recovery copy.
+- fingerprint TLS reso selezionabile e monospace;
+- audit stringhe UI: nessun nuovo testo user-facing non localizzato;
+- matrice device/browser/rete/accessibilità in PHYSICAL-QA.md;
+- EN/IT/ES/FR/DE/PT già protette da parity test;
+- physical evidence non simulata.
 
 ## v1.24 — AdMob Production
 
-Stato: EXTERNAL CONFIG PENDING
+Stato: CODE PREPARED — EXTERNAL CONFIG / PHYSICAL QA PENDING
 
-- production IDs;
-- UMP physical validation;
-- banner/interstitial/no-fill;
-- Store Candidate fail-closed.
+- Store Candidate fail-closed su ID mancanti;
+- ID production validati per formato;
+- ID demo Google esplicitamente rifiutati;
+- production IDs reali: PENDING;
+- UMP/banner/interstitial/no-fill physical validation: PENDING.
 
 ## v1.25 — Store Infrastructure
 
-Stato: EXTERNAL CONFIG PENDING
+Stato: REPOSITORY PACK PREPARED — EXTERNAL ACTIVATION PENDING
 
-- privacy policy URL;
-- app-ads.txt;
-- AdMob readiness;
-- Play Data Safety / audience / rating.
+- privacy page statica pronta in docs/privacy.html;
+- developer landing page pronta;
+- Play Console pack preparato;
+- Data Safety engineering evidence aggiornata;
+- app-ads.txt template presente;
+- hosting HTTPS / publisher line / AdMob readiness / Play forms: PENDING.
 
 ## v1.26 — Store Assets
 
-Stato: PLANNED
+Stato: COPY/SPECS PREPARED — FINAL BINARY ASSETS PENDING
 
-- listing copy;
-- screenshots;
-- icon/feature graphic validation;
-- support metadata.
+- listing copy EN/IT/ES/FR/DE/PT preparata;
+- specifiche Play icon/feature graphic/screenshots documentate;
+- screenshot reali devono provenire dall'esatto candidato dopo Physical QA;
+- support email/sito definitivo: PENDING.
 
 ## v1.27 — Production Release Candidate
 
