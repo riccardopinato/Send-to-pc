@@ -53,15 +53,101 @@ Stato: IMPLEMENTED — CI GREEN
 - Hardening 12/10/2026: ACCESS_LOCAL_NETWORK rimosso finché targetSdk resta 36; guida hotspot allineata al percorso supportabile (hotspot del PC).
 - Gate sicurezza Store aperto: il trasporto LAN core usa HTTP non cifrato.
 
-## Step successivo — Store security gate
+## v1.20 — LAN Transport Security
 
-Prima del gate finale va risolto o formalmente chiuso il rischio del trasporto LAN HTTP rispetto alla Google Play User Data policy.
+Stato: IMPLEMENTED — CI / PHYSICAL QA PENDING
 
-Restano inoltre esterni al codice:
-- AdMob production IDs;
+- HTTPS locale al posto del trasporto HTTP.
+- TLS 1.2 / TLS 1.3.
+- Identity RSA persistente nell'Android Keystore.
+- Certificato self-signed e fingerprint SHA-256 mostrato sul telefono.
+- Cookie sid/trusted_pc Secure + HttpOnly + SameSite=Strict.
+- Nessun cloud relay e nessun software PC obbligatorio.
+- Trust model e recovery documentati.
+
+Gate residuo:
+- validazione fisica warning certificato/fingerprint sui browser target;
+- verifica sniffing LAN;
+- policy review finale sull'esatto artifact.
+
+## v1.21 — Transfer Reliability Final
+
+Stato: NEXT
+
+- large file / batch / resume;
+- Wi-Fi interruption e cambio IP;
+- background / screen-off / service recovery;
+- storage pressure / duplicate / partial cleanup;
+- progress e summary consistency.
+
+## v1.22 — Security Hardening
+
+Stato: PLANNED
+
+- endpoint abuse / malformed request tests;
+- rate limiting / trusted rotation / expiry;
+- XSS/header/path validation;
+- concurrency/size limits;
+- no sensitive logging;
+- downgrade/transport regression tests.
+
+## v1.23 — UX / Physical QA Polish
+
+Stato: PLANNED
+
+- small/large phone;
+- portrait/landscape;
+- font scale / navigation modes / dark;
+- EN/IT/ES/FR/DE/PT;
+- browser trust/recovery copy.
+
+## v1.24 — AdMob Production
+
+Stato: EXTERNAL CONFIG PENDING
+
+- production IDs;
+- UMP physical validation;
+- banner/interstitial/no-fill;
+- Store Candidate fail-closed.
+
+## v1.25 — Store Infrastructure
+
+Stato: EXTERNAL CONFIG PENDING
+
+- privacy policy URL;
 - app-ads.txt;
-- AdMob app readiness;
-- physical validation UMP/ads.
+- AdMob readiness;
+- Play Data Safety / audience / rating.
+
+## v1.26 — Store Assets
+
+Stato: PLANNED
+
+- listing copy;
+- screenshots;
+- icon/feature graphic validation;
+- support metadata.
+
+## v1.27 — Production Release Candidate
+
+Stato: BLOCKED BY v1.24-v1.26 + PHYSICAL QA
+
+- signed APK/AAB;
+- exact source SHA / artifact SHA-256;
+- Store Candidate workflow.
+
+## v1.28 — Physical Certification
+
+Stato: BLOCKED BY DEVICE TEST
+
+- exact-artifact validation;
+- update-in-place;
+- Evidence Bundle;
+- CERTIFIED / NOT CERTIFIED / BLOCKED.
+
+## v1.29 / 1.0 Store — Google Play
+
+Stato: BLOCKED BY PLAY CONSOLE / FINAL CERTIFICATION
 
 ## Gate finale
 
