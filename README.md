@@ -9,10 +9,13 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 - nessun software obbligatorio sul PC;
 - collegamento tramite QR / URL locale + PIN;
 - trasferimento bidirezionale nella stessa sessione;
+- file, testo e link in entrambe le direzioni telefono ↔ PC;
+- progress complessivo per sessione e riepilogo operazione;
 - upload resumable con pausa, ripresa e annullamento;
 - download HTTP Range;
 - PC fidati revocabili;
-- cronologia locale;
+- cronologia locale raggruppata per sessione;
+- apertura/copia/condivisione dei contenuti ricevuti;
 - riepilogo operazione;
 - tema Sistema / Chiaro / Scuro;
 - monetizzazione AdMob separata dal core di trasferimento;
