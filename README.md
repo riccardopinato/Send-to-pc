@@ -102,6 +102,10 @@ La v1.19 introduce inoltre un gate `store_candidate` nel workflow release: un ca
 
 La v1.20 usa HTTPS locale e cookie Secure. La validazione fisica del warning certificato/fingerprint resta separata dal CI.
 
+## Release gates
+
+La preparazione v1.21–v1.29 è tracciata in [ROADMAP.md](ROADMAP.md). I gate esterni/fisici sono in [EXTERNAL-RELEASE-GATES.md](EXTERNAL-RELEASE-GATES.md), con [EVIDENCE-BUNDLE.md](EVIDENCE-BUNDLE.md) e [FINAL-CERTIFICATION.md](FINAL-CERTIFICATION.md) come superfici di certificazione.
+
 ## Roadmap
 
 Vedi [ROADMAP.md](ROADMAP.md).

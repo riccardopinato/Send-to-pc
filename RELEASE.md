@@ -118,3 +118,19 @@ Il nome degli artifact e RELEASE_IDENTITY vengono derivati dinamicamente da `ver
 Un run Store Candidate verde non sostituisce Physical QA, app-ads.txt/readiness o Final Certification.
 
 La v1.26 include TLS locale, reliability/security hardening e Store preparation. Store Ready resta separato finché trust flow, Physical QA, AdMob production, app-ads.txt/readiness, update-in-place e final certification non sono chiusi.
+
+
+## v1.27–v1.29 release gates
+
+The repository-side implementation and Store preparation are complete through v1.26.
+
+The next signed release must be produced by the existing `Android release` workflow:
+- `store_candidate=false` for signed QA evidence;
+- `store_candidate=true` only after real production AdMob IDs exist.
+
+No workflow run, Physical QA, update-in-place or Play Console result may be inferred from code state alone.
+
+See:
+- EXTERNAL-RELEASE-GATES.md
+- EVIDENCE-BUNDLE.md
+- FINAL-CERTIFICATION.md

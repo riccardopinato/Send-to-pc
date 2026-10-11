@@ -136,24 +136,38 @@ Stato: COPY/SPECS PREPARED — FINAL BINARY ASSETS PENDING
 
 ## v1.27 — Production Release Candidate
 
-Stato: BLOCKED BY v1.24-v1.26 + PHYSICAL QA
+Stato: USER-ACTION / EXTERNAL GATES PENDING
 
-- signed APK/AAB;
-- exact source SHA / artifact SHA-256;
-- Store Candidate workflow.
+Repository preparation: COMPLETE.
+
+Remaining:
+- configure real production AdMob IDs;
+- execute Android release with store_candidate=true;
+- record signed APK/AAB, source SHA and hashes.
+
+The signing identity is already historically verified, but no exact v1.26 production-signed artifact exists yet.
 
 ## v1.28 — Physical Certification
 
-Stato: BLOCKED BY DEVICE TEST
+Stato: EVIDENCE SURFACES PREPARED — BLOCKED BY DEVICE TEST
 
-- exact-artifact validation;
+Prepared:
+- PHYSICAL-QA.md;
+- EVIDENCE-BUNDLE.md;
+- FINAL-CERTIFICATION.md;
+- EXTERNAL-RELEASE-GATES.md.
+
+Remaining:
+- exact-artifact Physical QA;
 - update-in-place;
-- Evidence Bundle;
-- CERTIFIED / NOT CERTIFIED / BLOCKED.
+- fill evidence;
+- final verdict.
 
 ## v1.29 / 1.0 Store — Google Play
 
-Stato: BLOCKED BY PLAY CONSOLE / FINAL CERTIFICATION
+Stato: STORE PACK PREPARED — BLOCKED BY PLAY CONSOLE / FINAL CERTIFICATION
+
+Repository work is prepared. Production upload/rollout cannot be declared until all external and physical gates are closed.
 
 ## Gate finale
 
