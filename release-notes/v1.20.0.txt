@@ -1,0 +1,12 @@
+Invia al PC v1.20.0 — Encrypted LAN Transport
+
+- Le sessioni telefono ↔ PC usano ora HTTPS locale.
+- TLS 1.2 / TLS 1.3 abilitati.
+- Identity RSA persistente generata e custodita nell'Android Keystore.
+- La private key non viene esportata.
+- Fingerprint SHA-256 del certificato mostrato sul telefono.
+- Cookie sessione e PC fidato ora Secure + HttpOnly + SameSite=Strict.
+- Il browser può mostrare un warning perché il certificato locale è self-signed.
+- Il fingerprint va confrontato prima di accettare il certificato.
+- Nessun cloud relay e nessun software desktop obbligatorio.
+- Documentati trust model, recovery e Physical QA richiesto.
