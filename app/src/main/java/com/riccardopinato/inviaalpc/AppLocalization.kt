@@ -284,7 +284,7 @@ object AppText {
         "files_count" to "%d files",
         "transferred_size" to "%s transferred",
         "elapsed_time" to "Duration %s",
-        "done" to "Done"
+        "done" to "Done",
         "network_help_title" to "Local network help",
         "network_help_body" to "For the fastest and most reliable transfer, keep phone and PC on the same private local network.",
         "network_help_step1" to "Connect phone and PC to the same Wi-Fi.",
@@ -409,7 +409,7 @@ object AppText {
         "ads_production_mode" to "La configurazione AdMob di produzione è attiva.",
         "transfer_summary" to "Riepilogo trasferimento", "files_count" to "%d file",
         "transferred_size" to "%s trasferiti", "elapsed_time" to "Durata %s",
-        "done" to "Fatto"
+        "done" to "Fatto",
         "receive_from_pc" to "Ricevi dal PC",
         "same_wifi_tip" to "Telefono e PC devono essere sulla stessa rete Wi-Fi privata.",
         "network_help_title" to "Guida rete locale",
@@ -447,7 +447,7 @@ object AppText {
         "version" to "Versión %s", "selected_count" to "%d elementos seleccionados", "more_files" to "+ %d archivos más",
         "history_note" to "Solo se guarda el historial, no una copia de los archivos.", "sent" to "Enviado", "received" to "Recibido",
         "progress_send" to "Enviando al PC", "progress_receive" to "Recibiendo del PC",
-        "notification_active" to "Sesión de transferencia local activa", "notification_end" to "Finalizar"
+        "notification_active" to "Sesión de transferencia local activa", "notification_end" to "Finalizar",
         "pc" to "PC",
         "network_ready" to "Red local • %s",
         "phone_pc" to "TELÉFONO ↔ PC",
@@ -610,7 +610,7 @@ object AppText {
         "version" to "Version %s", "selected_count" to "%d éléments sélectionnés", "more_files" to "+ %d fichiers",
         "history_note" to "Seul l’historique est enregistré, pas une copie des fichiers.", "sent" to "Envoyé", "received" to "Reçu",
         "progress_send" to "Envoi vers le PC", "progress_receive" to "Réception depuis le PC",
-        "notification_active" to "Session de transfert local active", "notification_end" to "Terminer"
+        "notification_active" to "Session de transfert local active", "notification_end" to "Terminer",
         "pc" to "PC",
         "network_ready" to "Réseau local • %s",
         "phone_pc" to "TÉLÉPHONE ↔ PC",
@@ -776,7 +776,7 @@ object AppText {
         "version" to "Version %s", "selected_count" to "%d Elemente ausgewählt", "more_files" to "+ %d weitere Dateien",
         "history_note" to "Gespeichert wird nur der Verlauf, keine Kopie der Dateien.", "sent" to "Gesendet", "received" to "Empfangen",
         "progress_send" to "Senden an PC", "progress_receive" to "Empfangen vom PC",
-        "notification_active" to "Lokale Übertragungssitzung aktiv", "notification_end" to "Beenden"
+        "notification_active" to "Lokale Übertragungssitzung aktiv", "notification_end" to "Beenden",
         "pc" to "PC",
         "network_ready" to "Lokales Netzwerk • %s",
         "phone_pc" to "SMARTPHONE ↔ PC",
@@ -942,7 +942,7 @@ object AppText {
         "version" to "Versão %s", "selected_count" to "%d itens selecionados", "more_files" to "+ %d arquivos",
         "history_note" to "Só o histórico é salvo, não uma cópia dos arquivos.", "sent" to "Enviado", "received" to "Recebido",
         "progress_send" to "Enviando ao PC", "progress_receive" to "Recebendo do PC",
-        "notification_active" to "Sessão de transferência local ativa", "notification_end" to "Encerrar"
+        "notification_active" to "Sessão de transferência local ativa", "notification_end" to "Encerrar",
         "pc" to "PC",
         "network_ready" to "Rede local • %s",
         "phone_pc" to "TELEFONE ↔ PC",
