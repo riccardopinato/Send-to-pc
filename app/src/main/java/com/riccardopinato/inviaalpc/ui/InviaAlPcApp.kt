@@ -36,6 +36,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.riccardopinato.inviaalpc.AppLanguage
+import com.riccardopinato.inviaalpc.AppLanguageStore
+import com.riccardopinato.inviaalpc.AppText
 import com.riccardopinato.inviaalpc.BuildConfig
 import com.riccardopinato.inviaalpc.R
 import com.riccardopinato.inviaalpc.HomeSection
@@ -100,6 +103,9 @@ fun InviaAlPcApp(
     if (uiState.showOnboarding) {
         FirstRunDialog(
             versionName = BuildConfig.VERSION_NAME,
+            language = uiState.language,
+            languageOverrideCode = uiState.languageOverrideCode,
+            onLanguageChange = viewModel::setLanguageOverride,
             onDismiss = viewModel::dismissOnboarding
         )
     }
@@ -131,7 +137,7 @@ fun InviaAlPcApp(
 
                         Column {
                             Text(
-                                "Invia al PC",
+                                tr("app_name"),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -148,7 +154,7 @@ fun InviaAlPcApp(
                     ) {
                         AppIcon(
                             resId = R.drawable.ic_help,
-                            contentDescription = "Guida",
+                            contentDescription = tr("help"),
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -172,11 +178,11 @@ fun InviaAlPcApp(
                         icon = {
                             AppIcon(
                                 R.drawable.ic_send,
-                                "Connetti"
+                                tr("connect")
                             )
                         },
                         label = {
-                            Text("Connetti")
+                            Text(tr("connect"))
                         }
                     )
 
@@ -188,11 +194,11 @@ fun InviaAlPcApp(
                         icon = {
                             AppIcon(
                                 R.drawable.ic_history,
-                                "Recenti"
+                                tr("recents")
                             )
                         },
                         label = {
-                            Text("Recenti")
+                            Text(tr("recents"))
                         }
                     )
 
@@ -204,11 +210,11 @@ fun InviaAlPcApp(
                         icon = {
                             AppIcon(
                                 R.drawable.ic_devices,
-                                "PC fidati"
+                                tr("trusted_pcs")
                             )
                         },
                         label = {
-                            Text("PC")
+                            Text(tr("pc"))
                         }
                     )
                 }
@@ -884,7 +890,7 @@ private fun ActiveSessionScreen(
 
                             clipboard.setPrimaryClip(
                                 ClipData.newPlainText(
-                                    "Invia al PC",
+                                    tr("app_name"),
                                     session.url
                                 )
                             )
@@ -1127,7 +1133,7 @@ private fun RecentsScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        "Recenti",
+                        tr("recents"),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -1299,7 +1305,7 @@ private fun FirstRunDialog(
                 Spacer(Modifier.width(10.dp))
 
                 Text(
-                    "Invia al PC",
+                    tr("app_name"),
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -1676,7 +1682,7 @@ private fun DevicesScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        "PC fidati",
+                        tr("trusted_pcs"),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
