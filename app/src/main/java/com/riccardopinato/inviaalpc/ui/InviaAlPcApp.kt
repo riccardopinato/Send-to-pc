@@ -1969,6 +1969,16 @@ private fun FirstRunDialog(
 
                 HorizontalDivider()
 
+                NetworkGuideContent(
+                    title = tr("network_guide_title"),
+                    body = tr("network_guide_body"),
+                    hotspotTitle = tr("network_hotspot_title"),
+                    hotspotBody = tr("network_hotspot_body"),
+                    retryTip = tr("network_retry_tip")
+                )
+
+                HorizontalDivider()
+
                 Text(
                     tr("language"),
                     fontWeight = FontWeight.Bold
