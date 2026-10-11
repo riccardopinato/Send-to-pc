@@ -54,7 +54,32 @@ Per Google Play questa chiave viene usata come **upload key**. Se Play App Signi
 
 ## Stato attuale
 
-La keystore e l'identità pubblica sono state create. La release firmata resta **BLOCKED** soltanto finché i quattro GitHub Secrets non vengono configurati nel repository.
+**PRODUCTION SIGNING VERIFIED — v1.16.0**
+
+First production run verificato:
+
+- workflow: `Android release`
+- run: `38159474760`
+- source SHA: `3240f107875372a01e7ba2e6577a73397ee72766`
+- package: `com.riccardopinato.inviaalpc`
+- versionName: `1.16.0`
+- versionCode: `27`
+- expected certificate SHA-256: `248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4`
+- actual certificate SHA-256: `248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4`
+- APK SHA-256: `639f471c29788ad80d5777fea9944633b603e69e792b05d8d175226341c8f552`
+- AAB SHA-256: `5ae82d96d4a43a8aef6c5851a0d2c9613a6a445d4ef2c45d8207c265a4d846ab`
+
+Il workflow ha completato con successo:
+- secret gate;
+- restore temporaneo della keystore;
+- test/lint;
+- APK e AAB release;
+- verifica firma;
+- confronto fail-closed del fingerprint;
+- release evidence;
+- rimozione della keystore temporanea.
+
+Il gate signing è quindi chiuso. Restano separati i gate di physical QA, update-in-place e final certification.
 
 ## Same-artifact rule
 
