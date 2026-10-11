@@ -1,0 +1,12 @@
+Invia al PC v1.18.0 — Transfer Experience
+
+- Dal browser del PC ora puoi inviare al telefono anche testo e link, oltre ai file.
+- I link vengono validati e accettano solo http:// e https://.
+- I batch di file dichiarano al telefono conteggio e dimensione totale attesi.
+- Nuovo avanzamento complessivo della sessione oltre al singolo file.
+- Riepilogo trasferimento più ricco con direzioni, volume, durata e velocità media.
+- I file ricevuti possono essere condivisi direttamente con lo share sheet Android.
+- Testo ricevuto: copia e condividi.
+- Link ricevuti: apri e condividi.
+- Cronologia raggruppata per sessione invece di una sequenza piatta di file.
+- La cronologia precedente resta leggibile tramite fallback legacy.
