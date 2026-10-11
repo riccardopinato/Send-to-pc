@@ -1,2 +1,72 @@
-# Send-to-pc
-Inva file al pc tramite QR code
+# Invia al PC / Send to PC
+
+Utility Android nativa per trasferire file, foto, testo e link tra telefono e computer sulla stessa rete locale.
+
+## Principi del prodotto
+
+- nessun account;
+- nessun cloud;
+- nessun software obbligatorio sul PC;
+- collegamento tramite QR / URL locale + PIN;
+- trasferimento bidirezionale nella stessa sessione;
+- upload resumable con pausa, ripresa e annullamento;
+- download HTTP Range;
+- PC fidati revocabili;
+- cronologia locale;
+- build Android leggera.
+
+## Stack
+
+- Kotlin;
+- Jetpack Compose / Material 3;
+- server HTTP LAN nativo tramite ServerSocket;
+- MediaStore Downloads per i file ricevuti;
+- ZXing per il QR code;
+- minSdk 29;
+- targetSdk 36;
+- Java 17.
+
+## Sicurezza
+
+La sessione usa:
+- token casuale ad alta entropia nell'URL;
+- PIN a 4 cifre con rate limit;
+- cookie di sessione HttpOnly + SameSite=Strict;
+- credenziale PC fidato HttpOnly, con scadenza a 30 giorni e rotazione dopo ogni riconnessione riuscita;
+- CSP, no-store, no-referrer e anti-framing;
+- server in ascolto solo sull'indirizzo LAN attivo.
+
+Il traffico locale usa HTTP e **non è cifrato**. Usare l'app solo su Wi-Fi privata o fidata. Vedi [THREAT_MODEL.md](THREAT_MODEL.md).
+
+## Lingue
+
+Lingua dispositivo di default, fallback inglese e override manuale:
+- English;
+- Italiano;
+- Español;
+- Français;
+- Deutsch;
+- Português.
+
+Le stringhe secondarie non ancora tradotte in una lingua usano il fallback inglese.
+
+## Build
+
+La CI esegue:
+- unit test;
+- Android Lint;
+- build Slim con R8/resource shrinking;
+- verifica firma;
+- SHA-256 artifact.
+
+`slim` è la lane INTERNAL e usa ancora la firma debug.
+
+La release stabile usa invece una keystore persistente tramite GitHub Secrets e produce APK + AAB. Vedi [RELEASE.md](RELEASE.md).
+
+## QA
+
+La build CI verde non equivale a certificazione runtime. Gli scenari su device reale sono elencati in [QA-CHECKLIST.md](QA-CHECKLIST.md).
+
+## Privacy
+
+Nessun file viene caricato su server esterni dell'app. Vedi [PRIVACY.md](PRIVACY.md).
