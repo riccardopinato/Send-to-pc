@@ -1,4 +1,4 @@
-# QA checklist — Invia al PC v1.16.0
+# QA checklist — Invia al PC v1.17.0
 
 ## CI gate
 
@@ -76,6 +76,25 @@ Per EN / IT / ES / FR / DE / PT:
 - [ ] pagina browser
 - [ ] notifiche
 - [ ] stringhe lunghe senza overflow
+
+## Monetizzazione / AdMob
+
+- [ ] debug/slim usano esclusivamente Test Ads
+- [ ] UMP requestConsentInfoUpdate ad ogni avvio
+- [ ] nessuna ad request prima di canRequestAds
+- [ ] Privacy Options visibile quando UMP la richiede
+- [ ] banner adaptive senza overlap con CTA/navigation
+- [ ] banner assente durante sessione di trasferimento attiva
+- [ ] no-fill/network error non blocca la UI
+- [ ] trasferimento breve/piccolo: nessun interstitial
+- [ ] trasferimento significativo: interstitial solo dopo tap Fine
+- [ ] massimo un interstitial per sessione
+- [ ] cooldown minimo 5 minuti rispettato
+- [ ] ad non pronto: nessuna attesa per l'utente
+- [ ] portrait / landscape
+- [ ] dark mode / font scale
+- [ ] production IDs verificati prima dello Store
+- [ ] app-ads.txt / AdMob readiness verificati prima dello Store
 
 ## Android 17 / API 37
 
