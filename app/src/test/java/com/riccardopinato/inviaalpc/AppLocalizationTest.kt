@@ -17,14 +17,25 @@ class AppLocalizationTest {
     }
 
     @Test
-    fun missingTranslationFallsBackToEnglish() {
+    fun spanishTranslationResolvesWithoutFallback() {
         assertEquals(
-            "The link is invalid. Use an http:// or https:// address.",
+            "El enlace no es válido. Usa una dirección http:// o https://.",
             AppText.get(
                 AppLanguage.ES,
                 "err_invalid_link"
             )
         )
+    }
+
+    @Test
+    fun allSupportedLanguagesHaveFullKeyParity() {
+        AppLanguage.entries.forEach { language ->
+            assertEquals(
+                "Missing keys for ${language.code}",
+                emptySet<String>(),
+                AppText.missingKeys(language)
+            )
+        }
     }
 
     @Test
