@@ -442,6 +442,8 @@ fun InviaAlPcApp(
                                     uiState.languageOverrideCode,
                                 themeMode =
                                     uiState.themeMode,
+                                localIp =
+                                    uiState.localIp,
                                 privacyOptionsRequired =
                                     monetizationState
                                         .privacyOptionsRequired,
@@ -2533,6 +2535,7 @@ private fun SettingsScreen(
     language: AppLanguage,
     languageOverrideCode: String?,
     themeMode: AppThemeMode,
+    localIp: String?,
     privacyOptionsRequired: Boolean,
     productionAdsConfigured: Boolean,
     onLanguageChange: (AppLanguage?) -> Unit,
@@ -2730,6 +2733,106 @@ private fun SettingsScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier =
+                    Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier =
+                        Modifier.padding(18.dp),
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        tr("network_help_title"),
+                        fontWeight =
+                            FontWeight.Bold
+                    )
+
+                    Text(
+                        localIp?.let {
+                            tr(
+                                "network_ready",
+                                it
+                            )
+                        } ?: tr(
+                            "network_unavailable"
+                        ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall,
+                        color =
+                            if (localIp != null) {
+                                MaterialTheme
+                                    .colorScheme
+                                    .secondary
+                            } else {
+                                MaterialTheme
+                                    .colorScheme
+                                    .error
+                            }
+                    )
+
+                    Text(
+                        tr("network_help_body"),
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .onSurfaceVariant
+                    )
+
+                    Text(
+                        "1. " +
+                            tr(
+                                "network_help_step1"
+                            ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall
+                    )
+
+                    Text(
+                        "2. " +
+                            tr(
+                                "network_help_step2"
+                            ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall
+                    )
+
+                    Text(
+                        "3. " +
+                            tr(
+                                "network_help_step3"
+                            ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall
+                    )
+
+                    Text(
+                        tr(
+                            "network_help_hotspot"
+                        ),
+                        style =
+                            MaterialTheme
+                                .typography
+                                .bodySmall,
+                        color =
+                            MaterialTheme
+                                .colorScheme
+                                .onSurfaceVariant
+                    )
                 }
             }
         }
