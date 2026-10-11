@@ -1,4 +1,4 @@
-# QA checklist — Invia al PC v1.19.0
+# QA checklist — Invia al PC v1.20.0
 
 ## CI gate
 
@@ -58,7 +58,12 @@
 - [ ] cookie trusted non leggibile da JavaScript
 - [ ] HTML escaping su nomi file/testo/link
 - [ ] warning Wi-Fi non fidata visibile
-- [ ] nessuna UI/documentazione dichiara il trasferimento LAN come cifrato
+- [ ] URL sessione usa esclusivamente https://
+- [ ] TLS 1.2/1.3 handshake su browser target
+- [ ] fingerprint telefono == fingerprint certificato browser
+- [ ] cookie sid/trusted_pc hanno flag Secure
+- [ ] sniffing LAN non espone payload file/testo/link
+- [ ] warning self-signed/recovery comprensibile
 
 ## UX / visual
 
