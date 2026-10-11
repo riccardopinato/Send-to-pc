@@ -25,7 +25,7 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 
 - Kotlin;
 - Jetpack Compose / Material 3;
-- server HTTP LAN nativo tramite ServerSocket;
+- server HTTPS LAN nativo tramite TLS + ServerSocket;
 - MediaStore Downloads per i file ricevuti;
 - ZXing per il QR code;
 - Google Mobile Ads Next-Gen SDK;
@@ -44,7 +44,7 @@ La sessione usa:
 - CSP, no-store, no-referrer e anti-framing;
 - server in ascolto solo sull'indirizzo LAN attivo.
 
-Il traffico locale usa HTTP e **non è cifrato**. Usare l'app solo su Wi-Fi privata o fidata. Questo resta un gate di sicurezza prima di dichiarare la release Store Ready. Vedi [THREAT_MODEL.md](THREAT_MODEL.md) e [store/DATA_SAFETY.md](store/DATA_SAFETY.md).
+Dalla v1.20 il traffico locale usa TLS 1.2/1.3 con identity persistente nell'Android Keystore. Il certificato è self-signed: al primo collegamento il browser può mostrare un warning e il fingerprint SHA-256 va confrontato con quello mostrato sul telefono. Vedi [TLS-TRANSPORT.md](TLS-TRANSPORT.md) e [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Lingue
 
@@ -101,6 +101,10 @@ La cartella [store](store) contiene:
 - checklist Store release.
 
 La v1.19 introduce inoltre un gate `store_candidate` nel workflow release: un candidato Store fallisce se gli ID AdMob production non sono configurati.
+
+## Trasporto cifrato
+
+La v1.20 usa HTTPS locale e cookie Secure. La validazione fisica del warning certificato/fingerprint resta separata dal CI.
 
 ## Roadmap
 
