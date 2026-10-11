@@ -44,11 +44,11 @@ La sessione usa:
 - CSP, no-store, no-referrer e anti-framing;
 - server in ascolto solo sull'indirizzo LAN attivo.
 
-Il traffico locale usa HTTP e **non è cifrato**. Usare l'app solo su Wi-Fi privata o fidata. Vedi [THREAT_MODEL.md](THREAT_MODEL.md).
+Il traffico locale usa HTTP e **non è cifrato**. Usare l'app solo su Wi-Fi privata o fidata. La v1.19 documenta questo punto come gate di sicurezza da risolvere prima di dichiarare la release Store Ready. Vedi [THREAT_MODEL.md](THREAT_MODEL.md) e [STORE-READINESS.md](STORE-READINESS.md).
 
 ## Lingue
 
-Lingua dispositivo di default, fallback inglese e override manuale:
+Lingua dispositivo di default, fallback inglese di sicurezza e override manuale:
 - English;
 - Italiano;
 - Español;
@@ -56,7 +56,7 @@ Lingua dispositivo di default, fallback inglese e override manuale:
 - Deutsch;
 - Português.
 
-Le stringhe secondarie non ancora tradotte in una lingua usano il fallback inglese.
+La v1.19 mantiene parità completa del catalogo user-facing tra le sei lingue. Un test automatico fallisce se una lingua perde una chiave canonica.
 
 ## Monetizzazione
 
@@ -84,9 +84,13 @@ La CI esegue:
 
 La release stabile usa invece una keystore persistente tramite GitHub Secrets e produce APK + AAB. Vedi [RELEASE.md](RELEASE.md).
 
+## Guida rete
+
+La guida integrata copre stessa Wi-Fi privata, VPN, reti guest con isolamento client, uso dell'hotspot del PC quando non esiste una rete condivisa e creazione di un nuovo QR dopo un cambio rete.
+
 ## QA
 
-La build CI verde non equivale a certificazione runtime. Gli scenari su device reale sono elencati in [QA-CHECKLIST.md](QA-CHECKLIST.md).
+La build CI verde non equivale a certificazione runtime. Gli scenari su device reale sono elencati in [QA-CHECKLIST.md](QA-CHECKLIST.md). La preparazione Store e i gate esterni sono tracciati in [STORE-READINESS.md](STORE-READINESS.md).
 
 ## Privacy
 
