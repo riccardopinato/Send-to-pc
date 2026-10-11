@@ -1,4 +1,4 @@
-# QA checklist — Invia al PC v1.17.0
+# QA checklist — Invia al PC v1.19.0
 
 ## CI gate
 
@@ -23,6 +23,14 @@
 
 - [ ] drag & drop singolo
 - [ ] drag & drop multiplo
+- [ ] testo dal browser → telefono
+- [ ] link http/https dal browser → telefono
+- [ ] link con schema non consentito rifiutato
+- [ ] copia testo ricevuto
+- [ ] apri link ricevuto
+- [ ] share sheet per file/testo/link ricevuti
+- [ ] progress complessivo coerente per batch multi-file
+- [ ] riepilogo sessione con conteggio/direzione/byte/durata
 - [ ] pausa / riprendi / annulla
 - [ ] resume selezionando lo stesso file
 - [ ] file duplicato senza sovrascrittura
@@ -67,6 +75,8 @@
 
 ## Lingue
 
+- [ ] test automatico: zero chiavi mancanti rispetto a EN per IT/ES/FR/DE/PT
+
 Per EN / IT / ES / FR / DE / PT:
 - [ ] primo avvio
 - [ ] override manuale
@@ -76,6 +86,20 @@ Per EN / IT / ES / FR / DE / PT:
 - [ ] pagina browser
 - [ ] notifiche
 - [ ] stringhe lunghe senza overflow
+
+## Cronologia
+
+- [ ] trasferimenti v1.19 raggruppati correttamente per sessione
+- [ ] vecchie entry prive di sessionId/kind restano leggibili
+- [ ] gruppi con file + testo + link mantengono azioni corrette
+- [ ] cancellazione cronologia non elimina file ricevuti
+
+## Network help
+
+- [ ] IP/rete locale mostrati correttamente in Impostazioni
+- [ ] guida same-Wi-Fi comprensibile
+- [ ] indicazioni VPN / guest-client isolation visibili
+- [ ] hotspot dichiarato come percorso da validare, non come garanzia
 
 ## Monetizzazione / AdMob
 
@@ -94,6 +118,8 @@ Per EN / IT / ES / FR / DE / PT:
 - [ ] portrait / landscape
 - [ ] dark mode / font scale
 - [ ] production IDs verificati prima dello Store
+- [ ] workflow `store_candidate=true` fallisce senza i 3 ID production
+- [ ] workflow `store_candidate=true` usa versione/artifact identity corrente
 - [ ] app-ads.txt / AdMob readiness verificati prima dello Store
 
 ## Android 17 / API 37

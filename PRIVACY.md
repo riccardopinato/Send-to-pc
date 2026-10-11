@@ -14,7 +14,9 @@ L'app integra Google AdMob per la pubblicità e Google User Messaging Platform (
 
 AdMob e UMP possono effettuare connessioni Internet verso i servizi Google indipendenti dal trasferimento locale dei file.
 
-L'integrazione dell'app non invia ad AdMob il contenuto dei file, del testo o dei link trasferiti.
+Secondo la documentazione Data Safety corrente del Google Mobile Ads SDK, il componente pubblicitario può trattare dati quali indirizzo IP, interazioni con il prodotto, informazioni diagnostiche e identificatori del dispositivo/account per finalità che includono advertising, analytics e prevenzione delle frodi. Le dichiarazioni Store devono essere ricontrollate al momento della pubblicazione perché SDK e configurazione possono cambiare.
+
+L'integrazione dell'app non passa ad AdMob il contenuto dei file, del testo o dei link trasferiti.
 
 Le scelte privacy possono essere riaperte dalle Impostazioni quando UMP indica che il relativo punto di accesso è richiesto.
 
@@ -34,4 +36,4 @@ Il servizio in primo piano mantiene attiva una sessione di trasferimento mentre 
 
 Il traffico dei trasferimenti locali usa HTTP e non è cifrato: usare la funzione di trasferimento solo su Wi-Fi privata o fidata.
 
-Ultimo aggiornamento: 11 ottobre 2026.
+Ultimo aggiornamento: 11 ottobre 2026 — v1.19 Store preparation.

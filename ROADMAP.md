@@ -25,7 +25,7 @@ Gate:
 
 ## v1.18 — Transfer Experience
 
-Stato: IMPLEMENTED — CI/QA AUTOMATED PENDING
+Stato: IMPLEMENTED — CI GREEN
 
 - PC -> telefono: testo e link dal browser con endpoint autenticato e validazione URL.
 - Registrazione batch PC -> telefono con conteggio file e byte attesi.
@@ -38,13 +38,18 @@ Stato: IMPLEMENTED — CI/QA AUTOMATED PENDING
 
 ## v1.19 — Polish & Store Preparation
 
-Stato: PLANNED
+Stato: IMPLEMENTED — CI PENDING
 
-- Parità localizzazione EN/IT/ES/FR/DE/PT.
-- Guida hotspot/rete locale.
-- Pulizia dei monoliti UI/server dove riduce rischio reale.
-- Preparazione Data Safety / app-ads.txt / AdMob app readiness.
-- Store release candidate.
+- Parità completa delle chiavi localizzate EN/IT/ES/FR/DE/PT, protetta da test automatico.
+- Guida rete locale / VPN / guest isolation / hotspot nelle Impostazioni.
+- App shell alleggerita estraendo Cronologia e Impostazioni in file dedicati.
+- Il server locale resta intenzionalmente non rifattorizzato in questa fase per evitare regressioni prima del Physical QA.
+- Workflow release version-aware.
+- Nuovo gate Store Candidate fail-closed: richiede gli ID AdMob production.
+- Preparazione documentale Data Safety.
+- Checklist app-ads.txt / AdMob readiness.
+- Checklist Store release.
+- Store release candidate predisposta, ma non ancora certificata fisicamente.
 
 ## Gate finale
 

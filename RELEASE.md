@@ -97,10 +97,22 @@ L'APK fisicamente verificato deve essere lo stesso artifact, con lo stesso SHA-2
 
 ## Versione sviluppo corrente
 
-- versionName: 1.18.0
-- versionCode: 29
+- versionName: 1.19.0
+- versionCode: 30
 - package: com.riccardopinato.inviaalpc
 - signing identity: invariata
 - AdMob production IDs: PENDING
 
 La v1.16.0 sopra resta l'ultima release con Production Signing VERIFIED finché non viene eseguito un nuovo workflow release per la versione corrente.
+
+
+## Store candidate gate
+
+Il workflow `Android release` accetta l'input `store_candidate`.
+
+- `store_candidate=false`: release firmata per QA/evidence; se gli ID AdMob production non sono presenti usa gli ID di test ufficiali.
+- `store_candidate=true`: la pipeline fallisce se manca anche uno solo tra `ADMOB_APP_ID`, `ADMOB_BANNER_ID` e `ADMOB_INTERSTITIAL_ID`.
+
+Il nome degli artifact e RELEASE_IDENTITY vengono derivati dinamicamente da `versionName` e `versionCode`, evitando mismatch tra Gradle e workflow.
+
+Un run Store Candidate verde non sostituisce Physical QA, app-ads.txt/readiness o Final Certification.
