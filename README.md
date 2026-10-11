@@ -13,6 +13,9 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 - download HTTP Range;
 - PC fidati revocabili;
 - cronologia locale;
+- riepilogo operazione;
+- tema Sistema / Chiaro / Scuro;
+- monetizzazione AdMob separata dal core di trasferimento;
 - build Android leggera.
 
 ## Stack
@@ -22,6 +25,8 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 - server HTTP LAN nativo tramite ServerSocket;
 - MediaStore Downloads per i file ricevuti;
 - ZXing per il QR code;
+- Google Mobile Ads Next-Gen SDK;
+- Google UMP;
 - minSdk 29;
 - targetSdk 36;
 - Java 17.
@@ -50,6 +55,19 @@ Lingua dispositivo di default, fallback inglese e override manuale:
 
 Le stringhe secondarie non ancora tradotte in una lingua usano il fallback inglese.
 
+## Monetizzazione
+
+v1.17 introduce:
+- banner adaptive fuori dalla sessione di trasferimento attiva;
+- interstitial solo alla chiusura esplicita di una sessione completata e significativa;
+- frequency cap interno;
+- UMP prima delle richieste pubblicitarie quando applicabile;
+- test ads obbligatori per debug/slim/QA.
+
+Un trasferimento breve e piccolo non deve causare automaticamente un interstitial.
+
+Gli ID AdMob production non sono committati. Se non sono configurati, la build release usa gli ID ufficiali di test e NON è pronta alla monetizzazione Store.
+
 ## Build
 
 La CI esegue:
@@ -69,4 +87,8 @@ La build CI verde non equivale a certificazione runtime. Gli scenari su device r
 
 ## Privacy
 
-Nessun file viene caricato su server esterni dell'app. Vedi [PRIVACY.md](PRIVACY.md).
+I file trasferiti restano sulla rete locale e non vengono caricati su un cloud dell'app. AdMob/UMP effettuano connessioni Internet separate per advertising/privacy. Vedi [PRIVACY.md](PRIVACY.md).
+
+## Roadmap
+
+Vedi [ROADMAP.md](ROADMAP.md).
