@@ -1,0 +1,9 @@
+Invia al PC v1.14.0 — Localization
+
+- Lingua dispositivo di default.
+- Override manuale.
+- Fallback inglese.
+- EN / IT / ES / FR / DE / PT.
+- UI Android, browser locale e notification service collegati allo stesso language core.
+- Launcher label localizzata.
+- Onboarding scrollabile e selettore lingua.
