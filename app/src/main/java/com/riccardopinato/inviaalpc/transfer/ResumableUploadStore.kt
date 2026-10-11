@@ -53,6 +53,7 @@ class ResumableUploadStore(
     init {
         load()
         cleanupOld()
+        cleanupOrphanedPending()
     }
 
     @Synchronized
@@ -284,6 +285,92 @@ class ResumableUploadStore(
 
         if (expired.isNotEmpty()) {
             persist()
+        }
+    }
+
+    @Synchronized
+    private fun cleanupOrphanedPending(
+        now: Long = System.currentTimeMillis()
+    ) {
+        val activeUris =
+            records.values
+                .filterNot { it.completed }
+                .map { it.uri }
+                .toSet()
+
+        val projection =
+            arrayOf(
+                MediaStore.Downloads._ID,
+                MediaStore.Downloads.DATE_MODIFIED
+            )
+
+        val selection =
+            MediaStore.Downloads.IS_PENDING +
+                "=? AND " +
+                MediaStore.Downloads.RELATIVE_PATH +
+                "=?"
+
+        val args =
+            arrayOf(
+                "1",
+                Environment.DIRECTORY_DOWNLOADS +
+                    "/Invia al PC/"
+            )
+
+        runCatching {
+            resolver.query(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                args,
+                null
+            )?.use { cursor ->
+                val idIndex =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Downloads._ID
+                    )
+
+                val modifiedIndex =
+                    cursor.getColumnIndexOrThrow(
+                        MediaStore.Downloads.DATE_MODIFIED
+                    )
+
+                while (cursor.moveToNext()) {
+                    val id =
+                        cursor.getLong(idIndex)
+
+                    val uri =
+                        Uri.withAppendedPath(
+                            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                            id.toString()
+                        )
+
+                    if (uri.toString() in activeUris) {
+                        continue
+                    }
+
+                    val modifiedSeconds =
+                        cursor.getLong(
+                            modifiedIndex
+                        )
+
+                    val modifiedMillis =
+                        modifiedSeconds * 1000L
+
+                    if (
+                        now - modifiedMillis >
+                        KEEP_METADATA_MS
+                    ) {
+                        runCatching {
+                            resolver.delete(
+                                uri,
+                                null,
+                                null
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
