@@ -13,10 +13,17 @@ object StorageUtils {
         }.getOrDefault(0L)
     }
 
-    fun canReceive(context: Context, incomingBytes: Long): Boolean {
-        if (incomingBytes <= 0L) return false
-
-        val required = incomingBytes + TransferLimits.STORAGE_HEADROOM_BYTES
-        return availableBytes(context) >= required
-    }
+    fun canReceive(
+        context: Context,
+        incomingBytes: Long
+    ): Boolean =
+        TransferReliabilityPolicy
+            .hasStorageCapacity(
+                availableBytes =
+                    availableBytes(
+                        context
+                    ),
+                incomingBytes =
+                    incomingBytes
+            )
 }
