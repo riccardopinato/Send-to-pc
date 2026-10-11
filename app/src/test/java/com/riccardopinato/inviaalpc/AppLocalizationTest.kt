@@ -1,6 +1,7 @@
 package com.riccardopinato.inviaalpc
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AppLocalizationTest {
@@ -17,14 +18,20 @@ class AppLocalizationTest {
     }
 
     @Test
-    fun missingTranslationFallsBackToEnglish() {
-        assertEquals(
-            "The link is invalid. Use an http:// or https:// address.",
-            AppText.get(
-                AppLanguage.ES,
-                "err_invalid_link"
+    fun everySupportedLanguageHasCanonicalParity() {
+        AppLanguage.entries.forEach { language ->
+            assertTrue(
+                "Missing translations for ${language.code}: " +
+                    AppText.missingKeys(language).joinToString(),
+                AppText.missingKeys(language).isEmpty()
             )
-        )
+
+            assertEquals(
+                AppText.canonicalKeys().size,
+                AppText.canonicalKeys().size -
+                    AppText.missingKeys(language).size
+            )
+        }
     }
 
     @Test
