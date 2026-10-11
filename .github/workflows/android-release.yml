@@ -10,6 +10,9 @@ concurrency:
   group: android-release
   cancel-in-progress: false
 
+env:
+  EXPECTED_UPLOAD_CERT_SHA256: 248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -91,9 +94,34 @@ jobs:
           cp "$APK" build/release-artifacts/Invia-al-PC-v1.16.0.apk
           cp "$AAB" build/release-artifacts/Invia-al-PC-v1.16.0.aab
 
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"             > build/release-artifacts/SIGNING.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" \
+            > build/release-artifacts/SIGNING.txt
 
-          sha256sum             build/release-artifacts/Invia-al-PC-v1.16.0.apk             build/release-artifacts/Invia-al-PC-v1.16.0.aab             > build/release-artifacts/SHA256SUMS.txt
+          ACTUAL_CERT_SHA256=$(
+            awk -F': ' '
+              /Signer #1 certificate SHA-256 digest:/ {
+                print toupper($2)
+                exit
+              }
+            ' build/release-artifacts/SIGNING.txt
+          )
+
+          if [ -z "$ACTUAL_CERT_SHA256" ]; then
+            echo "::error::Unable to read APK signing certificate fingerprint"
+            exit 1
+          fi
+
+          if [ "$ACTUAL_CERT_SHA256" != "$EXPECTED_UPLOAD_CERT_SHA256" ]; then
+            echo "::error::Unexpected signing certificate"
+            echo "Expected: $EXPECTED_UPLOAD_CERT_SHA256"
+            echo "Actual:   $ACTUAL_CERT_SHA256"
+            exit 1
+          fi
+
+          sha256sum \
+            build/release-artifacts/Invia-al-PC-v1.16.0.apk \
+            build/release-artifacts/Invia-al-PC-v1.16.0.aab \
+            > build/release-artifacts/SHA256SUMS.txt
 
           {
             echo "source_sha=${GITHUB_SHA}"
@@ -101,6 +129,8 @@ jobs:
             echo "package_id=com.riccardopinato.inviaalpc"
             echo "version_name=1.16.0"
             echo "version_code=27"
+            echo "expected_upload_certificate_sha256=$EXPECTED_UPLOAD_CERT_SHA256"
+            echo "actual_upload_certificate_sha256=$ACTUAL_CERT_SHA256"
           } > build/release-artifacts/RELEASE_IDENTITY.txt
 
           cat build/release-artifacts/SIGNING.txt
