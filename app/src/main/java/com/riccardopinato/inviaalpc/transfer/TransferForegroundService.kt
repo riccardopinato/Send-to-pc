@@ -11,6 +11,8 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import com.riccardopinato.inviaalpc.AppLanguageStore
+import com.riccardopinato.inviaalpc.AppText
 import com.riccardopinato.inviaalpc.MainActivity
 import com.riccardopinato.inviaalpc.R
 import kotlinx.coroutines.CoroutineScope
@@ -305,8 +307,8 @@ class TransferForegroundService : Service() {
     private fun buildNotification() =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Invia al PC")
-            .setContentText("Sessione locale attiva")
+            .setContentTitle(localized("app_name"))
+            .setContentText(localized("notification_active"))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(
@@ -320,7 +322,7 @@ class TransferForegroundService : Service() {
             )
             .addAction(
                 0,
-                "Termina",
+                localized("notification_end"),
                 PendingIntent.getService(
                     this,
                     11,
@@ -336,6 +338,16 @@ class TransferForegroundService : Service() {
             )
             .build()
 
+    private fun localized(
+        key: String
+    ): String =
+        AppText.get(
+            AppLanguageStore.current(
+                applicationContext
+            ),
+            key
+        )
+
     private fun createChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return
@@ -345,11 +357,13 @@ class TransferForegroundService : Service() {
             .createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Trasferimento locale",
+                    localized("notification_channel"),
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
                     description =
-                        "Sessioni di trasferimento file tramite rete locale"
+                        localized(
+                            "notification_channel_desc"
+                        )
                 }
             )
     }
