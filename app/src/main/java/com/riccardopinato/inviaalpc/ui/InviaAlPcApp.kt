@@ -10,6 +10,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -1139,8 +1141,15 @@ private fun RecentsScreen(
 @Composable
 private fun FirstRunDialog(
     versionName: String,
+    language: AppLanguage,
+    languageOverrideCode: String?,
+    onLanguageChange: (AppLanguage?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var languageExpanded by remember {
+        mutableStateOf(false)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1173,41 +1182,146 @@ private fun FirstRunDialog(
         },
         text = {
             Column(
+                modifier =
+                    Modifier
+                        .heightIn(max = 520.dp)
+                        .verticalScroll(
+                            rememberScrollState()
+                        ),
                 verticalArrangement =
                     Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    "Trasferisci file, foto, testo e link direttamente tra telefono e PC."
+                    tr("onboarding_intro")
                 )
 
                 OnboardingStep(
                     number = "1",
-                    title = "Stessa rete",
-                    text = "Telefono e PC devono essere collegati alla stessa Wi-Fi locale."
+                    title =
+                        tr(
+                            "onboarding_step1_title"
+                        ),
+                    text =
+                        tr(
+                            "onboarding_step1_body"
+                        )
                 )
 
                 OnboardingStep(
                     number = "2",
-                    title = "Crea la sessione",
-                    text = "Scegli cosa inviare oppure avvia Ricevi, poi mostra il QR."
+                    title =
+                        tr(
+                            "onboarding_step2_title"
+                        ),
+                    text =
+                        tr(
+                            "onboarding_step2_body"
+                        )
                 )
 
                 OnboardingStep(
                     number = "3",
-                    title = "Apri dal PC",
-                    text = "Scansiona il QR o apri l'indirizzo nel browser. Il PIN protegge la sessione."
+                    title =
+                        tr(
+                            "onboarding_step3_title"
+                        ),
+                    text =
+                        tr(
+                            "onboarding_step3_body"
+                        )
                 )
 
                 Text(
-                    "Nessun account, nessun cloud. I file restano sulla rete locale.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    tr("onboarding_privacy"),
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
-                    "Versione " + versionName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    tr("unsafe_wifi"),
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.error
+                )
+
+                HorizontalDivider()
+
+                Text(
+                    tr("language"),
+                    fontWeight = FontWeight.Bold
+                )
+
+                Box {
+                    OutlinedButton(
+                        onClick = {
+                            languageExpanded = true
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (
+                                languageOverrideCode == null
+                            ) {
+                                tr("system_language") +
+                                    " · " +
+                                    language.nativeName
+                            } else {
+                                language.nativeName
+                            }
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = languageExpanded,
+                        onDismissRequest = {
+                            languageExpanded = false
+                        }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    tr("system_language")
+                                )
+                            },
+                            onClick = {
+                                languageExpanded = false
+                                onLanguageChange(null)
+                            }
+                        )
+
+                        AppLanguage.entries.forEach {
+                            candidate ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        candidate.nativeName
+                                    )
+                                },
+                                onClick = {
+                                    languageExpanded =
+                                        false
+                                    onLanguageChange(
+                                        candidate
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    tr(
+                        "version",
+                        versionName
+                    ),
+                    style =
+                        MaterialTheme.typography.labelSmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -1215,7 +1329,7 @@ private fun FirstRunDialog(
             Button(
                 onClick = onDismiss
             ) {
-                Text("Inizia")
+                Text(tr("start"))
             }
         }
     )
@@ -1480,13 +1594,23 @@ private fun SessionStatusChip(
     )
 }
 
+@Composable
 private fun formatHistoryDate(
     timestamp: Long
-): String =
-    SimpleDateFormat(
+): String {
+    val context = LocalContext.current
+    val language =
+        AppLanguageStore.current(
+            context
+        )
+
+    return SimpleDateFormat(
         "dd MMM, HH:mm",
-        Locale.getDefault()
+        Locale.forLanguageTag(
+            language.code
+        )
     ).format(Date(timestamp))
+}
 
 @Composable
 private fun DevicesScreen(
@@ -1505,11 +1629,11 @@ private fun DevicesScreen(
                 confirmClear = false
             },
             title = {
-                Text("Revocare tutti i PC?")
+                Text(tr("revoke_all_title"))
             },
             text = {
                 Text(
-                    "Tutti i PC fidati dovranno usare nuovamente il PIN per essere associati."
+                    tr("revoke_all_body")
                 )
             },
             confirmButton = {
@@ -1519,7 +1643,7 @@ private fun DevicesScreen(
                         onClear()
                     }
                 ) {
-                    Text("Revoca tutti")
+                    Text(tr("revoke_all"))
                 }
             },
             dismissButton = {
@@ -1565,7 +1689,7 @@ private fun DevicesScreen(
                     )
 
                     Text(
-                        "I PC ricordati possono riconnettersi senza PIN quando il browser conserva il token locale.",
+                        tr("trusted_note"),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1576,7 +1700,7 @@ private fun DevicesScreen(
                             confirmClear = true
                         }
                     ) {
-                        Text("Revoca tutti")
+                        Text(tr("revoke_all"))
                     }
                 }
             }
@@ -1599,12 +1723,12 @@ private fun DevicesScreen(
                         Spacer(Modifier.height(10.dp))
 
                         Text(
-                            "Nessun PC fidato",
+                            tr("trusted_empty"),
                             fontWeight = FontWeight.Bold
                         )
 
                         Text(
-                            "Collega un PC con il PIN, poi usa “Ricorda questo PC” dalla pagina web."
+                            tr("trusted_empty_body")
                         )
                     }
                 }
@@ -1640,8 +1764,12 @@ private fun DevicesScreen(
                             )
 
                             Text(
-                                "Ultimo accesso • " +
-                                    formatHistoryDate(device.lastSeenAtMillis),
+                                tr(
+                                    "last_seen",
+                                    formatHistoryDate(
+                                        device.lastSeenAtMillis
+                                    )
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1654,8 +1782,10 @@ private fun DevicesScreen(
                             modifier =
                                 Modifier.semantics {
                                     contentDescription =
-                                        "Revoca " +
+                                        tr(
+                                            "revoke",
                                             device.name
+                                        )
                                 }
                         ) {
                             AppIcon(
