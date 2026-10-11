@@ -91,3 +91,5 @@ CERTIFIED / NOT CERTIFIED / BLOCKED
 Un AAB firmato e CI GREEN non equivalgono da soli a STORE READY.
 
 Con il protocollo LAN HTTP attuale il verdetto Store resta **BLOCKED** finché il relativo gate di sicurezza non viene chiuso.
+
+Con il protocollo LAN HTTP attuale il verdetto Store resta **BLOCKED** finché il relativo gate di sicurezza non viene chiuso.
