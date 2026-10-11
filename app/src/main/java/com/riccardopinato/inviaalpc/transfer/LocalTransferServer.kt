@@ -38,6 +38,9 @@ class LocalTransferServer(
         private const val PREFERRED_PORT = 8734
         private const val AUTH_SESSION_MS = 60L * 60L * 1000L
         private const val MAX_CONCURRENT_CLIENTS = 12
+        private const val TRUSTED_COOKIE = "trusted_pc"
+        private const val TRUSTED_COOKIE_MAX_AGE_SECONDS =
+            30L * 24L * 60L * 60L
     }
 
     private val running = AtomicBoolean(false)
@@ -329,7 +332,7 @@ class LocalTransferServer(
         writeHeader(
             output,
             "Set-Cookie",
-            "sid=" + sid + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
+            sessionCookie(sid)
         )
         securityHeaders(output)
         writeHeader(output, "Content-Length", "0")
@@ -343,37 +346,75 @@ class LocalTransferServer(
         output: OutputStream,
         session: TransferSession
     ) {
-        val length = request.contentLength.coerceAtMost(4096L).toInt()
-        val body = readExact(input, length).toString(StandardCharsets.UTF_8)
-        val rawToken = parseUrlEncoded(body)["token"].orEmpty()
+        if (request.contentLength > 0L) {
+            readExact(
+                input,
+                request.contentLength
+                    .coerceAtMost(4096L)
+                    .toInt()
+            )
+        }
+
+        val rawToken =
+            cookieValue(
+                request,
+                TRUSTED_COOKIE
+            ).orEmpty()
 
         val trusted =
-            trustedDeviceStore.validate(rawToken)
+            trustedDeviceStore
+                .validateAndRotate(
+                    rawToken
+                )
 
         if (trusted == null) {
-            sendJson(output, 401, """{"error":"trusted_device_not_found"}""")
+            sendJson(
+                output,
+                401,
+                """{"error":"trusted_device_not_found"}"""
+            )
             return
         }
 
-        val sid = SessionSecurity.generateToken()
+        val sid =
+            SessionSecurity.generateToken()
+
         authenticatedSessions[sid] =
             System.currentTimeMillis() +
-                TransferLimits.SESSION_DURATION_MS
+                AUTH_SESSION_MS
 
         sessionManager.updateStatus(
             TransferStatus.CONNECTED
         )
 
-        writeStatus(output, 204, "No Content")
+        writeStatus(
+            output,
+            204,
+            "No Content"
+        )
         writeHeader(
             output,
             "Set-Cookie",
-            "sid=" + sid +
-                "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
+            sessionCookie(sid)
+        )
+        writeHeader(
+            output,
+            "Set-Cookie",
+            trustedCookie(
+                trusted.second
+            )
         )
         securityHeaders(output)
-        writeHeader(output, "Content-Length", "0")
-        writeHeader(output, "Connection", "close")
+        writeHeader(
+            output,
+            "Content-Length",
+            "0"
+        )
+        writeHeader(
+            output,
+            "Connection",
+            "close"
+        )
         endHeaders(output)
     }
 
@@ -392,16 +433,23 @@ class LocalTransferServer(
         val pair =
             trustedDeviceStore.create(name)
 
-        sendJson(
-            output,
-            200,
+        val json =
             """{"ok":true,"id":"""" +
                 jsonEscape(pair.first.id) +
                 """","name":"""" +
                 jsonEscape(pair.first.name) +
-                """","token":"""" +
-                jsonEscape(pair.second) +
-                """"}"""
+                """","expiresAt":""" +
+                pair.first.expiresAtMillis +
+                "}"
+
+        sendJsonWithCookie(
+            output = output,
+            code = 200,
+            json = json,
+            cookie =
+                trustedCookie(
+                    pair.second
+                )
         )
     }
 
@@ -1214,22 +1262,25 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
 <script>
 (async function(){
   try{
-    const trusted=localStorage.getItem('inviaalpc.trustedToken');
-    if(!trusted)return;
-    document.getElementById('hint').textContent='PC riconosciuto. Connessione rapida...';
+    document.getElementById('hint').textContent='Controllo PC fidato...';
     document.getElementById('pinForm').style.opacity='.45';
-    const body='token='+encodeURIComponent(trusted);
+
     const r=await fetch('/auth/trusted/""" + htmlEscape(token) + """',{
       method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body
+      credentials:'same-origin'
     });
-    if(r.ok){location.reload();return;}
-    localStorage.removeItem('inviaalpc.trustedToken');
-    localStorage.removeItem('inviaalpc.trustedName');
+
+    if(r.ok){
+      location.reload();
+      return;
+    }
+
     document.getElementById('hint').textContent='Inserisci il PIN mostrato sul telefono.';
     document.getElementById('pinForm').style.opacity='1';
-  }catch(e){}
+  }catch(e){
+    document.getElementById('hint').textContent='Inserisci il PIN mostrato sul telefono.';
+    document.getElementById('pinForm').style.opacity='1';
+  }
 })();
 </script>
 </div>
@@ -1308,11 +1359,11 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
 </section>
 <section class="card" id="trustCard">
 <h2>Connessione rapida</h2>
-<p class="muted">Puoi ricordare questo PC. Dalla prossima sessione, sulla stessa rete e porta, proverà a collegarsi senza richiedere il PIN.</p>
+<p class="muted">Puoi ricordare questo PC per 30 giorni. La credenziale viene ruotata a ogni riconnessione e non è leggibile dagli script della pagina.</p>
 <button class="secondary" id="trustButton" onclick="trustThisPc()">Ricorda questo PC</button>
 <div class="status" id="trustStatus"></div>
 </section>
-<div class="footer">Trasferimento diretto sulla rete locale. Nessun file viene caricato online.</div>
+<div class="footer">Trasferimento diretto sulla rete locale. Usa una Wi-Fi privata o fidata: HTTP locale non cifra il traffico.</div>
 </div>
 <script>
 const input=document.getElementById('fileInput');
@@ -1681,7 +1732,6 @@ async function trustThisPc(){
     });
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
-    localStorage.setItem('inviaalpc.trustedToken',data.token);
     localStorage.setItem('inviaalpc.trustedName',data.name);
     document.getElementById('trustButton').textContent='PC ricordato';
     trustStatus.textContent='Connessione rapida attivata per '+data.name+'.';
@@ -1723,6 +1773,80 @@ async function trustThisPc(){
         writeHeader(output, "Content-Length", data.size.toString())
         securityHeaders(output)
         writeHeader(output, "Connection", "close")
+        endHeaders(output)
+        output.write(data)
+    }
+
+    private fun cookieValue(
+        request: HttpRequest,
+        name: String
+    ): String? =
+        request.headers["cookie"]
+            ?.split(';')
+            ?.asSequence()
+            ?.map { it.trim() }
+            ?.firstOrNull {
+                it.startsWith(
+                    name + "="
+                )
+            }
+            ?.substringAfter('=')
+            ?.takeIf {
+                it.isNotBlank()
+            }
+
+    private fun sessionCookie(
+        sid: String
+    ): String =
+        "sid=" + sid +
+            "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
+
+    private fun trustedCookie(
+        token: String
+    ): String =
+        TRUSTED_COOKIE +
+            "=" +
+            token +
+            "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" +
+            TRUSTED_COOKIE_MAX_AGE_SECONDS
+
+    private fun sendJsonWithCookie(
+        output: OutputStream,
+        code: Int,
+        json: String,
+        cookie: String
+    ) {
+        val data =
+            json.toByteArray(
+                StandardCharsets.UTF_8
+            )
+
+        writeStatus(
+            output,
+            code,
+            statusReason(code)
+        )
+        writeHeader(
+            output,
+            "Content-Type",
+            "application/json; charset=utf-8"
+        )
+        writeHeader(
+            output,
+            "Content-Length",
+            data.size.toString()
+        )
+        writeHeader(
+            output,
+            "Set-Cookie",
+            cookie
+        )
+        securityHeaders(output)
+        writeHeader(
+            output,
+            "Connection",
+            "close"
+        )
         endHeaders(output)
         output.write(data)
     }
