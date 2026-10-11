@@ -1,0 +1,11 @@
+Invia al PC v1.19.0 — Polish & Store Preparation
+
+- Completata la parità delle chiavi localizzate EN/IT/ES/FR/DE/PT.
+- Aggiunto test automatico che impedisce regressioni di copertura delle traduzioni.
+- Aggiunta guida rete locale con diagnostica IP, Wi-Fi, VPN e guest/client isolation.
+- Documentato l'hotspot come percorso possibile ma ancora da validare fisicamente.
+- Estratte Cronologia e Impostazioni dal monolite UI per migliorare la manutenibilità.
+- Workflow release reso dinamico rispetto a versionName/versionCode.
+- Aggiunto gate Store Candidate che richiede gli ID AdMob production.
+- Preparata documentazione Data Safety, app-ads.txt, AdMob readiness e checklist Store.
+- Il Physical QA e l'update-in-place restano il gate finale dopo la feature freeze.
