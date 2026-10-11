@@ -173,6 +173,16 @@ class TransferViewModel(
             )
     }
 
+    fun reportLocalNetworkPermissionDenied() {
+        _uiState.value =
+            _uiState.value.copy(
+                error =
+                    t(
+                        "err_local_network_permission"
+                    )
+            )
+    }
+
     fun refreshNetwork() {
         _uiState.value =
             _uiState.value.copy(
