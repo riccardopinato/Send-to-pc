@@ -23,7 +23,7 @@ Secondo la documentazione Data Safety corrente di Google per il Mobile Ads SDK, 
 - informazioni diagnostiche;
 - identificatori del dispositivo/account.
 
-Le finalità indicate dalla documentazione Google includono advertising, analytics e prevenzione delle frodi.
+Le finalità indicate dalla documentazione Google includono advertising, analytics e prevenzione delle frodi. Google dichiara che i dati raccolti dal GMA Next-Gen SDK sono cifrati in transito tramite TLS.
 
 Questa pagina NON sostituisce il questionario Data Safety della Play Console. Prima della submission finale bisogna verificare:
 - versione effettiva degli SDK;
@@ -53,6 +53,21 @@ Non attribuire al backend dell'app:
 
 Restano comunque da distinguere le connessioni esterne degli SDK Google.
 
+## Sicurezza del trasporto core
+
+Il trasferimento telefono ↔ browser usa attualmente HTTP sulla LAN.
+
+Conseguenze:
+- il payload applicativo non è cifrato in transito;
+- non è corretto dichiarare che tutti i dati dell'app sono cifrati in transito;
+- file, foto, testo e link scelti dall'utente possono includere dati personali o sensibili;
+- la sola raccomandazione di usare una rete fidata non chiude automaticamente la Google Play User Data policy, che richiede gestione sicura dei dati personali/sensibili e crittografia moderna durante la trasmissione.
+
+Stato: **BLOCKED FOR STORE REVIEW** finché il rischio non viene risolto tecnicamente o chiuso con evidence/policy interpretation adeguata.
+
+Riferimento:
+https://support.google.com/googleplay/android-developer/answer/18258653
+
 ## Gate finale
 
 Prima di Store Ready:
@@ -63,6 +78,8 @@ Prima di Store Ready:
 [ ] dichiarare audience/age treatment;
 [ ] completare il questionario Play Console in modo coerente;
 [ ] verificare Privacy Policy pubblicata e raggiungibile;
-[ ] conservare evidence della configurazione finale.
+[ ] conservare evidence della configurazione finale;
+[ ] chiudere il gate LAN transport security;
+[ ] non selezionare "all data encrypted in transit" se l'artifact mantiene HTTP LAN.
 
 CI GREEN != DATA SAFETY VERIFIED.
