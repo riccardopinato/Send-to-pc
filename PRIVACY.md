@@ -8,7 +8,7 @@ L'app accede ai contenuti che l'utente seleziona per il trasferimento e ai file,
 
 I contenuti trasferiti non vengono inviati a un cloud dell'app: il trasferimento avviene direttamente sulla rete locale tra telefono e browser del PC.
 
-Il protocollo LAN corrente usa HTTP e non cifra il payload in transito. Usare la funzione solo su reti private o fidate. Questo limite resta un gate di sicurezza da chiudere prima di dichiarare la release Store Ready.
+Dalla v1.20 il protocollo LAN usa TLS 1.2/1.3. Il certificato locale è self-signed e il fingerprint SHA-256 viene mostrato sul telefono per la verifica dell'identità del server. La validazione fisica sui browser target resta obbligatoria prima della release Store.
 
 ## Pubblicità e consenso
 
@@ -48,7 +48,7 @@ Con targetSdk 36 l'app non dichiara ACCESS_LOCAL_NETWORK. Quando il progetto pas
 
 Il modulo Data safety deve riflettere l'esatto artifact destinato allo Store e le pratiche effettive dell'app e dei relativi SDK.
 
-Finché il protocollo LAN resta HTTP non deve essere dichiarato che tutti i dati dell'app sono cifrati in transito.
+La v1.20 cifra il trasporto LAN con TLS; la dichiarazione finale Data Safety deve comunque essere verificata sull'esatto artifact e sulla UX reale di trust del certificato.
 
 Riferimenti:
 - https://developers.google.com/admob/android/next-gen/privacy/play-data-disclosure
