@@ -66,6 +66,26 @@ class CoreSafetyTest {
         )
     }
 
+
+    @Test
+    fun transferSessionUsesHttpsOnly() {
+        val session =
+            TransferSession(
+                token = "token",
+                pin = "1234",
+                createdAtMillis = 1L,
+                expiresAtMillis = 2L,
+                port = 8734,
+                localIp = "192.168.1.42",
+                tlsFingerprintSha256 = "AA:BB"
+            )
+
+        assertEquals(
+            "https://192.168.1.42:8734/s/token",
+            session.url
+        )
+    }
+
     @Test
     fun sessionTokenHasStrongEntropyShape() {
         val token =
