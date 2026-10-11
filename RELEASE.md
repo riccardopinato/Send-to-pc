@@ -97,10 +97,12 @@ L'APK fisicamente verificato deve essere lo stesso artifact, con lo stesso SHA-2
 
 ## Versione sviluppo corrente
 
-- versionName: 1.18.0
-- versionCode: 29
+- versionName: 1.19.0
+- versionCode: 30
 - package: com.riccardopinato.inviaalpc
 - signing identity: invariata
 - AdMob production IDs: PENDING
 
 La v1.16.0 sopra resta l'ultima release con Production Signing VERIFIED finché non viene eseguito un nuovo workflow release per la versione corrente.
+
+La v1.19.0 è una feature-freeze tecnica, non ancora una release Store Ready: restano i gate documentati in STORE-READINESS.md.
