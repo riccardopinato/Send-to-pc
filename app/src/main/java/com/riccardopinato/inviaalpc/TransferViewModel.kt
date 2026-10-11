@@ -1,6 +1,9 @@
 package com.riccardopinato.inviaalpc
 
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.ContextCompat
@@ -12,6 +15,7 @@ import com.riccardopinato.inviaalpc.transfer.SharedItem
 import com.riccardopinato.inviaalpc.transfer.SharedItemResolver
 import com.riccardopinato.inviaalpc.transfer.SessionEndReason
 import com.riccardopinato.inviaalpc.transfer.TransferForegroundService
+import com.riccardopinato.inviaalpc.transfer.TransferContentKind
 import com.riccardopinato.inviaalpc.transfer.TransferDirection
 import com.riccardopinato.inviaalpc.transfer.TransferHistoryEntry
 import com.riccardopinato.inviaalpc.transfer.TransferLimits
@@ -471,26 +475,54 @@ class TransferViewModel(
             }
 
     fun openHistoryEntry(entry: TransferHistoryEntry) {
-        val uriString = entry.contentUri
-
-        if (uriString.isNullOrBlank()) {
-            _uiState.value =
-                _uiState.value.copy(
-                    error = t("err_file_missing")
-                )
-            return
-        }
-
-        val uri = Uri.parse(uriString)
-
         val intent =
-            Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(
-                    uri,
-                    entry.mimeType ?: "*/*"
+            when (entry.kind) {
+                TransferContentKind.FILE -> {
+                    val uriString =
+                        entry.contentUri
+
+                    if (uriString.isNullOrBlank()) {
+                        _uiState.value =
+                            _uiState.value.copy(
+                                error =
+                                    t("err_file_missing")
+                            )
+                        return
+                    }
+
+                    Intent(
+                        Intent.ACTION_VIEW
+                    ).apply {
+                        setDataAndType(
+                            Uri.parse(uriString),
+                            entry.mimeType ?: "*/*"
+                        )
+                        addFlags(
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    }
+                }
+
+                TransferContentKind.LINK -> {
+                    val value =
+                        entry.textContent
+                            ?.takeIf {
+                                it.isNotBlank()
+                            }
+                            ?: return
+
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(value)
+                    )
+                }
+
+                TransferContentKind.TEXT ->
+                    return
+            }.apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK
                 )
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
         val opened =
@@ -501,7 +533,103 @@ class TransferViewModel(
         if (!opened) {
             _uiState.value =
                 _uiState.value.copy(
-                    error = t("err_no_app_open")
+                    error =
+                        t("err_no_app_open")
+                )
+        }
+    }
+
+    fun copyHistoryText(
+        entry: TransferHistoryEntry
+    ) {
+        val value =
+            entry.textContent
+                ?.takeIf {
+                    it.isNotBlank()
+                }
+                ?: return
+
+        val clipboard =
+            app.getSystemService(
+                Context.CLIPBOARD_SERVICE
+            ) as ClipboardManager
+
+        clipboard.setPrimaryClip(
+            ClipData.newPlainText(
+                entry.fileName,
+                value
+            )
+        )
+    }
+
+    fun shareHistoryEntry(
+        entry: TransferHistoryEntry
+    ) {
+        val sendIntent =
+            Intent(Intent.ACTION_SEND)
+
+        when (entry.kind) {
+            TransferContentKind.FILE -> {
+                val uriString =
+                    entry.contentUri
+                        ?: return
+
+                sendIntent.type =
+                    entry.mimeType ?: "*/*"
+
+                sendIntent.putExtra(
+                    Intent.EXTRA_STREAM,
+                    Uri.parse(uriString)
+                )
+
+                sendIntent.addFlags(
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+
+            TransferContentKind.TEXT -> {
+                sendIntent.type =
+                    "text/plain"
+                sendIntent.putExtra(
+                    Intent.EXTRA_TEXT,
+                    entry.textContent
+                        ?: return
+                )
+            }
+
+            TransferContentKind.LINK -> {
+                sendIntent.type =
+                    "text/plain"
+                sendIntent.putExtra(
+                    Intent.EXTRA_TEXT,
+                    entry.textContent
+                        ?: return
+                )
+            }
+        }
+
+        val chooser =
+            Intent.createChooser(
+                sendIntent,
+                t("share")
+            ).apply {
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK
+                )
+            }
+
+        val shared =
+            runCatching {
+                app.startActivity(
+                    chooser
+                )
+            }.isSuccess
+
+        if (!shared) {
+            _uiState.value =
+                _uiState.value.copy(
+                    error =
+                        t("err_no_app_open")
                 )
         }
     }
