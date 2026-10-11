@@ -4,12 +4,15 @@ import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -36,6 +39,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import com.riccardopinato.inviaalpc.AppLanguage
+import com.riccardopinato.inviaalpc.AppLanguageStore
+import com.riccardopinato.inviaalpc.AppText
 import com.riccardopinato.inviaalpc.BuildConfig
 import com.riccardopinato.inviaalpc.R
 import com.riccardopinato.inviaalpc.HomeSection
@@ -51,6 +58,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+private const val LOCAL_NETWORK_PERMISSION =
+    "android.permission.ACCESS_LOCAL_NETWORK"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InviaAlPcApp(
@@ -61,6 +71,7 @@ fun InviaAlPcApp(
     val history by viewModel.history.collectAsState()
     val trustedDevices by viewModel.trustedDevices.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     val filePicker =
         rememberLauncherForActivityResult(
@@ -81,6 +92,34 @@ fun InviaAlPcApp(
             ActivityResultContracts.RequestPermission()
         ) {}
 
+    val localNetworkPermission =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { granted ->
+            if (granted) {
+                viewModel.startSendSession()
+            } else {
+                viewModel.reportLocalNetworkPermissionDenied()
+            }
+        }
+
+    fun startConnection() {
+        val requiresRuntimePermission =
+            Build.VERSION.SDK_INT >= 37 &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    LOCAL_NETWORK_PERMISSION
+                ) != PackageManager.PERMISSION_GRANTED
+
+        if (requiresRuntimePermission) {
+            localNetworkPermission.launch(
+                LOCAL_NETWORK_PERMISSION
+            )
+        } else {
+            viewModel.startSendSession()
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.refreshNetwork()
     }
@@ -100,6 +139,9 @@ fun InviaAlPcApp(
     if (uiState.showOnboarding) {
         FirstRunDialog(
             versionName = BuildConfig.VERSION_NAME,
+            language = uiState.language,
+            languageOverrideCode = uiState.languageOverrideCode,
+            onLanguageChange = viewModel::setLanguageOverride,
             onDismiss = viewModel::dismissOnboarding
         )
     }
@@ -131,7 +173,7 @@ fun InviaAlPcApp(
 
                         Column {
                             Text(
-                                "Invia al PC",
+                                tr("app_name"),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.ExtraBold
                             )
@@ -148,7 +190,7 @@ fun InviaAlPcApp(
                     ) {
                         AppIcon(
                             resId = R.drawable.ic_help,
-                            contentDescription = "Guida",
+                            contentDescription = tr("help"),
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -172,27 +214,11 @@ fun InviaAlPcApp(
                         icon = {
                             AppIcon(
                                 R.drawable.ic_send,
-                                "Invia"
+                                tr("connect")
                             )
                         },
                         label = {
-                            Text("Invia")
-                        }
-                    )
-
-                    NavigationBarItem(
-                        selected = uiState.section == HomeSection.RECEIVE,
-                        onClick = {
-                            viewModel.setSection(HomeSection.RECEIVE)
-                        },
-                        icon = {
-                            AppIcon(
-                                R.drawable.ic_receive,
-                                "Ricevi"
-                            )
-                        },
-                        label = {
-                            Text("Ricevi")
+                            Text(tr("connect"))
                         }
                     )
 
@@ -204,11 +230,11 @@ fun InviaAlPcApp(
                         icon = {
                             AppIcon(
                                 R.drawable.ic_history,
-                                "Recenti"
+                                tr("recents")
                             )
                         },
                         label = {
-                            Text("Recenti")
+                            Text(tr("recents"))
                         }
                     )
 
@@ -220,11 +246,11 @@ fun InviaAlPcApp(
                         icon = {
                             AppIcon(
                                 R.drawable.ic_devices,
-                                "PC fidati"
+                                tr("trusted_pcs")
                             )
                         },
                         label = {
-                            Text("PC")
+                            Text(tr("pc"))
                         }
                     )
                 }
@@ -245,7 +271,8 @@ fun InviaAlPcApp(
             )
         } else {
             when (uiState.section) {
-                HomeSection.SEND -> {
+                HomeSection.SEND,
+                HomeSection.RECEIVE -> {
                     SendScreen(
                         modifier = Modifier.padding(padding),
                         items = uiState.selectedItems,
@@ -267,19 +294,9 @@ fun InviaAlPcApp(
                         onTextChange = viewModel::setSharedText,
                         onLinkChange = viewModel::setSharedLink,
                         onDismissError = viewModel::clearError,
-                        onStart = viewModel::startSendSession
-                    )
-                }
-
-                HomeSection.RECEIVE -> {
-                    ReceiveScreen(
-                        modifier = Modifier.padding(padding),
-                        localIp = uiState.localIp,
-                        preparing = uiState.preparing,
-                        error = uiState.error,
-                        onRefresh = viewModel::refreshNetwork,
-                        onDismissError = viewModel::clearError,
-                        onStart = viewModel::startReceiveSession
+                        onStart = {
+                            startConnection()
+                        }
                     )
                 }
 
@@ -334,10 +351,10 @@ private fun SendScreen(
     ) {
         item {
             PageHero(
-                eyebrow = "TELEFONO → PC",
-                title = "Invia in pochi secondi",
-                subtitle = "Scegli i contenuti, crea il QR e aprilo dal browser del PC.",
-                iconRes = R.drawable.ic_send,
+                eyebrow = tr("phone_pc"),
+                title = tr("connect_devices"),
+                subtitle = tr("connect_subtitle"),
+                iconRes = R.drawable.ic_devices,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -345,7 +362,7 @@ private fun SendScreen(
 
         item {
             Text(
-                "Aggiungi contenuti",
+                tr("phone_content_optional"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -369,7 +386,7 @@ private fun SendScreen(
                         Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("File")
+                    Text(tr("file"))
                 }
 
                 FilledTonalButton(
@@ -385,7 +402,7 @@ private fun SendScreen(
                         Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Foto")
+                    Text(tr("photo"))
                 }
             }
         }
@@ -407,7 +424,7 @@ private fun SendScreen(
                     modifier = Modifier.padding(18.dp)
                 ) {
                     Text(
-                        "Testo",
+                        tr("text"),
                         fontWeight = FontWeight.Bold
                     )
 
@@ -420,7 +437,7 @@ private fun SendScreen(
                         minLines = 3,
                         maxLines = 8,
                         placeholder = {
-                            Text("Scrivi o incolla del testo...")
+                            Text(tr("text_hint"))
                         }
                     )
                 }
@@ -444,7 +461,7 @@ private fun SendScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Link",
+                            tr("link"),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -495,9 +512,9 @@ private fun SendScreen(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     if (preparing) {
-                        "Preparazione..."
+                        tr("preparing")
                     } else {
-                        "Crea QR"
+                        tr("connect_pc")
                     }
                 )
             }
@@ -520,13 +537,19 @@ private fun SelectedFilesCard(
             modifier = Modifier.padding(18.dp)
         ) {
             Text(
-                items.size.toString() + " elementi selezionati",
+                tr("selected_count", items.size),
                 fontWeight = FontWeight.Bold
             )
 
             Spacer(Modifier.height(8.dp))
 
             items.take(20).forEach { item ->
+                val removeDescription =
+                    tr(
+                        "remove",
+                        item.displayName
+                    )
+
                 Row(
                     modifier =
                         Modifier
@@ -576,8 +599,7 @@ private fun SelectedFilesCard(
                         modifier =
                             Modifier.semantics {
                                 contentDescription =
-                                    "Rimuovi " +
-                                        item.displayName
+                                    removeDescription
                             }
                     ) {
                         AppIcon(
@@ -591,154 +613,8 @@ private fun SelectedFilesCard(
 
             if (items.size > 20) {
                 Text(
-                    "+ " + (items.size - 20) + " altri file",
+                    tr("more_files", items.size - 20),
                     style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReceiveScreen(
-    modifier: Modifier,
-    localIp: String?,
-    preparing: Boolean,
-    error: String?,
-    onRefresh: () -> Unit,
-    onDismissError: () -> Unit,
-    onStart: () -> Unit
-) {
-    val networkAvailable =
-        localIp != null
-    LazyColumn(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = 24.dp)
-    ) {
-        item {
-            PageHero(
-                eyebrow = "PC → TELEFONO",
-                title = "Ricevi senza cavi",
-                subtitle = "Apri la pagina locale dal computer e trascina i file.",
-                iconRes = R.drawable.ic_receive,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor =
-                        if (networkAvailable) {
-                            MaterialTheme.colorScheme.surface
-                        } else {
-                            MaterialTheme.colorScheme.errorContainer
-                        }
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(22.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color =
-                                if (networkAvailable) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.error
-                                },
-                            modifier = Modifier.size(38.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center
-                            ) {
-                                AppIcon(
-                                    resId =
-                                        if (networkAvailable) {
-                                            R.drawable.ic_check
-                                        } else {
-                                            R.drawable.ic_close
-                                        },
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Text(
-                            if (networkAvailable) {
-                            "Rete locale pronta"
-                        } else {
-                            "Wi-Fi non disponibile"
-                        },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Text(
-                        if (networkAvailable) {
-                            "Telefono raggiungibile su " +
-                                localIp +
-                                ". I file ricevuti saranno salvati in Download/Invia al PC."
-                        } else {
-                            "Collega telefono e computer alla stessa Wi-Fi. Se usi una VPN, un hotspot o una rete ospiti, prova a disattivarli."
-                        }
-                    )
-
-                    if (!networkAvailable) {
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = onRefresh) {
-                            Text("Controlla di nuovo")
-                        }
-                    }
-                }
-            }
-        }
-
-        error?.let {
-            item {
-                ErrorCard(
-                    text = it,
-                    onDismiss = onDismissError
-                )
-            }
-        }
-
-        item {
-            Button(
-                onClick = onStart,
-                enabled = networkAvailable && !preparing,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-            ) {
-                AppIcon(
-                    R.drawable.ic_qr,
-                    null,
-                    Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (preparing) {
-                        "Preparazione..."
-                    } else {
-                        "Avvia ricezione"
-                    }
                 )
             }
         }
@@ -756,6 +632,10 @@ private fun ActiveSessionScreen(
     onStop: () -> Unit
 ) {
     val context = LocalContext.current
+    val appNameLabel = tr("app_name")
+    val addressCopiedLabel =
+        tr("address_copied")
+
     var confirmStop by remember {
         mutableStateOf(false)
     }
@@ -766,11 +646,11 @@ private fun ActiveSessionScreen(
                 confirmStop = false
             },
             title = {
-                Text("Interrompere il trasferimento?")
+                Text(tr("end_transfer_title"))
             },
             text = {
                 Text(
-                    "Il file in corso resterà riprendibile quando possibile, ma la sessione corrente verrà chiusa."
+                    tr("end_transfer_body")
                 )
             },
             confirmButton = {
@@ -780,7 +660,7 @@ private fun ActiveSessionScreen(
                         onStop()
                     }
                 ) {
-                    Text("Termina")
+                    Text(tr("end"))
                 }
             },
             dismissButton = {
@@ -789,7 +669,7 @@ private fun ActiveSessionScreen(
                         confirmStop = false
                     }
                 ) {
-                    Text("Continua")
+                    Text(tr("continue"))
                 }
             }
         )
@@ -806,24 +686,24 @@ private fun ActiveSessionScreen(
     ) {
         item {
             PageHero(
-                eyebrow = "SESSIONE LOCALE",
-                title = "Connessione pronta",
+                eyebrow = tr("session_local"),
+                title = tr("connection_ready"),
                 subtitle =
                     when (session.status) {
                         TransferStatus.WAITING ->
-                            "In attesa del PC. Scansiona il QR o copia l'indirizzo."
+                            tr("waiting_pc")
                         TransferStatus.CONNECTED ->
-                            "PC collegato e autenticato."
+                            tr("pc_connected")
                         TransferStatus.TRANSFERRING ->
-                            "Trasferimento in corso."
+                            tr("transferring")
                         TransferStatus.COMPLETED ->
-                            "Trasferimento completato. La sessione resta aperta."
+                            tr("completed_open")
                         TransferStatus.ERROR ->
-                            "La rete è cambiata o la sessione non è più raggiungibile."
+                            tr("network_changed")
                         TransferStatus.EXPIRED ->
-                            "La sessione è scaduta."
+                            tr("session_expired")
                         TransferStatus.STOPPED ->
-                            "Sessione terminata."
+                            tr("session_stopped")
                     },
                 iconRes = R.drawable.ic_qr,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -866,7 +746,7 @@ private fun ActiveSessionScreen(
                     Spacer(Modifier.height(18.dp))
 
                     Text(
-                        "PIN DI ACCESSO",
+                        tr("pin_access"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -894,8 +774,10 @@ private fun ActiveSessionScreen(
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        "Scade tra " +
-                            formatCountdown(remainingSeconds),
+                        tr(
+                            "expires_in",
+                            formatCountdown(remainingSeconds)
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -911,14 +793,14 @@ private fun ActiveSessionScreen(
 
                             clipboard.setPrimaryClip(
                                 ClipData.newPlainText(
-                                    "Invia al PC",
+                                    appNameLabel,
                                     session.url
                                 )
                             )
 
                             Toast.makeText(
                                 context,
-                                "Indirizzo copiato",
+                                addressCopiedLabel,
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -929,7 +811,7 @@ private fun ActiveSessionScreen(
                             Modifier.size(20.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Copia indirizzo")
+                        Text(tr("copy_address"))
                     }
                 }
             }
@@ -964,14 +846,14 @@ private fun ActiveSessionScreen(
                         Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Apri ultimo file ricevuto")
+                    Text(tr("open_last_received"))
                 }
             }
         }
 
         item {
             Text(
-                "Connessione diretta sulla rete locale. Nessun file viene caricato su server esterni.",
+                tr("direct_local"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -999,7 +881,7 @@ private fun ActiveSessionScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Termina sessione")
+                Text(tr("end_session"))
             }
         }
     }
@@ -1017,9 +899,9 @@ private fun TransferProgressCard(
         ) {
             Text(
                 if (progress.direction == TransferDirection.PHONE_TO_PC) {
-                    "Invio al PC"
+                    tr("progress_send")
                 } else {
-                    "Ricezione dal PC"
+                    tr("progress_receive")
                 },
                 style = MaterialTheme.typography.labelMedium
             )
@@ -1062,8 +944,11 @@ private fun TransferProgressCard(
                                 (it - progress.transferredBytes) /
                                     progress.bytesPerSecond
 
-                            " • circa " +
-                                formatDuration(seconds)
+                            " • " +
+                                tr(
+                                    "about_time",
+                                    formatDuration(seconds)
+                                )
                         }
                         .orEmpty()
 
@@ -1100,11 +985,11 @@ private fun RecentsScreen(
                 confirmClear = false
             },
             title = {
-                Text("Cancellare la cronologia?")
+                Text(tr("clear_history_title"))
             },
             text = {
                 Text(
-                    "Verrà rimossa solo la cronologia locale. I file trasferiti non saranno eliminati."
+                    tr("clear_history_body")
                 )
             },
             confirmButton = {
@@ -1114,7 +999,7 @@ private fun RecentsScreen(
                         onClear()
                     }
                 ) {
-                    Text("Cancella")
+                    Text(tr("clear"))
                 }
             },
             dismissButton = {
@@ -1123,7 +1008,7 @@ private fun RecentsScreen(
                         confirmClear = false
                     }
                 ) {
-                    Text("Annulla")
+                    Text(tr("cancel"))
                 }
             }
         )
@@ -1154,13 +1039,13 @@ private fun RecentsScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        "Recenti",
+                        tr("recents"),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        "Viene salvata solo la cronologia, non una copia dei file."
+                        tr("history_note")
                     )
                 }
 
@@ -1170,7 +1055,7 @@ private fun RecentsScreen(
                             confirmClear = true
                         }
                     ) {
-                        Text("Cancella")
+                        Text(tr("clear"))
                     }
                 }
             }
@@ -1191,7 +1076,7 @@ private fun RecentsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "Nessun trasferimento effettuato.",
+                        tr("recent_empty"),
                         modifier = Modifier.padding(22.dp)
                     )
                 }
@@ -1201,6 +1086,21 @@ private fun RecentsScreen(
                 items = history,
                 key = { it.id }
             ) { entry ->
+                val directionLabel =
+                    if (
+                        entry.direction ==
+                        TransferDirection.PHONE_TO_PC
+                    ) {
+                        tr("sent")
+                    } else {
+                        tr("received")
+                    }
+
+                val historyDateLabel =
+                    formatHistoryDate(
+                        entry.completedAtMillis
+                    )
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1227,14 +1127,7 @@ private fun RecentsScreen(
                             Text(
                                 buildString {
                                     append(
-                                        if (
-                                            entry.direction ==
-                                            TransferDirection.PHONE_TO_PC
-                                        ) {
-                                            "Inviato"
-                                        } else {
-                                            "Ricevuto"
-                                        }
+                                        directionLabel
                                     )
 
                                     entry.sizeBytes?.let {
@@ -1243,7 +1136,9 @@ private fun RecentsScreen(
                                     }
 
                                     append(" • ")
-                                    append(formatHistoryDate(entry.completedAtMillis))
+                                    append(
+                                        historyDateLabel
+                                    )
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1269,7 +1164,7 @@ private fun RecentsScreen(
                                                 Modifier.size(18.dp)
                                             )
                                             Spacer(Modifier.width(4.dp))
-                                            Text("Apri")
+                                            Text(tr("open"))
                                         }
                                     } else {
                                         TextButton(
@@ -1283,7 +1178,7 @@ private fun RecentsScreen(
                                                 Modifier.size(18.dp)
                                             )
                                             Spacer(Modifier.width(4.dp))
-                                            Text("Invia di nuovo")
+                                            Text(tr("send_again"))
                                         }
                                     }
                                 }
@@ -1299,8 +1194,15 @@ private fun RecentsScreen(
 @Composable
 private fun FirstRunDialog(
     versionName: String,
+    language: AppLanguage,
+    languageOverrideCode: String?,
+    onLanguageChange: (AppLanguage?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var languageExpanded by remember {
+        mutableStateOf(false)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1326,48 +1228,153 @@ private fun FirstRunDialog(
                 Spacer(Modifier.width(10.dp))
 
                 Text(
-                    "Invia al PC",
+                    tr("app_name"),
                     fontWeight = FontWeight.Bold
                 )
             }
         },
         text = {
             Column(
+                modifier =
+                    Modifier
+                        .heightIn(max = 520.dp)
+                        .verticalScroll(
+                            rememberScrollState()
+                        ),
                 verticalArrangement =
                     Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    "Trasferisci file, foto, testo e link direttamente tra telefono e PC."
+                    tr("onboarding_intro")
                 )
 
                 OnboardingStep(
                     number = "1",
-                    title = "Stessa rete",
-                    text = "Telefono e PC devono essere collegati alla stessa Wi-Fi locale."
+                    title =
+                        tr(
+                            "onboarding_step1_title"
+                        ),
+                    text =
+                        tr(
+                            "onboarding_step1_body"
+                        )
                 )
 
                 OnboardingStep(
                     number = "2",
-                    title = "Crea la sessione",
-                    text = "Scegli cosa inviare oppure avvia Ricevi, poi mostra il QR."
+                    title =
+                        tr(
+                            "onboarding_step2_title"
+                        ),
+                    text =
+                        tr(
+                            "onboarding_step2_body"
+                        )
                 )
 
                 OnboardingStep(
                     number = "3",
-                    title = "Apri dal PC",
-                    text = "Scansiona il QR o apri l'indirizzo nel browser. Il PIN protegge la sessione."
+                    title =
+                        tr(
+                            "onboarding_step3_title"
+                        ),
+                    text =
+                        tr(
+                            "onboarding_step3_body"
+                        )
                 )
 
                 Text(
-                    "Nessun account, nessun cloud. I file restano sulla rete locale.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    tr("onboarding_privacy"),
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
-                    "Versione " + versionName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    tr("unsafe_wifi"),
+                    style =
+                        MaterialTheme.typography.bodySmall,
+                    color =
+                        MaterialTheme.colorScheme.error
+                )
+
+                HorizontalDivider()
+
+                Text(
+                    tr("language"),
+                    fontWeight = FontWeight.Bold
+                )
+
+                Box {
+                    OutlinedButton(
+                        onClick = {
+                            languageExpanded = true
+                        },
+                        modifier =
+                            Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            if (
+                                languageOverrideCode == null
+                            ) {
+                                tr("system_language") +
+                                    " · " +
+                                    language.nativeName
+                            } else {
+                                language.nativeName
+                            }
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = languageExpanded,
+                        onDismissRequest = {
+                            languageExpanded = false
+                        }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    tr("system_language")
+                                )
+                            },
+                            onClick = {
+                                languageExpanded = false
+                                onLanguageChange(null)
+                            }
+                        )
+
+                        AppLanguage.entries.forEach {
+                            candidate ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        candidate.nativeName
+                                    )
+                                },
+                                onClick = {
+                                    languageExpanded =
+                                        false
+                                    onLanguageChange(
+                                        candidate
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    tr(
+                        "version",
+                        versionName
+                    ),
+                    style =
+                        MaterialTheme.typography.labelSmall,
+                    color =
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -1375,7 +1382,7 @@ private fun FirstRunDialog(
             Button(
                 onClick = onDismiss
             ) {
-                Text("Inizia")
+                Text(tr("start"))
             }
         }
     )
@@ -1428,6 +1435,19 @@ private fun OnboardingStep(
 }
 
 @Composable
+private fun tr(
+    key: String,
+    vararg args: Any
+): String {
+    val context = LocalContext.current
+    return AppText.get(
+        AppLanguageStore.current(context),
+        key,
+        *args
+    )
+}
+
+@Composable
 private fun AppIcon(
     resId: Int,
     contentDescription: String?,
@@ -1463,8 +1483,11 @@ private fun NetworkStatusLine(
         Text(
             text =
                 localIp?.let {
-                    "Rete locale • " + it
-                } ?: "Wi-Fi locale non disponibile",
+                    tr(
+                        "network_ready",
+                        it
+                    )
+                } ?: tr("network_unavailable"),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -1598,13 +1621,13 @@ private fun SessionStatusChip(
 ) {
     val label =
         when (status) {
-            TransferStatus.WAITING -> "In attesa"
-            TransferStatus.CONNECTED -> "PC collegato"
-            TransferStatus.TRANSFERRING -> "Trasferimento"
-            TransferStatus.COMPLETED -> "Completato"
-            TransferStatus.EXPIRED -> "Scaduta"
-            TransferStatus.STOPPED -> "Terminata"
-            TransferStatus.ERROR -> "Errore rete"
+            TransferStatus.WAITING -> tr("status_waiting")
+            TransferStatus.CONNECTED -> tr("status_connected")
+            TransferStatus.TRANSFERRING -> tr("status_transferring")
+            TransferStatus.COMPLETED -> tr("status_completed")
+            TransferStatus.EXPIRED -> tr("status_expired")
+            TransferStatus.STOPPED -> tr("status_stopped")
+            TransferStatus.ERROR -> tr("status_error")
         }
 
     AssistChip(
@@ -1624,13 +1647,23 @@ private fun SessionStatusChip(
     )
 }
 
+@Composable
 private fun formatHistoryDate(
     timestamp: Long
-): String =
-    SimpleDateFormat(
+): String {
+    val context = LocalContext.current
+    val language =
+        AppLanguageStore.current(
+            context
+        )
+
+    return SimpleDateFormat(
         "dd MMM, HH:mm",
-        Locale.getDefault()
+        Locale.forLanguageTag(
+            language.code
+        )
     ).format(Date(timestamp))
+}
 
 @Composable
 private fun DevicesScreen(
@@ -1649,11 +1682,11 @@ private fun DevicesScreen(
                 confirmClear = false
             },
             title = {
-                Text("Revocare tutti i PC?")
+                Text(tr("revoke_all_title"))
             },
             text = {
                 Text(
-                    "Tutti i PC fidati dovranno usare nuovamente il PIN per essere associati."
+                    tr("revoke_all_body")
                 )
             },
             confirmButton = {
@@ -1663,7 +1696,7 @@ private fun DevicesScreen(
                         onClear()
                     }
                 ) {
-                    Text("Revoca tutti")
+                    Text(tr("revoke_all"))
                 }
             },
             dismissButton = {
@@ -1672,7 +1705,7 @@ private fun DevicesScreen(
                         confirmClear = false
                     }
                 ) {
-                    Text("Annulla")
+                    Text(tr("cancel"))
                 }
             }
         )
@@ -1703,13 +1736,13 @@ private fun DevicesScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        "PC fidati",
+                        tr("trusted_pcs"),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        "I PC ricordati possono riconnettersi senza PIN quando il browser conserva il token locale.",
+                        tr("trusted_note"),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1720,7 +1753,7 @@ private fun DevicesScreen(
                             confirmClear = true
                         }
                     ) {
-                        Text("Revoca tutti")
+                        Text(tr("revoke_all"))
                     }
                 }
             }
@@ -1743,12 +1776,12 @@ private fun DevicesScreen(
                         Spacer(Modifier.height(10.dp))
 
                         Text(
-                            "Nessun PC fidato",
+                            tr("trusted_empty"),
                             fontWeight = FontWeight.Bold
                         )
 
                         Text(
-                            "Collega un PC con il PIN, poi usa “Ricorda questo PC” dalla pagina web."
+                            tr("trusted_empty_body")
                         )
                     }
                 }
@@ -1758,6 +1791,20 @@ private fun DevicesScreen(
                 items = devices,
                 key = { it.id }
             ) { device ->
+                val lastSeenLabel =
+                    tr(
+                        "last_seen",
+                        formatHistoryDate(
+                            device.lastSeenAtMillis
+                        )
+                    )
+
+                val revokeDescription =
+                    tr(
+                        "revoke",
+                        device.name
+                    )
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1784,8 +1831,7 @@ private fun DevicesScreen(
                             )
 
                             Text(
-                                "Ultimo accesso • " +
-                                    formatHistoryDate(device.lastSeenAtMillis),
+                                lastSeenLabel,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1798,8 +1844,7 @@ private fun DevicesScreen(
                             modifier =
                                 Modifier.semantics {
                                     contentDescription =
-                                        "Revoca " +
-                                            device.name
+                                        revokeDescription
                                 }
                         ) {
                             AppIcon(

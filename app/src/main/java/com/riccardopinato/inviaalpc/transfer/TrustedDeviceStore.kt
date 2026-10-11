@@ -14,7 +14,10 @@ data class TrustedDevice(
     val name: String,
     val tokenHash: String,
     val createdAtMillis: Long = System.currentTimeMillis(),
-    val lastSeenAtMillis: Long = System.currentTimeMillis()
+    val lastSeenAtMillis: Long = System.currentTimeMillis(),
+    val expiresAtMillis: Long =
+        System.currentTimeMillis() +
+            TrustedDeviceStore.TRUSTED_DEVICE_TTL_MS
 )
 
 class TrustedDeviceStore(
@@ -27,13 +30,15 @@ class TrustedDeviceStore(
         )
 
     private val _devices =
-        MutableStateFlow(load())
+        MutableStateFlow(loadActive())
 
     val devices: StateFlow<List<TrustedDevice>> =
         _devices.asStateFlow()
 
     @Synchronized
-    fun create(name: String): Pair<TrustedDevice, String> {
+    fun create(
+        name: String
+    ): Pair<TrustedDevice, String> {
         val rawToken = SessionSecurity.generateToken()
         val now = System.currentTimeMillis()
 
@@ -42,13 +47,20 @@ class TrustedDeviceStore(
                 name = sanitizeName(name),
                 tokenHash = hashToken(rawToken),
                 createdAtMillis = now,
-                lastSeenAtMillis = now
+                lastSeenAtMillis = now,
+                expiresAtMillis =
+                    now + TRUSTED_DEVICE_TTL_MS
             )
 
         val updated =
             listOf(device) +
-                _devices.value
-                    .filterNot { it.name.equals(device.name, ignoreCase = true) }
+                activeDevices(now)
+                    .filterNot {
+                        it.name.equals(
+                            device.name,
+                            ignoreCase = true
+                        )
+                    }
                     .take(19)
 
         _devices.value = updated
@@ -58,29 +70,54 @@ class TrustedDeviceStore(
     }
 
     @Synchronized
-    fun validate(rawToken: String): TrustedDevice? {
-        if (rawToken.isBlank() || rawToken.length > 256) return null
+    fun validateAndRotate(
+        rawToken: String
+    ): Pair<TrustedDevice, String>? {
+        if (
+            rawToken.isBlank() ||
+            rawToken.length > 256
+        ) {
+            return null
+        }
 
+        val now = System.currentTimeMillis()
         val hash = hashToken(rawToken)
+
         val current =
-            _devices.value.firstOrNull {
-                constantTimeEquals(it.tokenHash, hash)
-            } ?: return null
+            activeDevices(now)
+                .firstOrNull {
+                    constantTimeEquals(
+                        it.tokenHash,
+                        hash
+                    )
+                } ?: return null
+
+        val rotatedRawToken =
+            SessionSecurity.generateToken()
 
         val refreshed =
             current.copy(
-                lastSeenAtMillis = System.currentTimeMillis()
+                tokenHash =
+                    hashToken(rotatedRawToken),
+                lastSeenAtMillis = now,
+                expiresAtMillis =
+                    now + TRUSTED_DEVICE_TTL_MS
             )
 
         val updated =
-            _devices.value.map {
-                if (it.id == current.id) refreshed else it
-            }
+            activeDevices(now)
+                .map {
+                    if (it.id == current.id) {
+                        refreshed
+                    } else {
+                        it
+                    }
+                }
 
         _devices.value = updated
         save(updated)
 
-        return refreshed
+        return refreshed to rotatedRawToken
     }
 
     @Synchronized
@@ -97,7 +134,44 @@ class TrustedDeviceStore(
     @Synchronized
     fun clear() {
         _devices.value = emptyList()
-        prefs.edit().remove(KEY).apply()
+        prefs.edit()
+            .remove(KEY)
+            .apply()
+    }
+
+    private fun activeDevices(
+        now: Long
+    ): List<TrustedDevice> {
+        val active =
+            _devices.value.filter {
+                it.expiresAtMillis > now
+            }
+
+        if (active.size != _devices.value.size) {
+            _devices.value = active
+            save(active)
+        }
+
+        return active
+    }
+
+    private fun loadActive(): List<TrustedDevice> {
+        val now = System.currentTimeMillis()
+
+        val loaded =
+            load().filter {
+                it.expiresAtMillis > now
+            }
+
+        if (loaded.isNotEmpty()) {
+            save(loaded)
+        } else {
+            prefs.edit()
+                .remove(KEY)
+                .apply()
+        }
+
+        return loaded
     }
 
     private fun load(): List<TrustedDevice> {
@@ -109,69 +183,151 @@ class TrustedDeviceStore(
             val array = JSONArray(raw)
 
             buildList {
-                for (index in 0 until array.length()) {
-                    val item = array.getJSONObject(index)
+                for (
+                    index in
+                    0 until array.length()
+                ) {
+                    val item =
+                        array.getJSONObject(
+                            index
+                        )
+
+                    val createdAt =
+                        item.getLong(
+                            "createdAt"
+                        )
 
                     add(
                         TrustedDevice(
-                            id = item.getString("id"),
-                            name = item.getString("name"),
-                            tokenHash = item.getString("tokenHash"),
-                            createdAtMillis = item.getLong("createdAt"),
-                            lastSeenAtMillis = item.getLong("lastSeenAt")
+                            id =
+                                item.getString(
+                                    "id"
+                                ),
+                            name =
+                                item.getString(
+                                    "name"
+                                ),
+                            tokenHash =
+                                item.getString(
+                                    "tokenHash"
+                                ),
+                            createdAtMillis =
+                                createdAt,
+                            lastSeenAtMillis =
+                                item.getLong(
+                                    "lastSeenAt"
+                                ),
+                            expiresAtMillis =
+                                item.optLong(
+                                    "expiresAt",
+                                    createdAt +
+                                        TRUSTED_DEVICE_TTL_MS
+                                )
                         )
                     )
                 }
             }
-        }.getOrDefault(emptyList())
+        }.getOrDefault(
+            emptyList()
+        )
     }
 
-    private fun save(devices: List<TrustedDevice>) {
+    private fun save(
+        devices: List<TrustedDevice>
+    ) {
         val array = JSONArray()
 
-        devices.take(20).forEach { device ->
-            array.put(
-                JSONObject().apply {
-                    put("id", device.id)
-                    put("name", device.name)
-                    put("tokenHash", device.tokenHash)
-                    put("createdAt", device.createdAtMillis)
-                    put("lastSeenAt", device.lastSeenAtMillis)
-                }
-            )
-        }
+        devices.take(20)
+            .forEach { device ->
+                array.put(
+                    JSONObject().apply {
+                        put(
+                            "id",
+                            device.id
+                        )
+                        put(
+                            "name",
+                            device.name
+                        )
+                        put(
+                            "tokenHash",
+                            device.tokenHash
+                        )
+                        put(
+                            "createdAt",
+                            device.createdAtMillis
+                        )
+                        put(
+                            "lastSeenAt",
+                            device.lastSeenAtMillis
+                        )
+                        put(
+                            "expiresAt",
+                            device.expiresAtMillis
+                        )
+                    }
+                )
+            }
 
         prefs.edit()
-            .putString(KEY, array.toString())
+            .putString(
+                KEY,
+                array.toString()
+            )
             .apply()
     }
 
-    private fun sanitizeName(raw: String): String =
+    private fun sanitizeName(
+        raw: String
+    ): String =
         raw
             .trim()
-            .replace(Regex("""[\p{Cntrl}]"""), "")
+            .replace(
+                Regex("""[\p{Cntrl}]"""),
+                ""
+            )
             .take(60)
-            .ifBlank { "PC fidato" }
+            .ifBlank {
+                "PC fidato"
+            }
 
-    private fun hashToken(rawToken: String): String {
+    private fun hashToken(
+        rawToken: String
+    ): String {
         val digest =
             MessageDigest
-                .getInstance("SHA-256")
-                .digest(rawToken.toByteArray(Charsets.UTF_8))
+                .getInstance(
+                    "SHA-256"
+                )
+                .digest(
+                    rawToken.toByteArray(
+                        Charsets.UTF_8
+                    )
+                )
 
         return digest.joinToString("") {
             "%02x".format(it)
         }
     }
 
-    private fun constantTimeEquals(a: String, b: String): Boolean {
-        val aa = a.toByteArray(Charsets.UTF_8)
-        val bb = b.toByteArray(Charsets.UTF_8)
-
-        return MessageDigest.isEqual(aa, bb)
-    }
+    private fun constantTimeEquals(
+        a: String,
+        b: String
+    ): Boolean =
+        MessageDigest.isEqual(
+            a.toByteArray(
+                Charsets.UTF_8
+            ),
+            b.toByteArray(
+                Charsets.UTF_8
+            )
+        )
 
     companion object {
-        private const val KEY = "devices"
+        private const val KEY =
+            "devices"
+
+        const val TRUSTED_DEVICE_TTL_MS =
+            30L * 24L * 60L * 60L * 1000L
     }
 }

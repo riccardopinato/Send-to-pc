@@ -1,0 +1,8 @@
+Invia al PC v1.12.0 — Reliability Hardening
+
+- NetworkCallback al posto del polling aggressivo della rete.
+- Grace window di 12 secondi per micro-interruzioni Wi-Fi.
+- SessionEndReason esplicito per timeout, perdita rete, cambio IP ed errori.
+- Server bindato soltanto all'indirizzo LAN attivo.
+- Cleanup dei file upload parziali/orfani.
+- Test automatici della network recovery policy.

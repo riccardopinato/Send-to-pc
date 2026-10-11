@@ -5,10 +5,14 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import com.riccardopinato.inviaalpc.AppLanguageStore
+import com.riccardopinato.inviaalpc.AppText
 import com.riccardopinato.inviaalpc.MainActivity
 import com.riccardopinato.inviaalpc.R
 import kotlinx.coroutines.CoroutineScope
@@ -35,13 +39,48 @@ class TransferForegroundService : Service() {
 
         private const val WAKE_LOCK_WINDOW_MS =
             2L * 60L * 60L * 1000L
+
+        private const val HEALTH_CHECK_MS = 5_000L
     }
 
     private val serviceScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    private var watcherJob: Job? = null
+    private val connectivityManager by lazy {
+        getSystemService(ConnectivityManager::class.java)
+    }
+
+    private var sessionJob: Job? = null
+    private var networkGraceJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var networkCallbackRegistered = false
+    private var expectedIp: String? = null
+    private var mismatchSinceMillis: Long? = null
+
+    private val networkCallback =
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                evaluateNetwork()
+            }
+
+            override fun onLost(network: Network) {
+                evaluateNetwork()
+            }
+
+            override fun onCapabilitiesChanged(
+                network: Network,
+                networkCapabilities: android.net.NetworkCapabilities
+            ) {
+                evaluateNetwork()
+            }
+
+            override fun onLinkPropertiesChanged(
+                network: Network,
+                linkProperties: android.net.LinkProperties
+            ) {
+                evaluateNetwork()
+            }
+        }
 
     override fun onCreate() {
         super.onCreate()
@@ -56,7 +95,9 @@ class TransferForegroundService : Service() {
     ): Int {
         when (intent?.action) {
             ACTION_STOP -> {
-                terminateSession()
+                terminateSession(
+                    SessionEndReason.USER_STOP
+                )
                 return START_NOT_STICKY
             }
 
@@ -73,18 +114,47 @@ class TransferForegroundService : Service() {
                     buildNotification()
                 )
 
+                expectedIp = session.localIp
+                mismatchSinceMillis = null
                 ensureWakeLock()
-                startWatcher(session.localIp)
+                registerNetworkCallback()
+                startSessionHealthLoop()
             }
         }
 
         return START_NOT_STICKY
     }
 
-    private fun startWatcher(expectedIp: String) {
-        watcherJob?.cancel()
+    private fun registerNetworkCallback() {
+        if (networkCallbackRegistered) {
+            return
+        }
 
-        watcherJob =
+        runCatching {
+            connectivityManager.registerDefaultNetworkCallback(
+                networkCallback
+            )
+            networkCallbackRegistered = true
+        }
+    }
+
+    private fun unregisterNetworkCallback() {
+        if (!networkCallbackRegistered) {
+            return
+        }
+
+        runCatching {
+            connectivityManager.unregisterNetworkCallback(
+                networkCallback
+            )
+        }
+        networkCallbackRegistered = false
+    }
+
+    private fun startSessionHealthLoop() {
+        sessionJob?.cancel()
+
+        sessionJob =
             serviceScope.launch {
                 while (true) {
                     ensureWakeLock()
@@ -94,31 +164,86 @@ class TransferForegroundService : Service() {
                             ?: break
 
                     if (session.isExpired()) {
-                        TransferRuntime.sessionManager.expire()
-                        terminateSession()
-                        break
-                    }
-
-                    val currentIp =
-                        NetworkUtils.findLanIpv4(applicationContext)
-
-                    if (currentIp == null || currentIp != expectedIp) {
-                        TransferRuntime.sessionManager.updateStatus(
-                            TransferStatus.ERROR
+                        terminateSession(
+                            SessionEndReason.EXPIRED
                         )
-                        terminateSession()
                         break
                     }
 
-                    delay(1_000L)
+                    evaluateNetwork()
+                    delay(HEALTH_CHECK_MS)
                 }
             }
     }
 
-    private fun terminateSession() {
-        watcherJob?.cancel()
+    private fun evaluateNetwork() {
+        val expected = expectedIp ?: return
+        val observed =
+            NetworkUtils.findLanIpv4(
+                applicationContext
+            )
+
+        if (observed == expected) {
+            mismatchSinceMillis = null
+            networkGraceJob?.cancel()
+            networkGraceJob = null
+            return
+        }
+
+        if (mismatchSinceMillis == null) {
+            mismatchSinceMillis =
+                System.currentTimeMillis()
+        }
+
+        if (networkGraceJob?.isActive == true) {
+            return
+        }
+
+        networkGraceJob =
+            serviceScope.launch {
+                delay(
+                    NetworkRecoveryPolicy.DEFAULT_GRACE_MS
+                )
+
+                val current =
+                    NetworkUtils.findLanIpv4(
+                        applicationContext
+                    )
+
+                val since = mismatchSinceMillis
+                val now = System.currentTimeMillis()
+
+                if (
+                    NetworkRecoveryPolicy.graceExpired(
+                        expectedIp = expected,
+                        observedIp = current,
+                        mismatchSinceMillis = since,
+                        nowMillis = now
+                    )
+                ) {
+                    val reason =
+                        if (current == null) {
+                            SessionEndReason.NETWORK_LOST
+                        } else {
+                            SessionEndReason.IP_CHANGED
+                        }
+
+                    terminateSession(reason)
+                } else {
+                    mismatchSinceMillis = null
+                }
+            }
+    }
+
+    private fun terminateSession(
+        reason: SessionEndReason
+    ) {
+        sessionJob?.cancel()
+        networkGraceJob?.cancel()
+        unregisterNetworkCallback()
         releaseWakeLock()
-        TransferRuntime.stopEverything()
+
+        TransferRuntime.stopEverything(reason)
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -158,13 +283,20 @@ class TransferForegroundService : Service() {
         wakeLock = null
     }
 
-    override fun onTimeout(startId: Int, fgsType: Int) {
-        terminateSession()
+    override fun onTimeout(
+        startId: Int,
+        fgsType: Int
+    ) {
+        terminateSession(
+            SessionEndReason.ANDROID_TIMEOUT
+        )
         super.onTimeout(startId, fgsType)
     }
 
     override fun onDestroy() {
-        watcherJob?.cancel()
+        sessionJob?.cancel()
+        networkGraceJob?.cancel()
+        unregisterNetworkCallback()
         releaseWakeLock()
         serviceScope.cancel()
         super.onDestroy()
@@ -175,8 +307,8 @@ class TransferForegroundService : Service() {
     private fun buildNotification() =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Invia al PC")
-            .setContentText("Sessione locale attiva")
+            .setContentTitle(localized("app_name"))
+            .setContentText(localized("notification_active"))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(
@@ -190,7 +322,7 @@ class TransferForegroundService : Service() {
             )
             .addAction(
                 0,
-                "Termina",
+                localized("notification_end"),
                 PendingIntent.getService(
                     this,
                     11,
@@ -206,18 +338,32 @@ class TransferForegroundService : Service() {
             )
             .build()
 
+    private fun localized(
+        key: String
+    ): String =
+        AppText.get(
+            AppLanguageStore.current(
+                applicationContext
+            ),
+            key
+        )
+
     private fun createChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return
+        }
 
         getSystemService(NotificationManager::class.java)
             .createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Trasferimento locale",
+                    localized("notification_channel"),
                     NotificationManager.IMPORTANCE_LOW
                 ).apply {
                     description =
-                        "Sessioni di trasferimento file tramite rete locale"
+                        localized(
+                            "notification_channel_desc"
+                        )
                 }
             )
     }

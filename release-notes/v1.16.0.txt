@@ -1,0 +1,12 @@
+Invia al PC v1.16.0 — Release Engineering
+
+- VersionCode 27.
+- Gradle Wrapper 9.6.
+- GitHub Actions pinnate a SHA immutabili.
+- CI anche su pull request con concurrency.
+- Workflow release separato e manuale.
+- Signing persistente tramite GitHub Secrets.
+- APK release + AAB + certificate evidence + SHA-256.
+- Preparazione ACCESS_LOCAL_NETWORK per Android 17/API 37.
+
+Nota: release signing e physical certification restano BLOCKED finché non vengono configurati i secret e testato l'artifact esatto su device reale.

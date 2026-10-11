@@ -39,11 +39,13 @@ object TransferRuntime {
     }
 
     @Synchronized
-    fun stopEverything() {
+    fun stopEverything(
+        reason: SessionEndReason = SessionEndReason.USER_STOP
+    ) {
         stopServer()
 
         if (::sessionManager.isInitialized) {
-            sessionManager.stop()
+            sessionManager.end(reason)
             sessionManager.destroy()
         }
     }

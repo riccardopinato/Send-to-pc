@@ -1,0 +1,8 @@
+Invia al PC v1.13.0 — Trusted PC Security
+
+- Credenziale PC fidato spostata da localStorage a cookie HttpOnly.
+- SameSite=Strict.
+- Scadenza PC fidato dopo 30 giorni.
+- Rotazione della credenziale a ogni reconnessione trusted riuscita.
+- Sul telefono resta soltanto l'hash del token.
+- Warning esplicito: HTTP LAN non cifra il traffico; usare Wi-Fi fidata.

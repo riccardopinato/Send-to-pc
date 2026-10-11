@@ -1,0 +1,86 @@
+# Threat model — Invia al PC
+
+## Scope
+
+Il prodotto trasferisce contenuti direttamente tra Android e un browser PC sulla stessa LAN.
+
+## Asset da proteggere
+
+- file e testo trasferiti;
+- token di sessione;
+- PIN;
+- cookie di sessione;
+- credenziale PC fidato;
+- cronologia locale.
+
+## Assunzione operativa
+
+La rete Wi-Fi deve essere privata o fidata.
+
+Il protocollo applicativo usa HTTP locale, quindi **non offre cifratura del traffico**. Un attaccante con capacità di osservare/intercettare il traffico LAN resta fuori dal threat model mitigato completamente.
+
+## Minacce e mitigazioni
+
+### Accesso casuale non autorizzato
+
+Mitigazioni:
+- URL con token casuale ad alta entropia;
+- PIN separato;
+- rate limit sui tentativi PIN;
+- sessioni temporanee;
+- revoca dei PC fidati.
+
+### Furto della credenziale PC fidato tramite JavaScript
+
+Mitigazioni:
+- il segreto non è salvato in localStorage;
+- cookie HttpOnly;
+- SameSite=Strict;
+- rotazione del token dopo ogni autenticazione trusted riuscita;
+- scadenza a 30 giorni;
+- sul telefono viene salvato solo l'hash SHA-256.
+
+Rischio residuo:
+- essendo HTTP, il cookie non può essere marcato Secure e può essere osservato da un attaccante LAN capace di sniffing.
+
+### XSS / contenuti utente
+
+Mitigazioni:
+- escaping HTML dei nomi file, testo e link;
+- Content-Security-Policy;
+- X-Content-Type-Options;
+- X-Frame-Options;
+- Referrer-Policy no-referrer.
+
+### Esposizione token sessione
+
+Il token è contenuto nell'URL locale per consentire il QR/browser flow.
+
+Mitigazioni:
+- token casuale;
+- PIN obbligatorio prima del contenuto;
+- Cache-Control no-store;
+- Referrer-Policy no-referrer;
+- durata limitata della sessione.
+
+### Denial of service locale
+
+Mitigazioni:
+- limite header;
+- timeout socket;
+- limite upload singolo;
+- massimo 12 client contemporanei;
+- massimo 100 file per coda;
+- controllo spazio disponibile;
+- cleanup dei file parziali.
+
+## Non dichiarare
+
+Finché il trasporto resta HTTP:
+- non dichiarare “trasferimento cifrato”;
+- non dichiarare protezione contro un attaccante sulla stessa LAN;
+- non suggerire l'uso su Wi-Fi pubbliche/non fidate.
+
+## Possibile hardening futuro
+
+TLS locale con certificato/pairing o un trasporto P2P cifrato può ridurre il rischio di sniffing, ma richiede una valutazione separata di UX, compatibilità browser, footprint e gestione certificati.

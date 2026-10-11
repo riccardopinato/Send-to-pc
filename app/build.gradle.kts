@@ -1,3 +1,8 @@
+val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
+val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -11,10 +16,39 @@ android {
         applicationId = "com.riccardopinato.inviaalpc"
         minSdk = 29
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.11.0"
+        versionCode = 27
+        versionName = "1.16.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+    }
+
+    signingConfigs {
+        val signingReady =
+            listOf(
+                releaseKeystorePath,
+                releaseKeystorePassword,
+                releaseKeyAlias,
+                releaseKeyPassword
+            ).all {
+                !it.isNullOrBlank()
+            }
+
+        if (signingReady) {
+            create("persistentRelease") {
+                storeFile =
+                    file(
+                        releaseKeystorePath!!
+                    )
+                storePassword =
+                    releaseKeystorePassword
+                keyAlias =
+                    releaseKeyAlias
+                keyPassword =
+                    releaseKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
     }
 
     buildTypes {
@@ -36,6 +70,14 @@ android {
         }
 
         release {
+            signingConfigs
+                .findByName(
+                    "persistentRelease"
+                )
+                ?.let {
+                    signingConfig = it
+                }
+
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

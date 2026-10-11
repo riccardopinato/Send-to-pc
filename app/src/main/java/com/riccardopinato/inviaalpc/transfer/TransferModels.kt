@@ -28,6 +28,15 @@ enum class TransferStatus {
     ERROR
 }
 
+enum class SessionEndReason {
+    USER_STOP,
+    EXPIRED,
+    NETWORK_LOST,
+    IP_CHANGED,
+    ANDROID_TIMEOUT,
+    SERVER_ERROR
+}
+
 data class SharedItem(
     val id: String = UUID.randomUUID().toString(),
     val uri: Uri,
@@ -249,6 +258,11 @@ class TransferSessionManager(context: Context) {
     private val _history = MutableStateFlow(historyStore.load())
     val history: StateFlow<List<TransferHistoryEntry>> = _history.asStateFlow()
 
+    private val _lastEndReason =
+        MutableStateFlow<SessionEndReason?>(null)
+    val lastEndReason: StateFlow<SessionEndReason?> =
+        _lastEndReason.asStateFlow()
+
     @Synchronized
     fun create(
         localIp: String,
@@ -271,6 +285,7 @@ class TransferSessionManager(context: Context) {
             sharedLink = sharedLink
         )
         _progress.value = null
+        _lastEndReason.value = null
         _session.value = value
         return value
     }
@@ -337,9 +352,25 @@ class TransferSessionManager(context: Context) {
         updateStatus(TransferStatus.EXPIRED)
     }
 
-    fun stop() {
+    fun end(reason: SessionEndReason) {
         _progress.value = null
-        updateStatus(TransferStatus.STOPPED)
+        _lastEndReason.value = reason
+
+        val terminalStatus =
+            when (reason) {
+                SessionEndReason.EXPIRED ->
+                    TransferStatus.EXPIRED
+                SessionEndReason.USER_STOP ->
+                    TransferStatus.STOPPED
+                else ->
+                    TransferStatus.ERROR
+            }
+
+        updateStatus(terminalStatus)
+    }
+
+    fun clearLastEndReason() {
+        _lastEndReason.value = null
     }
 
     fun destroy() {

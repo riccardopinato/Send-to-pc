@@ -1,6 +1,8 @@
 package com.riccardopinato.inviaalpc.transfer
 
 import android.content.Context
+import com.riccardopinato.inviaalpc.AppLanguageStore
+import com.riccardopinato.inviaalpc.AppText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,6 +14,8 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.BindException
+import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
@@ -36,6 +40,9 @@ class LocalTransferServer(
         private const val PREFERRED_PORT = 8734
         private const val AUTH_SESSION_MS = 60L * 60L * 1000L
         private const val MAX_CONCURRENT_CLIENTS = 12
+        private const val TRUSTED_COOKIE = "trusted_pc"
+        private const val TRUSTED_COOKIE_MAX_AGE_SECONDS =
+            30L * 24L * 60L * 60L
     }
 
     private val running = AtomicBoolean(false)
@@ -47,7 +54,10 @@ class LocalTransferServer(
     private val authenticatedSessions = ConcurrentHashMap<String, Long>()
     private val clientSlots = Semaphore(MAX_CONCURRENT_CLIENTS)
 
-    fun start(port: Int = 0): Int {
+    fun start(
+        localIp: String,
+        port: Int = 0
+    ): Int {
         if (running.get()) {
             return serverSocket?.localPort
                 ?: error("Server già avviato")
@@ -55,18 +65,30 @@ class LocalTransferServer(
 
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        val socket =
-            if (port != 0) {
-                ServerSocket(port)
-            } else {
-                try {
-                    ServerSocket(PREFERRED_PORT)
-                } catch (_: BindException) {
-                    ServerSocket(0)
-                }
+        val bindAddress =
+            InetAddress.getByName(localIp)
+
+        fun bind(requestedPort: Int): ServerSocket =
+            ServerSocket().apply {
+                reuseAddress = true
+                bind(
+                    InetSocketAddress(
+                        bindAddress,
+                        requestedPort
+                    )
+                )
             }
 
-        socket.reuseAddress = true
+        val socket =
+            if (port != 0) {
+                bind(port)
+            } else {
+                try {
+                    bind(PREFERRED_PORT)
+                } catch (_: BindException) {
+                    bind(0)
+                }
+            }
 
         serverSocket = socket
         running.set(true)
@@ -133,8 +155,11 @@ class LocalTransferServer(
                     sendHtml(
                         output,
                         503,
-                        "Sessione non disponibile",
-                        errorPage("Sessione non disponibile", "Avvia una nuova sessione dal telefono.")
+                        localized("browser_session_missing"),
+                        errorPage(
+                            localized("browser_session_missing"),
+                            localized("browser_session_missing_body")
+                        )
                     )
                     return
                 }
@@ -144,8 +169,11 @@ class LocalTransferServer(
                     sendHtml(
                         output,
                         410,
-                        "Sessione scaduta",
-                        errorPage("Sessione scaduta", "Crea un nuovo QR dal telefono.")
+                        localized("browser_session_expired"),
+                        errorPage(
+                            localized("browser_session_expired"),
+                            localized("browser_session_expired_body")
+                        )
                     )
                     return
                 }
@@ -181,7 +209,12 @@ class LocalTransferServer(
             request.method == "GET" && path == "/s/" + session.token -> {
                 if (isAuthenticated(request)) {
                     sessionManager.updateStatus(TransferStatus.CONNECTED)
-                    sendHtml(output, 200, "Invia al PC", dashboardPage(session))
+                    sendHtml(
+                        output,
+                        200,
+                        localized("app_name"),
+                        dashboardPage(session)
+                    )
                 } else {
                     sendHtml(output, 200, "PIN", pinPage(session.token))
                 }
@@ -269,8 +302,11 @@ class LocalTransferServer(
                 sendHtml(
                     output,
                     404,
-                    "Non trovato",
-                    errorPage("404", "La risorsa richiesta non esiste.")
+                    localized("browser_not_found"),
+                    errorPage(
+                        "404",
+                        localized("browser_not_found_body")
+                    )
                 )
             }
         }
@@ -297,8 +333,11 @@ class LocalTransferServer(
             sendHtml(
                 output,
                 401,
-                "PIN errato",
-                pinPage(session.token, "PIN errato. Riprova.")
+                localized("browser_wrong_pin"),
+                pinPage(
+                    session.token,
+                    localized("browser_wrong_pin")
+                )
             )
             return
         }
@@ -312,7 +351,7 @@ class LocalTransferServer(
         writeHeader(
             output,
             "Set-Cookie",
-            "sid=" + sid + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
+            sessionCookie(sid)
         )
         securityHeaders(output)
         writeHeader(output, "Content-Length", "0")
@@ -326,37 +365,75 @@ class LocalTransferServer(
         output: OutputStream,
         session: TransferSession
     ) {
-        val length = request.contentLength.coerceAtMost(4096L).toInt()
-        val body = readExact(input, length).toString(StandardCharsets.UTF_8)
-        val rawToken = parseUrlEncoded(body)["token"].orEmpty()
+        if (request.contentLength > 0L) {
+            readExact(
+                input,
+                request.contentLength
+                    .coerceAtMost(4096L)
+                    .toInt()
+            )
+        }
+
+        val rawToken =
+            cookieValue(
+                request,
+                TRUSTED_COOKIE
+            ).orEmpty()
 
         val trusted =
-            trustedDeviceStore.validate(rawToken)
+            trustedDeviceStore
+                .validateAndRotate(
+                    rawToken
+                )
 
         if (trusted == null) {
-            sendJson(output, 401, """{"error":"trusted_device_not_found"}""")
+            sendJson(
+                output,
+                401,
+                """{"error":"trusted_device_not_found"}"""
+            )
             return
         }
 
-        val sid = SessionSecurity.generateToken()
+        val sid =
+            SessionSecurity.generateToken()
+
         authenticatedSessions[sid] =
             System.currentTimeMillis() +
-                TransferLimits.SESSION_DURATION_MS
+                AUTH_SESSION_MS
 
         sessionManager.updateStatus(
             TransferStatus.CONNECTED
         )
 
-        writeStatus(output, 204, "No Content")
+        writeStatus(
+            output,
+            204,
+            "No Content"
+        )
         writeHeader(
             output,
             "Set-Cookie",
-            "sid=" + sid +
-                "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
+            sessionCookie(sid)
+        )
+        writeHeader(
+            output,
+            "Set-Cookie",
+            trustedCookie(
+                trusted.second
+            )
         )
         securityHeaders(output)
-        writeHeader(output, "Content-Length", "0")
-        writeHeader(output, "Connection", "close")
+        writeHeader(
+            output,
+            "Content-Length",
+            "0"
+        )
+        writeHeader(
+            output,
+            "Connection",
+            "close"
+        )
         endHeaders(output)
     }
 
@@ -375,16 +452,23 @@ class LocalTransferServer(
         val pair =
             trustedDeviceStore.create(name)
 
-        sendJson(
-            output,
-            200,
+        val json =
             """{"ok":true,"id":"""" +
                 jsonEscape(pair.first.id) +
                 """","name":"""" +
                 jsonEscape(pair.first.name) +
-                """","token":"""" +
-                jsonEscape(pair.second) +
-                """"}"""
+                """","expiresAt":""" +
+                pair.first.expiresAtMillis +
+                "}"
+
+        sendJsonWithCookie(
+            output = output,
+            code = 200,
+            json = json,
+            cookie =
+                trustedCookie(
+                    pair.second
+                )
         )
     }
 
@@ -1164,17 +1248,63 @@ class LocalTransferServer(
         return if (offset == length) result else result.copyOf(offset)
     }
 
-    private fun pinPage(token: String, error: String? = null): String {
-        val errorHtml = error
-            ?.let { "<div class=\"error\">" + htmlEscape(it) + "</div>" }
-            .orEmpty()
+    private fun pinPage(
+        token: String,
+        error: String? = null
+    ): String {
+        val language =
+            AppLanguageStore.current(
+                context
+            )
+
+        val errorHtml =
+            error
+                ?.let {
+                    "<div class=\"error\">" +
+                        htmlEscape(it) +
+                        "</div>"
+                }
+                .orEmpty()
+
+        val appName =
+            htmlEscape(
+                localized("app_name")
+            )
+
+        val hint =
+            htmlEscape(
+                localized(
+                    "browser_pin_hint"
+                )
+            )
+
+        val connect =
+            htmlEscape(
+                localized(
+                    "browser_connect"
+                )
+            )
+
+        val checkingJs =
+            jsonEscape(
+                localized(
+                    "browser_check_trusted"
+                )
+            )
+
+        val hintJs =
+            jsonEscape(
+                localized(
+                    "browser_pin_hint"
+                )
+            )
 
         return """<!doctype html>
-<html lang="it">
+<html lang="${language.code}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invia al PC</title>
+<title>""" + appName + """</title>
 <style>
 :root{--primary:#4f63f2;--primary-soft:#e9ecff;--text:#17181d;--muted:#6c7180;--surface:#fff;--bg:#f7f8fc;--line:#dde1eb;--danger:#b3261e}
 *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top,#eef0ff 0,#f7f8fc 42%,#f7f8fc 100%);color:var(--text);min-height:100vh;display:grid;place-items:center;padding:24px}
@@ -1187,32 +1317,35 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
 </head>
 <body>
 <div class="card">
-<h1>Invia al PC</h1>
-<p class="muted" id="hint">Inserisci il PIN mostrato sul telefono.</p>
+<h1>""" + appName + """</h1>
+<p class="muted" id="hint">""" + hint + """</p>
 """ + errorHtml + """
 <form id="pinForm" method="post" action="/auth/""" + htmlEscape(token) + """">
 <input class="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" autofocus required>
-<button type="submit">Connetti</button>
+<button type="submit">""" + connect + """</button>
 </form>
 <script>
 (async function(){
   try{
-    const trusted=localStorage.getItem('inviaalpc.trustedToken');
-    if(!trusted)return;
-    document.getElementById('hint').textContent='PC riconosciuto. Connessione rapida...';
+    document.getElementById('hint').textContent='""" + checkingJs + """';
     document.getElementById('pinForm').style.opacity='.45';
-    const body='token='+encodeURIComponent(trusted);
+
     const r=await fetch('/auth/trusted/""" + htmlEscape(token) + """',{
       method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body
+      credentials:'same-origin'
     });
-    if(r.ok){location.reload();return;}
-    localStorage.removeItem('inviaalpc.trustedToken');
-    localStorage.removeItem('inviaalpc.trustedName');
-    document.getElementById('hint').textContent='Inserisci il PIN mostrato sul telefono.';
+
+    if(r.ok){
+      location.reload();
+      return;
+    }
+
+    document.getElementById('hint').textContent='""" + hintJs + """';
     document.getElementById('pinForm').style.opacity='1';
-  }catch(e){}
+  }catch(e){
+    document.getElementById('hint').textContent='""" + hintJs + """';
+    document.getElementById('pinForm').style.opacity='1';
+  }
 })();
 </script>
 </div>
@@ -1221,11 +1354,27 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
     }
 
     private fun dashboardPage(session: TransferSession): String {
+        val language =
+            AppLanguageStore.current(
+                context
+            )
+
         val filesHtml = if (session.sharedItems.isEmpty()) {
-            "<div class=\"empty\">Nessun file condiviso dal telefono.</div>"
+            "<div class=\"empty\">" +
+                htmlEscape(
+                    localized(
+                        "browser_no_files"
+                    )
+                ) +
+                "</div>"
         } else {
             session.sharedItems.joinToString("\n") { item ->
-                val size = item.sizeBytes?.let { humanBytes(it) } ?: "Dimensione sconosciuta"
+                val size =
+                    item.sizeBytes
+                        ?.let { humanBytes(it) }
+                        ?: localized(
+                            "browser_unknown_size"
+                        )
 
                 """<div class="file">
 <div class="fileInfo"><div class="fileName">""" +
@@ -1237,7 +1386,13 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
                     session.token +
                     "/" +
                     item.id +
-                    """">Scarica</a>
+                    """">""" +
+                    htmlEscape(
+                        localized(
+                            "browser_download"
+                        )
+                    ) +
+                    """</a>
 </div>"""
             }
         }
@@ -1245,9 +1400,23 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
         val textHtml = session.sharedText
             ?.takeIf { it.isNotBlank() }
             ?.let {
-                """<div class="contentCard"><div class="label">TESTO</div><div id="sharedText" class="sharedText">""" +
+                """<div class="contentCard"><div class="label">""" +
+                    htmlEscape(
+                        localized("text")
+                    ).uppercase(
+                        Locale.forLanguageTag(
+                            language.code
+                        )
+                    ) +
+                    """</div><div id="sharedText" class="sharedText">""" +
                     htmlEscape(it) +
-                    """</div><button class="secondary" onclick="copyText()">Copia testo</button></div>"""
+                    """</div><button class="secondary" onclick="copyText()">""" +
+                    htmlEscape(
+                        localized(
+                            "browser_copy_text"
+                        )
+                    ) +
+                    """</button></div>"""
             }
             .orEmpty()
 
@@ -1255,7 +1424,15 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
             ?.takeIf { it.isNotBlank() }
             ?.let {
                 val escaped = htmlEscape(it)
-                """<div class="contentCard"><div class="label">LINK</div><a class="sharedLink" target="_blank" rel="noopener noreferrer" href="""" +
+                """<div class="contentCard"><div class="label">""" +
+                    htmlEscape(
+                        localized("link")
+                    ).uppercase(
+                        Locale.forLanguageTag(
+                            language.code
+                        )
+                    ) +
+                    """</div><a class="sharedLink" target="_blank" rel="noopener noreferrer" href="""" +
                     escaped +
                     """">""" +
                     escaped +
@@ -1263,12 +1440,45 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
             }
             .orEmpty()
 
+        val browserI18n =
+            """const I={
+queue:${jsQuoted("browser_queue")},
+paused:${jsQuoted("browser_paused")},
+pause:${jsQuoted("browser_pause")},
+resume:${jsQuoted("browser_resume")},
+cancel:${jsQuoted("browser_cancel")},
+transfer:${jsQuoted("browser_transfer")},
+cancelled:${jsQuoted("browser_cancelled")},
+completed:${jsQuoted("browser_completed")},
+reconnecting:${jsQuoted("browser_reconnecting")},
+preparing:${jsQuoted("browser_preparing")},
+notTransferred:${jsQuoted("browser_not_transferred")},
+alreadyCompleted:${jsQuoted("browser_already_completed")},
+resumedFrom:${jsQuoted("browser_resumed_from")},
+integrity:${jsQuoted("browser_integrity_verified")},
+hashSkipped:${jsQuoted("browser_hash_skipped")},
+copied:${jsQuoted("browser_copied")},
+copyManual:${jsQuoted("browser_copy_manual")},
+saving:${jsQuoted("browser_saving")},
+pcName:${jsQuoted("browser_pc_name")},
+remembered:${jsQuoted("browser_remembered")},
+trustSaved:${jsQuoted("browser_trust_saved")},
+trustFailed:${jsQuoted("browser_trust_failed")},
+device:${jsQuoted("browser_device")},
+limit:${jsQuoted("browser_limit")},
+summary:${jsQuoted("browser_summary")},
+summaryOk:${jsQuoted("browser_summary_ok")},
+filePosition:${jsQuoted("browser_file_position")}
+};
+function fmt(t,...v){let i=0;return t.replace(/%[ds]/g,()=>String(v[i++]));}
+"""
+
         return """<!doctype html>
-<html lang="it">
+<html lang="${language.code}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invia al PC</title>
+<title>""" + htmlEscape(localized("app_name")) + """</title>
 <style>
 :root{--primary:#4f63f2;--primary-soft:#e9ecff;--secondary:#008c95;--secondary-soft:#d8f5f4;--text:#17181d;--muted:#6c7180;--surface:#fff;--surface-2:#f5f6fa;--bg:#f7f8fc;--line:#e2e5ed;--danger:#b3261e}
 *{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#f0f2ff 0,#f7f8fc 240px);color:var(--text)}.page{width:min(960px,calc(100% - 28px));margin:34px auto 64px}.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px;font-size:29px;font-weight:850;letter-spacing:-.035em}.brandMark{width:42px;height:42px;border-radius:14px;background:var(--primary);position:relative;box-shadow:0 10px 24px rgba(79,99,242,.22)}.brandMark:before{content:"";position:absolute;left:8px;top:10px;width:19px;height:13px;border:2px solid white;border-radius:2px}.brandMark:after{content:"";position:absolute;right:7px;bottom:8px;width:7px;height:15px;border:2px solid white;border-radius:2px}.local{padding:9px 14px;border-radius:999px;background:var(--secondary-soft);color:#176f72;font-size:13px;font-weight:780}.card{background:var(--surface);border:1px solid rgba(79,99,242,.06);border-radius:28px;padding:26px;margin-bottom:18px;box-shadow:0 14px 44px rgba(26,34,77,.07)}h2{margin:0 0 8px;font-size:22px;letter-spacing:-.02em}.muted{color:var(--muted);line-height:1.5}.file{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);padding:14px 0}.file:last-child{border-bottom:0}.fileInfo{min-width:0;flex:1}.fileName{font-weight:740;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fileSize{font-size:13px;color:var(--muted);margin-top:3px}.download,.secondary{border:0;text-decoration:none;cursor:pointer;font-weight:760;border-radius:15px;padding:11px 16px}.download{background:var(--primary);color:white;box-shadow:0 8px 20px rgba(79,99,242,.18)}.secondary{background:var(--primary-soft);color:#25327e;margin-top:14px}.drop{border:2px dashed #b7bdd0;border-radius:24px;padding:44px 20px;text-align:center;cursor:pointer;transition:.15s;background:linear-gradient(180deg,#fbfbfe,#f7f8fc)}.drop:hover,.drop.active{border-color:var(--primary);background:var(--primary-soft)}.dropTitle{font-size:20px;font-weight:820}.dropSub{margin-top:6px;color:var(--muted)}input[type=file]{display:none}.progress{display:none;height:10px;border-radius:999px;overflow:hidden;margin-top:18px;background:#e7e9ef}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--primary),#7282ff)}.status{margin-top:10px;color:var(--muted);font-size:14px}.queue{margin-top:16px;display:grid;gap:8px}.queueItem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 13px;border-radius:15px;background:var(--surface-2);border:1px solid var(--line)}.queueName{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.queueMeta{font-size:12px;color:var(--muted)}.queueOk{color:#19733f}.queueErr{color:var(--danger)}.queueActions{display:flex;gap:6px;align-items:center}.queueActions button{border:0;border-radius:10px;padding:7px 9px;font-size:12px;font-weight:750;cursor:pointer;background:#e9ecf4;color:#25282e}.queueActions button.cancel{background:#fff0ef;color:var(--danger)}.queueHash{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);overflow-wrap:anywhere}.contentCard{margin-top:18px;background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:18px}.label{font-size:11px;font-weight:850;letter-spacing:.1em;color:var(--muted)}.sharedText{margin-top:10px;white-space:pre-wrap;line-height:1.5}.sharedLink{display:block;margin-top:10px;overflow-wrap:anywhere;color:var(--primary);font-weight:700}.empty{color:var(--muted);padding:12px 0}.footer{text-align:center;color:#8b9099;font-size:13px;margin-top:28px}
@@ -1278,26 +1488,53 @@ button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--prim
 </head>
 <body>
 <div class="page">
-<div class="header"><div class="brand"><span class="brandMark" aria-hidden="true"></span><span>Invia al PC</span></div><div class="local">● Connessione locale</div></div>
-<section class="card"><h2>Dal telefono</h2><p class="muted">Contenuti disponibili in questa sessione.</p>
+<div class="header"><div class="brand"><span class="brandMark" aria-hidden="true"></span><span>""" +
+htmlEscape(localized("app_name")) +
+"""</span></div><div class="local">● """ +
+htmlEscape(localized("browser_local_connection")) +
+"""</div></div>
+<section class="card"><h2>""" +
+htmlEscape(localized("browser_from_phone")) +
+"""</h2><p class="muted">""" +
+htmlEscape(localized("browser_available")) +
+"""</p>
 """ + filesHtml + textHtml + linkHtml + """
 </section>
-<section class="card"><h2>Invia al telefono</h2><p class="muted">I file verranno salvati in Download/Invia al PC.</p>
-<label class="drop" id="dropZone" for="fileInput"><div class="dropTitle">Trascina qui i file</div><div class="dropSub">oppure clicca per selezionarli</div></label>
+<section class="card"><h2>""" +
+htmlEscape(localized("browser_to_phone")) +
+"""</h2><p class="muted">""" +
+htmlEscape(localized("browser_save_path")) +
+"""</p>
+<label class="drop" id="dropZone" for="fileInput"><div class="dropTitle">""" +
+htmlEscape(localized("browser_drop")) +
+"""</div><div class="dropSub">""" +
+htmlEscape(localized("browser_choose")) +
+"""</div></label>
 <input id="fileInput" type="file" multiple>
 <div class="progress" id="progress"><div class="bar" id="bar"></div></div>
-<div class="status" id="status">Pronto.</div>
+<div class="status" id="status">""" +
+htmlEscape(localized("browser_ready")) +
+"""</div>
 <div class="queue" id="queue"></div>
 </section>
 <section class="card" id="trustCard">
-<h2>Connessione rapida</h2>
-<p class="muted">Puoi ricordare questo PC. Dalla prossima sessione, sulla stessa rete e porta, proverà a collegarsi senza richiedere il PIN.</p>
-<button class="secondary" id="trustButton" onclick="trustThisPc()">Ricorda questo PC</button>
+<h2>""" +
+htmlEscape(localized("browser_quick")) +
+"""</h2>
+<p class="muted">""" +
+htmlEscape(localized("browser_trust_desc")) +
+"""</p>
+<button class="secondary" id="trustButton" onclick="trustThisPc()">""" +
+htmlEscape(localized("browser_remember")) +
+"""</button>
 <div class="status" id="trustStatus"></div>
 </section>
-<div class="footer">Trasferimento diretto sulla rete locale. Nessun file viene caricato online.</div>
+<div class="footer">""" +
+htmlEscape(localized("browser_private_wifi")) +
+"""</div>
 </div>
 <script>
+""" + browserI18n + """
 const input=document.getElementById('fileInput');
 const zone=document.getElementById('dropZone');
 const progress=document.getElementById('progress');
@@ -1333,7 +1570,7 @@ function queueRow(file,index,total){
 
   const meta=document.createElement('div');
   meta.className='queueMeta';
-  meta.textContent='In coda • '+humanBytes(file.size);
+  meta.textContent=I.queue+' • '+humanBytes(file.size);
 
   const hash=document.createElement('div');
   hash.className='queueHash';
@@ -1346,11 +1583,11 @@ function queueRow(file,index,total){
   actions.className='queueActions';
 
   const pause=document.createElement('button');
-  pause.textContent='Pausa';
+  pause.textContent=I.pause;
 
   const cancel=document.createElement('button');
   cancel.className='cancel';
-  cancel.textContent='Annulla';
+  cancel.textContent=I.cancel;
 
   actions.appendChild(pause);
   actions.appendChild(cancel);
@@ -1419,7 +1656,7 @@ function waitWhilePaused(state,row){
     const tick=()=>{
       if(state.cancelled){reject(new Error('cancelled'));return;}
       if(!state.paused){resolve();return;}
-      row.meta.textContent='In pausa • '+humanBytes(state.offset)+' / '+humanBytes(state.file.size);
+      row.meta.textContent=I.paused+' • '+humanBytes(state.offset)+' / '+humanBytes(state.file.size);
       setTimeout(tick,200);
     };
     tick();
@@ -1464,7 +1701,7 @@ function uploadChunk(file,state,row,expectedHash){
       const absolute=start+e.loaded;
       const p=Math.min(100,Math.round(absolute/file.size*100));
       bar.style.width=p+'%';
-      row.meta.textContent='Trasferimento • '+p+'% • '+humanBytes(absolute)+' / '+humanBytes(file.size);
+      row.meta.textContent=I.transfer+' • '+p+'% • '+humanBytes(absolute)+' / '+humanBytes(file.size);
       status.textContent=file.name+' — '+p+'%';
     };
 
@@ -1511,7 +1748,7 @@ async function uploadResumable(file,row){
   uploadStates.set(uploadId,state);
 
   if(remote.completed){
-    row.meta.textContent='Già completato • '+humanBytes(file.size);
+    row.meta.textContent=I.alreadyCompleted+' • '+humanBytes(file.size);
     row.meta.className='queueMeta queueOk';
     row.pause.disabled=true;
     row.cancel.disabled=true;
@@ -1522,7 +1759,7 @@ async function uploadResumable(file,row){
   row.pause.onclick=()=>{
     if(state.cancelled)return;
     state.paused=!state.paused;
-    row.pause.textContent=state.paused?'Riprendi':'Pausa';
+    row.pause.textContent=state.paused?I.resume:I.pause;
     if(state.paused && state.xhr)state.xhr.abort();
   };
 
@@ -1531,14 +1768,14 @@ async function uploadResumable(file,row){
     state.cancelled=true;
     if(state.xhr)state.xhr.abort();
     await cancelRemote(uploadId);
-    row.meta.textContent='Annullato';
+    row.meta.textContent=I.cancelled;
     row.meta.className='queueMeta queueErr';
     row.pause.disabled=true;
     row.cancel.disabled=true;
   };
 
   if(state.offset>0){
-    row.meta.textContent='Ripresa da '+humanBytes(state.offset)+' • '+Math.round(state.offset/file.size*100)+'%';
+    row.meta.textContent=fmt(I.resumedFrom,humanBytes(state.offset))+' • '+Math.round(state.offset/file.size*100)+'%';
   }
 
   let finalData=remote;
@@ -1572,7 +1809,7 @@ async function uploadResumable(file,row){
         attempt++;
         if(attempt>4)throw e;
 
-        row.meta.textContent='Riconnessione '+attempt+'/4...';
+        row.meta.textContent=I.reconnecting+' '+attempt+'/4...';
         await new Promise(r=>setTimeout(r,800*attempt));
 
         try{
@@ -1592,10 +1829,10 @@ async function uploadResumable(file,row){
   if(remote.sha256){
     row.hash.textContent=
       expectedHash
-        ? 'Integrità verificata • SHA-256 '+remote.sha256
+        ? I.integrity+' • SHA-256 '+remote.sha256
         : 'SHA-256 '+remote.sha256;
   }else if(file.size>256*1024*1024){
-    row.hash.textContent='Hash completo saltato per file molto grande';
+    row.hash.textContent=I.hashSkipped;
   }
 
   return remote;
@@ -1611,7 +1848,7 @@ async function uploadFiles(files){
   progress.style.display='block';
 
   if(requestedCount>MAX_BROWSER_FILES){
-    status.textContent='Per stabilità verranno elaborati i primi '+MAX_BROWSER_FILES+' file.';
+    status.textContent=fmt(I.limit,MAX_BROWSER_FILES);
   }
 
   const rows=files.map((f,i)=>queueRow(f,i,files.length));
@@ -1620,21 +1857,21 @@ async function uploadFiles(files){
   for(let i=0;i<files.length;i++){
     const file=files[i];
     const row=rows[i];
-    status.textContent='File '+(i+1)+' di '+files.length;
-    row.meta.textContent='Preparazione...';
+    status.textContent=fmt(I.filePosition,i+1,files.length);
+    row.meta.textContent=I.preparing;
 
     try{
       await uploadResumable(file,row);
       ok++;
-      row.meta.textContent='Completato • '+humanBytes(file.size);
+      row.meta.textContent=I.completed+' • '+humanBytes(file.size);
       row.meta.className='queueMeta queueOk';
     }catch(e){
       if(e.message==='cancelled'){
         cancelled++;
-        row.meta.textContent='Annullato';
+        row.meta.textContent=I.cancelled;
       }else{
         failed++;
-        row.meta.textContent='Non trasferito • seleziona di nuovo lo stesso file per riprendere';
+        row.meta.textContent=I.notTransferred;
       }
       row.meta.className='queueMeta queueErr';
     }
@@ -1642,20 +1879,20 @@ async function uploadFiles(files){
 
   if(failed===0 && cancelled===0){
     bar.style.width='100%';
-    status.textContent='Completati '+ok+' file.';
+    status.textContent=fmt(I.summaryOk,ok);
   }else{
-    status.textContent='Completati '+ok+' • errori '+failed+' • annullati '+cancelled+'.';
+    status.textContent=fmt(I.summary,ok,failed,cancelled);
   }
 }
 
-async function copyText(){const el=document.getElementById('sharedText');if(!el)return;const value=el.innerText;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove()}status.textContent='Testo copiato.'}catch(e){status.textContent='Seleziona il testo e copialo manualmente.'}}
+async function copyText(){const el=document.getElementById('sharedText');if(!el)return;const value=el.innerText;try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value)}else{const t=document.createElement('textarea');t.value=value;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove()}status.textContent=I.copied}catch(e){status.textContent=I.copyManual}}
 async function trustThisPc(){
   const trustStatus=document.getElementById('trustStatus');
   const current=localStorage.getItem('inviaalpc.trustedName');
   const suggested=current||((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||'PC');
-  const name=prompt('Nome di questo PC',suggested);
+  const name=prompt(I.pcName,suggested);
   if(!name)return;
-  trustStatus.textContent='Salvataggio...';
+  trustStatus.textContent=I.saving;
   try{
     const r=await fetch('/trust/""" + session.token + """',{
       method:'POST',
@@ -1664,19 +1901,18 @@ async function trustThisPc(){
     });
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
-    localStorage.setItem('inviaalpc.trustedToken',data.token);
     localStorage.setItem('inviaalpc.trustedName',data.name);
-    document.getElementById('trustButton').textContent='PC ricordato';
-    trustStatus.textContent='Connessione rapida attivata per '+data.name+'.';
+    document.getElementById('trustButton').textContent=I.remembered;
+    trustStatus.textContent=fmt(I.trustSaved,data.name);
   }catch(e){
-    trustStatus.textContent='Impossibile ricordare questo PC.';
+    trustStatus.textContent=I.trustFailed;
   }
 }
 (function(){
   const name=localStorage.getItem('inviaalpc.trustedName');
   if(name){
-    document.getElementById('trustButton').textContent='PC ricordato';
-    document.getElementById('trustStatus').textContent='Dispositivo: '+name;
+    document.getElementById('trustButton').textContent=I.remembered;
+    document.getElementById('trustStatus').textContent=fmt(I.device,name);
   }
 })();
 </script>
@@ -1684,14 +1920,45 @@ async function trustThisPc(){
 </html>"""
     }
 
-    private fun errorPage(title: String, message: String): String =
-        """<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>""" +
+    private fun localized(
+        key: String,
+        vararg args: Any
+    ): String =
+        AppText.get(
+            AppLanguageStore.current(context),
+            key,
+            *args
+        )
+
+    private fun jsQuoted(
+        key: String
+    ): String =
+        "'" +
+            jsonEscape(
+                localized(key)
+            ).replace(
+                "</",
+                "<\\/"
+            ) +
+            "'"
+
+    private fun errorPage(
+        title: String,
+        message: String
+    ): String {
+        val language =
+            AppLanguageStore.current(
+                context
+            )
+
+        return """<!doctype html><html lang="${language.code}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>""" +
             htmlEscape(title) +
             """</title></head><body style="font-family:system-ui;background:#f4f6fb;padding:30px"><div style="max-width:500px;margin:auto;background:white;padding:28px;border-radius:24px"><h1>""" +
             htmlEscape(title) +
             """</h1><p>""" +
             htmlEscape(message) +
             """</p></div></body></html>"""
+    }
 
     private fun sendHtml(
         output: OutputStream,
@@ -1706,6 +1973,80 @@ async function trustThisPc(){
         writeHeader(output, "Content-Length", data.size.toString())
         securityHeaders(output)
         writeHeader(output, "Connection", "close")
+        endHeaders(output)
+        output.write(data)
+    }
+
+    private fun cookieValue(
+        request: HttpRequest,
+        name: String
+    ): String? =
+        request.headers["cookie"]
+            ?.split(';')
+            ?.asSequence()
+            ?.map { it.trim() }
+            ?.firstOrNull {
+                it.startsWith(
+                    name + "="
+                )
+            }
+            ?.substringAfter('=')
+            ?.takeIf {
+                it.isNotBlank()
+            }
+
+    private fun sessionCookie(
+        sid: String
+    ): String =
+        "sid=" + sid +
+            "; Path=/; HttpOnly; SameSite=Strict; Max-Age=3600"
+
+    private fun trustedCookie(
+        token: String
+    ): String =
+        TRUSTED_COOKIE +
+            "=" +
+            token +
+            "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" +
+            TRUSTED_COOKIE_MAX_AGE_SECONDS
+
+    private fun sendJsonWithCookie(
+        output: OutputStream,
+        code: Int,
+        json: String,
+        cookie: String
+    ) {
+        val data =
+            json.toByteArray(
+                StandardCharsets.UTF_8
+            )
+
+        writeStatus(
+            output,
+            code,
+            statusReason(code)
+        )
+        writeHeader(
+            output,
+            "Content-Type",
+            "application/json; charset=utf-8"
+        )
+        writeHeader(
+            output,
+            "Content-Length",
+            data.size.toString()
+        )
+        writeHeader(
+            output,
+            "Set-Cookie",
+            cookie
+        )
+        securityHeaders(output)
+        writeHeader(
+            output,
+            "Connection",
+            "close"
+        )
         endHeaders(output)
         output.write(data)
     }
