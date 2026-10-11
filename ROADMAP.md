@@ -38,17 +38,31 @@ Stato: IMPLEMENTED — CI/QA AUTOMATED PENDING
 
 ## v1.19 — Polish & Store Preparation
 
-Stato: PLANNED
+Stato: IMPLEMENTED — CI PENDING / STORE GATES OPEN
 
-- Parità localizzazione EN/IT/ES/FR/DE/PT.
-- Guida hotspot/rete locale.
-- Pulizia dei monoliti UI/server dove riduce rischio reale.
-- Preparazione Data Safety / app-ads.txt / AdMob app readiness.
-- Store release candidate.
+- Parità completa localizzazione EN/IT/ES/FR/DE/PT con test automatico anti-regressione.
+- Guida integrata rete locale, VPN, guest Wi-Fi e hotspot del PC.
+- Cleanup mirato: guida rete estratta in componente UI autonomo; nessun refactor cosmetico del server già modulare.
+- targetSdk 36 allineato: ACCESS_LOCAL_NETWORK non viene dichiarato prematuramente; migrazione rimandata al target 37.
+- Privacy / Data Safety / app-ads.txt / AdMob readiness documentati.
+- versionName 1.19.0 / versionCode 30.
+
+Gate Store ancora aperti:
+- AdMob production IDs: PENDING.
+- app-ads.txt + AdMob app readiness: PENDING / external.
+- UMP/AdMob physical validation: PENDING.
+- LAN transport security: REVIEW REQUIRED; il trasferimento core usa ancora HTTP non cifrato e non va dichiarato Store Ready finché il gate non viene risolto.
+
+## Step successivo — Store security gate
+
+Prima del gate finale:
+- risolvere o formalmente chiudere il rischio del trasporto LAN HTTP rispetto alla Google Play User Data policy;
+- configurare gli ID AdMob production;
+- completare app-ads.txt e app readiness quando la scheda Store/sito sviluppatore sono disponibili.
 
 ## Gate finale
 
-Dopo la feature freeze:
+Dopo la feature freeze e la chiusura dei blocker Store:
 
 1. nuova release firmata con la signing identity permanente;
 2. Physical QA sull'esatto APK candidato;
