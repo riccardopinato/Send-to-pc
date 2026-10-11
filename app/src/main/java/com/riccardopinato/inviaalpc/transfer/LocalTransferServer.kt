@@ -12,6 +12,8 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.BindException
+import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URLDecoder
@@ -47,7 +49,10 @@ class LocalTransferServer(
     private val authenticatedSessions = ConcurrentHashMap<String, Long>()
     private val clientSlots = Semaphore(MAX_CONCURRENT_CLIENTS)
 
-    fun start(port: Int = 0): Int {
+    fun start(
+        localIp: String,
+        port: Int = 0
+    ): Int {
         if (running.get()) {
             return serverSocket?.localPort
                 ?: error("Server già avviato")
@@ -55,18 +60,30 @@ class LocalTransferServer(
 
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-        val socket =
-            if (port != 0) {
-                ServerSocket(port)
-            } else {
-                try {
-                    ServerSocket(PREFERRED_PORT)
-                } catch (_: BindException) {
-                    ServerSocket(0)
-                }
+        val bindAddress =
+            InetAddress.getByName(localIp)
+
+        fun bind(requestedPort: Int): ServerSocket =
+            ServerSocket().apply {
+                reuseAddress = true
+                bind(
+                    InetSocketAddress(
+                        bindAddress,
+                        requestedPort
+                    )
+                )
             }
 
-        socket.reuseAddress = true
+        val socket =
+            if (port != 0) {
+                bind(port)
+            } else {
+                try {
+                    bind(PREFERRED_PORT)
+                } catch (_: BindException) {
+                    bind(0)
+                }
+            }
 
         serverSocket = socket
         running.set(true)
