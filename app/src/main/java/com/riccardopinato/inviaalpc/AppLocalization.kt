@@ -112,6 +112,11 @@ object AppText {
         "close" to "Close",
         "receive_from_pc" to "Receive from PC",
         "same_wifi_tip" to "Phone and PC must be on the same private Wi-Fi network.",
+        "network_guide_title" to "Connection tips",
+        "network_guide_body" to "If the PC cannot connect, make sure both devices use the same private Wi-Fi, turn off VPNs, and avoid guest networks with client isolation.",
+        "network_hotspot_title" to "No shared Wi-Fi?",
+        "network_hotspot_body" to "Turn on Mobile Hotspot on the PC and connect the phone to that hotspot, then create a new session.",
+        "network_retry_tip" to "After changing network, end the old session and create a new QR code.",
         "session_local" to "LOCAL SESSION",
         "connection_ready" to "Connection ready",
         "waiting_pc" to "Waiting for the PC. Scan the QR code or copy the address.",
@@ -294,6 +299,12 @@ object AppText {
         "phone_pc" to "TELEFONO ↔ PC", "connect_devices" to "Connetti i tuoi dispositivi",
         "connect_subtitle" to "Crea una sessione locale: dal browser del PC puoi inviare e ricevere file nella stessa connessione.",
         "phone_content_optional" to "Contenuti dal telefono (opzionali)", "file" to "File", "photo" to "Foto",
+        "receive_from_pc" to "Ricevi dal PC", "same_wifi_tip" to "Telefono e PC devono essere sulla stessa rete Wi-Fi privata.",
+        "network_guide_title" to "Suggerimenti di connessione",
+        "network_guide_body" to "Se il PC non riesce a collegarsi, verifica che entrambi i dispositivi usino la stessa Wi-Fi privata, disattiva eventuali VPN ed evita reti guest con isolamento dei client.",
+        "network_hotspot_title" to "Nessuna Wi-Fi condivisa?",
+        "network_hotspot_body" to "Attiva Hotspot mobile sul PC e collega il telefono a quell’hotspot, quindi crea una nuova sessione.",
+        "network_retry_tip" to "Dopo aver cambiato rete, termina la vecchia sessione e crea un nuovo codice QR.",
         "text" to "Testo", "text_hint" to "Scrivi o incolla del testo...", "link" to "Link",
         "preparing" to "Preparazione...", "connect_pc" to "Connetti al PC", "selected_files" to "File selezionati",
         "remove" to "Rimuovi %s", "close" to "Chiudi", "session_local" to "SESSIONE LOCALE",
@@ -534,6 +545,14 @@ object AppText {
             AppLanguage.DE -> de
             AppLanguage.PT -> pt
         }
+
+    internal fun missingKeys(
+        language: AppLanguage
+    ): Set<String> =
+        en.keys - mapFor(language).keys
+
+    internal fun canonicalKeys(): Set<String> =
+        en.keys
 
     fun get(
         language: AppLanguage,
