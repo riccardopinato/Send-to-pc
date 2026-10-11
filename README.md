@@ -56,7 +56,7 @@ Lingua dispositivo di default, fallback inglese e override manuale:
 - Deutsch;
 - Português.
 
-Le stringhe secondarie non ancora tradotte in una lingua usano il fallback inglese.
+La v1.19 mantiene parità delle chiavi applicative correnti in tutte e sei le lingue; un test automatico impedisce regressioni di copertura. Il fallback inglese resta disponibile solo come meccanismo difensivo per eventuali chiavi future non ancora localizzate.
 
 ## Monetizzazione
 
@@ -91,6 +91,16 @@ La build CI verde non equivale a certificazione runtime. Gli scenari su device r
 ## Privacy
 
 I file trasferiti restano sulla rete locale e non vengono caricati su un cloud dell'app. AdMob/UMP effettuano connessioni Internet separate per advertising/privacy. Vedi [PRIVACY.md](PRIVACY.md).
+
+## Store preparation
+
+La cartella [store](store) contiene:
+- bozza Data Safety;
+- checklist AdMob/app-ads.txt;
+- esempio app-ads.txt senza publisher ID reale;
+- checklist Store release.
+
+La v1.19 introduce inoltre un gate `store_candidate` nel workflow release: un candidato Store fallisce se gli ID AdMob production non sono configurati.
 
 ## Roadmap
 
