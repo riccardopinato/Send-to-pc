@@ -172,27 +172,11 @@ fun InviaAlPcApp(
                         icon = {
                             AppIcon(
                                 R.drawable.ic_send,
-                                "Invia"
+                                "Connetti"
                             )
                         },
                         label = {
-                            Text("Invia")
-                        }
-                    )
-
-                    NavigationBarItem(
-                        selected = uiState.section == HomeSection.RECEIVE,
-                        onClick = {
-                            viewModel.setSection(HomeSection.RECEIVE)
-                        },
-                        icon = {
-                            AppIcon(
-                                R.drawable.ic_receive,
-                                "Ricevi"
-                            )
-                        },
-                        label = {
-                            Text("Ricevi")
+                            Text("Connetti")
                         }
                     )
 
@@ -245,7 +229,8 @@ fun InviaAlPcApp(
             )
         } else {
             when (uiState.section) {
-                HomeSection.SEND -> {
+                HomeSection.SEND,
+                HomeSection.RECEIVE -> {
                     SendScreen(
                         modifier = Modifier.padding(padding),
                         items = uiState.selectedItems,
@@ -268,18 +253,6 @@ fun InviaAlPcApp(
                         onLinkChange = viewModel::setSharedLink,
                         onDismissError = viewModel::clearError,
                         onStart = viewModel::startSendSession
-                    )
-                }
-
-                HomeSection.RECEIVE -> {
-                    ReceiveScreen(
-                        modifier = Modifier.padding(padding),
-                        localIp = uiState.localIp,
-                        preparing = uiState.preparing,
-                        error = uiState.error,
-                        onRefresh = viewModel::refreshNetwork,
-                        onDismissError = viewModel::clearError,
-                        onStart = viewModel::startReceiveSession
                     )
                 }
 
@@ -334,10 +307,10 @@ private fun SendScreen(
     ) {
         item {
             PageHero(
-                eyebrow = "TELEFONO → PC",
-                title = "Invia in pochi secondi",
-                subtitle = "Scegli i contenuti, crea il QR e aprilo dal browser del PC.",
-                iconRes = R.drawable.ic_send,
+                eyebrow = "TELEFONO ↔ PC",
+                title = "Connetti i tuoi dispositivi",
+                subtitle = "Crea una sessione locale: dal browser del PC puoi inviare e ricevere file nella stessa connessione.",
+                iconRes = R.drawable.ic_devices,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -345,7 +318,7 @@ private fun SendScreen(
 
         item {
             Text(
-                "Aggiungi contenuti",
+                "Contenuti dal telefono (opzionali)",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -497,7 +470,7 @@ private fun SendScreen(
                     if (preparing) {
                         "Preparazione..."
                     } else {
-                        "Crea QR"
+                        "Connetti al PC"
                     }
                 )
             }
