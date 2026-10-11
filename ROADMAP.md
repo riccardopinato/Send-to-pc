@@ -4,7 +4,7 @@ Baseline precedente: v1.16.0 production-signing verified.
 
 ## v1.17 — Monetization Foundation
 
-Stato: IN IMPLEMENTATION
+Stato: IMPLEMENTED — CI GREEN (test ads; production AdMob IDs pending)
 
 - GMA Next-Gen SDK.
 - UMP consent flow.
