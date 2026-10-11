@@ -313,9 +313,9 @@ private fun SendScreen(
     ) {
         item {
             PageHero(
-                eyebrow = "TELEFONO ↔ PC",
-                title = "Connetti i tuoi dispositivi",
-                subtitle = "Crea una sessione locale: dal browser del PC puoi inviare e ricevere file nella stessa connessione.",
+                eyebrow = tr("phone_pc"),
+                title = tr("connect_devices"),
+                subtitle = tr("connect_subtitle"),
                 iconRes = R.drawable.ic_devices,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -324,7 +324,7 @@ private fun SendScreen(
 
         item {
             Text(
-                "Contenuti dal telefono (opzionali)",
+                tr("phone_content_optional"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -348,7 +348,7 @@ private fun SendScreen(
                         Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("File")
+                    Text(tr("file"))
                 }
 
                 FilledTonalButton(
@@ -364,7 +364,7 @@ private fun SendScreen(
                         Modifier.size(22.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Foto")
+                    Text(tr("photo"))
                 }
             }
         }
@@ -386,7 +386,7 @@ private fun SendScreen(
                     modifier = Modifier.padding(18.dp)
                 ) {
                     Text(
-                        "Testo",
+                        tr("text"),
                         fontWeight = FontWeight.Bold
                     )
 
@@ -399,7 +399,7 @@ private fun SendScreen(
                         minLines = 3,
                         maxLines = 8,
                         placeholder = {
-                            Text("Scrivi o incolla del testo...")
+                            Text(tr("text_hint"))
                         }
                     )
                 }
@@ -423,7 +423,7 @@ private fun SendScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Link",
+                            tr("link"),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -474,9 +474,9 @@ private fun SendScreen(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     if (preparing) {
-                        "Preparazione..."
+                        tr("preparing")
                     } else {
-                        "Connetti al PC"
+                        tr("connect_pc")
                     }
                 )
             }
@@ -499,7 +499,7 @@ private fun SelectedFilesCard(
             modifier = Modifier.padding(18.dp)
         ) {
             Text(
-                items.size.toString() + " elementi selezionati",
+                tr("selected_count", items.size),
                 fontWeight = FontWeight.Bold
             )
 
@@ -555,8 +555,10 @@ private fun SelectedFilesCard(
                         modifier =
                             Modifier.semantics {
                                 contentDescription =
-                                    "Rimuovi " +
+                                    tr(
+                                        "remove",
                                         item.displayName
+                                    )
                             }
                     ) {
                         AppIcon(
@@ -570,154 +572,8 @@ private fun SelectedFilesCard(
 
             if (items.size > 20) {
                 Text(
-                    "+ " + (items.size - 20) + " altri file",
+                    tr("more_files", items.size - 20),
                     style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReceiveScreen(
-    modifier: Modifier,
-    localIp: String?,
-    preparing: Boolean,
-    error: String?,
-    onRefresh: () -> Unit,
-    onDismissError: () -> Unit,
-    onStart: () -> Unit
-) {
-    val networkAvailable =
-        localIp != null
-    LazyColumn(
-        modifier =
-            modifier
-                .fillMaxSize()
-                .padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = 24.dp)
-    ) {
-        item {
-            PageHero(
-                eyebrow = "PC → TELEFONO",
-                title = "Ricevi senza cavi",
-                subtitle = "Apri la pagina locale dal computer e trascina i file.",
-                iconRes = R.drawable.ic_receive,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        }
-
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor =
-                        if (networkAvailable) {
-                            MaterialTheme.colorScheme.surface
-                        } else {
-                            MaterialTheme.colorScheme.errorContainer
-                        }
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(22.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color =
-                                if (networkAvailable) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.error
-                                },
-                            modifier = Modifier.size(38.dp)
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center
-                            ) {
-                                AppIcon(
-                                    resId =
-                                        if (networkAvailable) {
-                                            R.drawable.ic_check
-                                        } else {
-                                            R.drawable.ic_close
-                                        },
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.width(12.dp))
-
-                        Text(
-                            if (networkAvailable) {
-                            "Rete locale pronta"
-                        } else {
-                            "Wi-Fi non disponibile"
-                        },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Text(
-                        if (networkAvailable) {
-                            "Telefono raggiungibile su " +
-                                localIp +
-                                ". I file ricevuti saranno salvati in Download/Invia al PC."
-                        } else {
-                            "Collega telefono e computer alla stessa Wi-Fi. Se usi una VPN, un hotspot o una rete ospiti, prova a disattivarli."
-                        }
-                    )
-
-                    if (!networkAvailable) {
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = onRefresh) {
-                            Text("Controlla di nuovo")
-                        }
-                    }
-                }
-            }
-        }
-
-        error?.let {
-            item {
-                ErrorCard(
-                    text = it,
-                    onDismiss = onDismissError
-                )
-            }
-        }
-
-        item {
-            Button(
-                onClick = onStart,
-                enabled = networkAvailable && !preparing,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-            ) {
-                AppIcon(
-                    R.drawable.ic_qr,
-                    null,
-                    Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    if (preparing) {
-                        "Preparazione..."
-                    } else {
-                        "Avvia ricezione"
-                    }
                 )
             }
         }
@@ -745,11 +601,11 @@ private fun ActiveSessionScreen(
                 confirmStop = false
             },
             title = {
-                Text("Interrompere il trasferimento?")
+                Text(tr("end_transfer_title"))
             },
             text = {
                 Text(
-                    "Il file in corso resterà riprendibile quando possibile, ma la sessione corrente verrà chiusa."
+                    tr("end_transfer_body")
                 )
             },
             confirmButton = {
@@ -759,7 +615,7 @@ private fun ActiveSessionScreen(
                         onStop()
                     }
                 ) {
-                    Text("Termina")
+                    Text(tr("end"))
                 }
             },
             dismissButton = {
@@ -768,7 +624,7 @@ private fun ActiveSessionScreen(
                         confirmStop = false
                     }
                 ) {
-                    Text("Continua")
+                    Text(tr("continue"))
                 }
             }
         )
@@ -785,24 +641,24 @@ private fun ActiveSessionScreen(
     ) {
         item {
             PageHero(
-                eyebrow = "SESSIONE LOCALE",
-                title = "Connessione pronta",
+                eyebrow = tr("session_local"),
+                title = tr("connection_ready"),
                 subtitle =
                     when (session.status) {
                         TransferStatus.WAITING ->
-                            "In attesa del PC. Scansiona il QR o copia l'indirizzo."
+                            tr("waiting_pc")
                         TransferStatus.CONNECTED ->
-                            "PC collegato e autenticato."
+                            tr("pc_connected")
                         TransferStatus.TRANSFERRING ->
-                            "Trasferimento in corso."
+                            tr("transferring")
                         TransferStatus.COMPLETED ->
-                            "Trasferimento completato. La sessione resta aperta."
+                            tr("completed_open")
                         TransferStatus.ERROR ->
-                            "La rete è cambiata o la sessione non è più raggiungibile."
+                            tr("network_changed")
                         TransferStatus.EXPIRED ->
-                            "La sessione è scaduta."
+                            tr("session_expired")
                         TransferStatus.STOPPED ->
-                            "Sessione terminata."
+                            tr("session_stopped")
                     },
                 iconRes = R.drawable.ic_qr,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -845,7 +701,7 @@ private fun ActiveSessionScreen(
                     Spacer(Modifier.height(18.dp))
 
                     Text(
-                        "PIN DI ACCESSO",
+                        tr("pin_access"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -873,8 +729,10 @@ private fun ActiveSessionScreen(
                     Spacer(Modifier.height(8.dp))
 
                     Text(
-                        "Scade tra " +
-                            formatCountdown(remainingSeconds),
+                        tr(
+                            "expires_in",
+                            formatCountdown(remainingSeconds)
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -897,7 +755,7 @@ private fun ActiveSessionScreen(
 
                             Toast.makeText(
                                 context,
-                                "Indirizzo copiato",
+                                tr("address_copied"),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -908,7 +766,7 @@ private fun ActiveSessionScreen(
                             Modifier.size(20.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("Copia indirizzo")
+                        Text(tr("copy_address"))
                     }
                 }
             }
@@ -943,14 +801,14 @@ private fun ActiveSessionScreen(
                         Modifier.size(20.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Apri ultimo file ricevuto")
+                    Text(tr("open_last_received"))
                 }
             }
         }
 
         item {
             Text(
-                "Connessione diretta sulla rete locale. Nessun file viene caricato su server esterni.",
+                tr("direct_local"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -978,7 +836,7 @@ private fun ActiveSessionScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Termina sessione")
+                Text(tr("end_session"))
             }
         }
     }
@@ -996,9 +854,9 @@ private fun TransferProgressCard(
         ) {
             Text(
                 if (progress.direction == TransferDirection.PHONE_TO_PC) {
-                    "Invio al PC"
+                    tr("progress_send")
                 } else {
-                    "Ricezione dal PC"
+                    tr("progress_receive")
                 },
                 style = MaterialTheme.typography.labelMedium
             )
@@ -1041,8 +899,11 @@ private fun TransferProgressCard(
                                 (it - progress.transferredBytes) /
                                     progress.bytesPerSecond
 
-                            " • circa " +
-                                formatDuration(seconds)
+                            " • " +
+                                tr(
+                                    "about_time",
+                                    formatDuration(seconds)
+                                )
                         }
                         .orEmpty()
 
@@ -1079,11 +940,11 @@ private fun RecentsScreen(
                 confirmClear = false
             },
             title = {
-                Text("Cancellare la cronologia?")
+                Text(tr("clear_history_title"))
             },
             text = {
                 Text(
-                    "Verrà rimossa solo la cronologia locale. I file trasferiti non saranno eliminati."
+                    tr("clear_history_body")
                 )
             },
             confirmButton = {
@@ -1093,7 +954,7 @@ private fun RecentsScreen(
                         onClear()
                     }
                 ) {
-                    Text("Cancella")
+                    Text(tr("clear"))
                 }
             },
             dismissButton = {
@@ -1102,7 +963,7 @@ private fun RecentsScreen(
                         confirmClear = false
                     }
                 ) {
-                    Text("Annulla")
+                    Text(tr("cancel"))
                 }
             }
         )
@@ -1139,7 +1000,7 @@ private fun RecentsScreen(
                     )
 
                     Text(
-                        "Viene salvata solo la cronologia, non una copia dei file."
+                        tr("history_note")
                     )
                 }
 
@@ -1149,7 +1010,7 @@ private fun RecentsScreen(
                             confirmClear = true
                         }
                     ) {
-                        Text("Cancella")
+                        Text(tr("clear"))
                     }
                 }
             }
@@ -1170,7 +1031,7 @@ private fun RecentsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "Nessun trasferimento effettuato.",
+                        tr("recent_empty"),
                         modifier = Modifier.padding(22.dp)
                     )
                 }
@@ -1210,9 +1071,9 @@ private fun RecentsScreen(
                                             entry.direction ==
                                             TransferDirection.PHONE_TO_PC
                                         ) {
-                                            "Inviato"
+                                            tr("sent")
                                         } else {
-                                            "Ricevuto"
+                                            tr("received")
                                         }
                                     )
 
@@ -1248,7 +1109,7 @@ private fun RecentsScreen(
                                                 Modifier.size(18.dp)
                                             )
                                             Spacer(Modifier.width(4.dp))
-                                            Text("Apri")
+                                            Text(tr("open"))
                                         }
                                     } else {
                                         TextButton(
@@ -1262,7 +1123,7 @@ private fun RecentsScreen(
                                                 Modifier.size(18.dp)
                                             )
                                             Spacer(Modifier.width(4.dp))
-                                            Text("Invia di nuovo")
+                                            Text(tr("send_again"))
                                         }
                                     }
                                 }
@@ -1407,6 +1268,19 @@ private fun OnboardingStep(
 }
 
 @Composable
+private fun tr(
+    key: String,
+    vararg args: Any
+): String {
+    val context = LocalContext.current
+    return AppText.get(
+        AppLanguageStore.current(context),
+        key,
+        *args
+    )
+}
+
+@Composable
 private fun AppIcon(
     resId: Int,
     contentDescription: String?,
@@ -1442,8 +1316,11 @@ private fun NetworkStatusLine(
         Text(
             text =
                 localIp?.let {
-                    "Rete locale • " + it
-                } ?: "Wi-Fi locale non disponibile",
+                    tr(
+                        "network_ready",
+                        it
+                    )
+                } ?: tr("network_unavailable"),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
@@ -1577,13 +1454,13 @@ private fun SessionStatusChip(
 ) {
     val label =
         when (status) {
-            TransferStatus.WAITING -> "In attesa"
-            TransferStatus.CONNECTED -> "PC collegato"
-            TransferStatus.TRANSFERRING -> "Trasferimento"
-            TransferStatus.COMPLETED -> "Completato"
-            TransferStatus.EXPIRED -> "Scaduta"
-            TransferStatus.STOPPED -> "Terminata"
-            TransferStatus.ERROR -> "Errore rete"
+            TransferStatus.WAITING -> tr("status_waiting")
+            TransferStatus.CONNECTED -> tr("status_connected")
+            TransferStatus.TRANSFERRING -> tr("status_transferring")
+            TransferStatus.COMPLETED -> tr("status_completed")
+            TransferStatus.EXPIRED -> tr("status_expired")
+            TransferStatus.STOPPED -> tr("status_stopped")
+            TransferStatus.ERROR -> tr("status_error")
         }
 
     AssistChip(
@@ -1651,7 +1528,7 @@ private fun DevicesScreen(
                         confirmClear = false
                     }
                 ) {
-                    Text("Annulla")
+                    Text(tr("cancel"))
                 }
             }
         )
