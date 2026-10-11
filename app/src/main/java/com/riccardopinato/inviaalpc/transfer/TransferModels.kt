@@ -175,10 +175,12 @@ object SessionSecurity {
     private val random = SecureRandom()
     private const val MAX_ATTEMPTS = 10
     private const val BLOCK_MS = 60_000L
+    private const val MAX_TRACKED_CLIENTS = 256
 
     private data class AttemptState(
         var attempts: Int = 0,
-        var blockedUntil: Long = 0L
+        var blockedUntil: Long = 0L,
+        var lastTouchedAt: Long = 0L
     )
 
     private val attempts = ConcurrentHashMap<String, AttemptState>()
@@ -192,26 +194,93 @@ object SessionSecurity {
     fun generatePin(): String =
         random.nextInt(10_000).toString().padStart(4, '0')
 
-    fun validatePin(clientKey: String, expectedPin: String, suppliedPin: String): Boolean {
-        val now = System.currentTimeMillis()
-        val state = attempts.computeIfAbsent(clientKey) { AttemptState() }
+    fun validatePin(
+        clientKey: String,
+        expectedPin: String,
+        suppliedPin: String
+    ): Boolean {
+        val now =
+            System.currentTimeMillis()
+
+        val existing =
+            attempts[clientKey]
+
+        val state =
+            existing ?: run {
+                pruneAttempts(now)
+
+                if (
+                    attempts.size >=
+                    MAX_TRACKED_CLIENTS
+                ) {
+                    return false
+                }
+
+                attempts.computeIfAbsent(
+                    clientKey
+                ) {
+                    AttemptState(
+                        lastTouchedAt = now
+                    )
+                }
+            }
 
         synchronized(state) {
-            if (state.blockedUntil > now) return false
+            state.lastTouchedAt = now
 
-            if (constantTimeEquals(expectedPin, suppliedPin)) {
-                attempts.remove(clientKey)
+            if (
+                state.blockedUntil >
+                now
+            ) {
+                return false
+            }
+
+            if (
+                constantTimeEquals(
+                    expectedPin,
+                    suppliedPin
+                )
+            ) {
+                attempts.remove(
+                    clientKey,
+                    state
+                )
                 return true
             }
 
             state.attempts++
-            if (state.attempts >= MAX_ATTEMPTS) {
+
+            if (
+                state.attempts >=
+                MAX_ATTEMPTS
+            ) {
                 state.attempts = 0
-                state.blockedUntil = now + BLOCK_MS
+                state.blockedUntil =
+                    now + BLOCK_MS
             }
         }
 
         return false
+    }
+
+    private fun pruneAttempts(
+        now: Long
+    ) {
+        if (
+            attempts.size <
+            MAX_TRACKED_CLIENTS
+        ) {
+            return
+        }
+
+        attempts.entries
+            .removeIf {
+                (_, value) ->
+                value.blockedUntil <= now &&
+                    now -
+                    value.lastTouchedAt >
+                    BLOCK_MS
+            }
     }
 
     private fun constantTimeEquals(a: String, b: String): Boolean {
