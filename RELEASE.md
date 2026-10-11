@@ -38,9 +38,23 @@ Output:
 - SHA256SUMS;
 - RELEASE_IDENTITY con source SHA e workflow run.
 
+## Identità di firma permanente
+
+È stata generata una keystore persistente dedicata al progetto.
+
+Fingerprint SHA-256 pubblico del certificato previsto:
+
+`248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4`
+
+La pipeline release rifiuta automaticamente un APK firmato con un certificato diverso da questo fingerprint.
+
+La chiave privata non deve essere committata nel repository. Va conservata in backup sicuri e caricata in CI esclusivamente tramite GitHub Secrets.
+
+Per Google Play questa chiave viene usata come **upload key**. Se Play App Signing è attivo, Google conserva e usa separatamente la Play app signing key per firmare gli APK distribuiti dallo Store. Per distribuzione APK diretta, invece, questa stessa chiave deve rimanere stabile per mantenere la continuità degli aggiornamenti.
+
 ## Stato attuale
 
-La pipeline release è implementata, ma la release firmata resta **BLOCKED** finché i quattro secret non sono configurati con una keystore persistente posseduta e salvata dall'utente.
+La keystore e l'identità pubblica sono state create. La release firmata resta **BLOCKED** soltanto finché i quattro GitHub Secrets non vengono configurati nel repository.
 
 ## Same-artifact rule
 
