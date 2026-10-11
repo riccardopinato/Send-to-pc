@@ -1,4 +1,4 @@
-# QA checklist — Invia al PC v1.17.0
+# QA checklist — Invia al PC v1.19.0
 
 ## CI gate
 
@@ -67,6 +67,8 @@
 
 ## Lingue
 
+- [ ] test automatico: parità 202/202 chiavi EN / IT / ES / FR / DE / PT
+
 Per EN / IT / ES / FR / DE / PT:
 - [ ] primo avvio
 - [ ] override manuale
@@ -94,15 +96,34 @@ Per EN / IT / ES / FR / DE / PT:
 - [ ] portrait / landscape
 - [ ] dark mode / font scale
 - [ ] production IDs verificati prima dello Store
-- [ ] app-ads.txt / AdMob readiness verificati prima dello Store
+- [ ] app-ads.txt pubblicato alla root del sito sviluppatore collegato alla scheda Store
+- [ ] app-ads.txt verificato in AdMob
+- [ ] AdMob app readiness APPROVED prima dello Store
+
+## Rete / guida recovery
+
+- [ ] guida: stessa Wi-Fi privata
+- [ ] guida: VPN disattivata
+- [ ] guida: evitare rete guest con client isolation
+- [ ] guida: hotspot mobile del PC come alternativa
+- [ ] dopo cambio rete: nuovo QR/sessione
 
 ## Android 17 / API 37
 
-Quando disponibile:
+Solo quando il progetto passerà anche a targetSdk 37:
+- [ ] manifest dichiara ACCESS_LOCAL_NETWORK
 - [ ] prompt ACCESS_LOCAL_NETWORK just-in-time
 - [ ] grant -> sessione parte
 - [ ] deny -> recovery chiara
 - [ ] revoca permission -> comportamento fail-safe
+
+## Store / Data Safety
+
+- [ ] target API conforme al requisito Play vigente
+- [ ] Data safety include le pratiche effettive del GMA Next-Gen SDK
+- [ ] nessuna dichiarazione falsa "all data encrypted in transit"
+- [ ] protocollo LAN HTTP riesaminato rispetto alla User Data policy
+- [ ] STORE-READINESS.md senza blocker P0 aperti
 
 ## Release identity
 
