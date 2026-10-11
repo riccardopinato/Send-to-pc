@@ -376,6 +376,9 @@ class TransferViewModel(
                 manager.create(
                     localIp = ip,
                     port = port,
+                    tlsFingerprintSha256 =
+                        server
+                            .certificateFingerprintSha256,
                     sharedItems = items,
                     sharedText = text,
                     sharedLink = link
