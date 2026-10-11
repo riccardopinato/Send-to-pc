@@ -1,0 +1,8 @@
+Invia al PC v1.15.0 — Simpler Connection UX
+
+- Unificati Invia e Ricevi in una sola sessione bidirezionale.
+- Navigazione ridotta a Connetti / Recenti / PC.
+- Una sessione può partire anche senza contenuti dal telefono.
+- Nuova adaptive icon Android.
+- Monochrome/themed icon.
+- Splash branding Android 12+.
