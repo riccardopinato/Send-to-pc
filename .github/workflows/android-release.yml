@@ -1,0 +1,140 @@
+name: Android release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Set up Gradle 9.6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Require persistent signing secrets
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "::error::Missing signing secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Restore release keystore
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p .signing
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > .signing/release.jks
+          chmod 600 .signing/release.jks
+
+      - name: Test and lint
+        run: |
+          gradle testDebugUnitTest --stacktrace
+          gradle lintRelease --stacktrace
+
+      - name: Build signed release APK and AAB
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/.signing/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          gradle assembleRelease bundleRelease --stacktrace
+
+      - name: Verify release signing and collect identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=app/build/outputs/apk/release/app-release.apk
+          AAB=app/build/outputs/bundle/release/app-release.aab
+          test -s "$APK"
+          test -s "$AAB"
+
+          mkdir -p build/release-artifacts
+          cp "$APK" build/release-artifacts/Invia-al-PC-v1.16.0.apk
+          cp "$AAB" build/release-artifacts/Invia-al-PC-v1.16.0.aab
+
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"             > build/release-artifacts/SIGNING.txt
+
+          sha256sum             build/release-artifacts/Invia-al-PC-v1.16.0.apk             build/release-artifacts/Invia-al-PC-v1.16.0.aab             > build/release-artifacts/SHA256SUMS.txt
+
+          {
+            echo "source_sha=${GITHUB_SHA}"
+            echo "workflow_run=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "package_id=com.riccardopinato.inviaalpc"
+            echo "version_name=1.16.0"
+            echo "version_code=27"
+          } > build/release-artifacts/RELEASE_IDENTITY.txt
+
+          cat build/release-artifacts/SIGNING.txt
+          cat build/release-artifacts/SHA256SUMS.txt
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Invia-al-PC-v1.16.0-apk
+          path: build/release-artifacts/Invia-al-PC-v1.16.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Play AAB
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Invia-al-PC-v1.16.0-aab
+          path: build/release-artifacts/Invia-al-PC-v1.16.0.aab
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload release evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Invia-al-PC-v1.16.0-release-evidence
+          path: |
+            build/release-artifacts/SHA256SUMS.txt
+            build/release-artifacts/SIGNING.txt
+            build/release-artifacts/RELEASE_IDENTITY.txt
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Remove temporary keystore
+        if: always()
+        run: rm -rf .signing
