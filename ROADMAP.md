@@ -38,7 +38,7 @@ Stato: IMPLEMENTED — CI GREEN
 
 ## v1.19 — Polish & Store Preparation
 
-Stato: IMPLEMENTED — CI PENDING
+Stato: IMPLEMENTED — CI GREEN
 
 - Parità completa delle chiavi localizzate EN/IT/ES/FR/DE/PT, protetta da test automatico.
 - Guida rete locale / VPN / guest isolation / hotspot nelle Impostazioni.
