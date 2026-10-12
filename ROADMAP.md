@@ -136,7 +136,7 @@ Stato: COPY/SPECS PREPARED — FINAL BINARY ASSETS PENDING
 
 ## v1.27 — Production Release Candidate
 
-Stato: RC GENERATED — CI GREEN / PHYSICAL QA PENDING
+Stato: NOT CERTIFIED — REAL-DEVICE STARTUP CRASH
 
 - versionName 1.27.0 / versionCode 33;
 - feature freeze confermata;
@@ -147,7 +147,24 @@ Stato: RC GENERATED — CI GREEN / PHYSICAL QA PENDING
 - AAB SHA-256: e524c19033ce838f2cf4120f22f2ab7ae856510a3683503fd417decfb1265a09;
 - signing certificate MATCH / VERIFIED;
 - evidence: store/V1_27_RC_EVIDENCE.md;
-- v1.28 deve usare l'esatto APK candidato, senza rebuild.
+- Physical QA ha rilevato crash immediato all'avvio sulla v1.27.0 production;
+- la v1.27.0 è quindi esclusa come candidato finale.
+
+## v1.27.1 — Production startup hotfix
+
+Stato: RC GENERATED — CI GREEN / PHYSICAL QA REQUIRED
+
+- versionName 1.27.1 / versionCode 34;
+- package invariato: com.riccardopinato.inviaalpc;
+- signing identity invariata e verificata;
+- UMP/GMA/banner/interstitial resi fail-safe rispetto al core app;
+- production AdMob configurato;
+- Store Candidate run: 38254139820;
+- source SHA: 46748a9a2acadb27d7dd2650ef7b1b40b22025ee;
+- APK SHA-256: 406b671396ac329e2035d7cd3b5931b09725d9a467cb4050e562c5256d3a5512;
+- AAB SHA-256: 9553344d98937881b5c1c6ae0fd8f9e9bffe7dcc374a23b7fdbbb333436992dd;
+- deve aggiornare direttamente la v1.27.0 già installata;
+- Physical QA riparte dall'esatto APK v1.27.1.
 
 ## v1.28 — Physical Certification
 
