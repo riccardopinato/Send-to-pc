@@ -1,0 +1,11 @@
+Send to PC v1.27.2 — startup diagnostics build
+
+- versionCode 35.
+- Production-signed diagnostic build for the unresolved real-device startup crash.
+- Same package and signing identity as v1.27.0/v1.27.1: must update in place.
+- Installs a startup-only uncaught exception recorder before TransferRuntime initialization.
+- If the previous launch crashed during startup, the next launch skips TransferRuntime and opens a minimal native recovery screen.
+- Recovery screen exposes the captured stage and stacktrace and allows copying the report.
+- No transfer logic changes.
+- AdMob production configuration remains enabled; v1.27.1 fail-safe advertising containment remains in place.
+- This build is diagnostic and is not a Store candidate until the root cause is identified and removed.
