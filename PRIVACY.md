@@ -1,6 +1,6 @@
-# Privacy — Invia al PC
+# Privacy — Send to PC
 
-Invia al PC trasferisce file, foto, testo e link direttamente tra telefono e computer sulla rete locale.
+Send to PC trasferisce file, foto, testo e link direttamente tra telefono e computer sulla rete locale.
 
 ## Dati trasferiti
 

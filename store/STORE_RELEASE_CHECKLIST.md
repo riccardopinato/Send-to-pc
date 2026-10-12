@@ -1,4 +1,4 @@
-# Store release checklist — Invia al PC
+# Store release checklist — Send to PC
 
 Versione target corrente: v1.26.0
 Package: `com.riccardopinato.inviaalpc`

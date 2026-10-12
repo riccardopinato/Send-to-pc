@@ -1,4 +1,4 @@
-# Google Play listing copy — Invia al PC
+# Google Play listing copy — Send to PC
 
 All copy below is draft Store copy for the actual implemented feature set. Do not mention features that fail final Physical QA.
 
@@ -41,13 +41,13 @@ For best results, keep the phone and computer on the same private Wi-Fi network.
 ## Italiano (it)
 
 **Nome app**
-Invia al PC
+Send to PC
 
 **Descrizione breve**
 Trasferisci file, foto, testo e link tra Android e PC sulla rete locale.
 
 **Descrizione completa**
-Invia al PC permette di trasferire file, foto, testo e link direttamente tra il telefono Android e il browser del computer sulla stessa rete locale.
+Send to PC permette di trasferire file, foto, testo e link direttamente tra il telefono Android e il browser del computer sulla stessa rete locale.
 
 Non serve installare un programma sul PC. Avvia una sessione dal telefono, scansiona il QR o apri l'indirizzo locale dal computer, verifica il fingerprint del certificato locale quando richiesto, inserisci il PIN e trasferisci in entrambe le direzioni.
 
@@ -75,13 +75,13 @@ Per la massima affidabilità, usa telefono e computer sulla stessa Wi-Fi privata
 ## Español (es)
 
 **Nombre**
-Enviar al PC
+Send to PC
 
 **Descripción breve**
 Transfiere archivos, fotos, texto y enlaces entre Android y PC en tu red local.
 
 **Descripción completa**
-Enviar al PC permite mover archivos, fotos, texto y enlaces directamente entre tu teléfono Android y el navegador del ordenador en la misma red local.
+Send to PC permite mover archivos, fotos, texto y enlaces directamente entre tu teléfono Android y el navegador del ordenador en la misma red local.
 
 No necesitas instalar un programa en el PC. Inicia una sesión en el teléfono, escanea el QR o abre la dirección local, verifica la huella del certificado local cuando se solicite, introduce el PIN y transfiere en ambas direcciones.
 
@@ -106,13 +106,13 @@ Los contenidos transferidos no se suben a una nube propia de la app. La publicid
 ## Français (fr)
 
 **Nom**
-Envoyer au PC
+Send to PC
 
 **Description courte**
 Transférez fichiers, photos, texte et liens entre Android et PC en réseau local.
 
 **Description complète**
-Envoyer au PC permet de transférer directement fichiers, photos, texte et liens entre votre téléphone Android et le navigateur de votre ordinateur sur le même réseau local.
+Send to PC permet de transférer directement fichiers, photos, texte et liens entre votre téléphone Android et le navigateur de votre ordinateur sur le même réseau local.
 
 Aucun logiciel n'est nécessaire sur le PC. Lancez une session sur le téléphone, scannez le QR code ou ouvrez l'adresse locale, vérifiez l'empreinte du certificat local si demandé, saisissez le PIN et transférez dans les deux sens.
 
@@ -137,13 +137,13 @@ Les contenus transférés ne sont pas envoyés vers un cloud appartenant à l'ap
 ## Deutsch (de)
 
 **App-Name**
-An PC senden
+Send to PC
 
 **Kurzbeschreibung**
 Dateien, Fotos, Text und Links lokal zwischen Android und PC übertragen.
 
 **Vollständige Beschreibung**
-An PC senden überträgt Dateien, Fotos, Text und Links direkt zwischen deinem Android-Smartphone und dem Browser deines Computers im selben lokalen Netzwerk.
+Send to PC überträgt Dateien, Fotos, Text und Links direkt zwischen deinem Android-Smartphone und dem Browser deines Computers im selben lokalen Netzwerk.
 
 Auf dem PC muss kein Programm installiert werden. Starte eine Sitzung auf dem Smartphone, scanne den QR-Code oder öffne die lokale Adresse, prüfe bei Bedarf den Fingerabdruck des lokalen Zertifikats, gib die PIN ein und übertrage in beide Richtungen.
 
@@ -168,13 +168,13 @@ Funktionen:
 ## Português (pt)
 
 **Nome**
-Enviar para o PC
+Send to PC
 
 **Descrição curta**
 Transfira arquivos, fotos, texto e links entre Android e PC pela rede local.
 
 **Descrição completa**
-Enviar para o PC transfere arquivos, fotos, texto e links diretamente entre o telefone Android e o navegador do computador na mesma rede local.
+Send to PC transfere arquivos, fotos, texto e links diretamente entre o telefone Android e o navegador do computador na mesma rede local.
 
 Não é necessário instalar um programa no PC. Inicie uma sessão no telefone, leia o código QR ou abra o endereço local, confira a impressão digital do certificado local quando solicitado, digite o PIN e transfira nos dois sentidos.
 

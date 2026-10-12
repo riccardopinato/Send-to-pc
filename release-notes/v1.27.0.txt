@@ -1,4 +1,4 @@
-Invia al PC v1.27.0 — Production RC source freeze
+Send to PC v1.27.0 — Production RC source freeze
 
 - Feature freeze.
 - Versione candidata: versionCode 33.

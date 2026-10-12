@@ -1,4 +1,4 @@
-# Roadmap — Invia al PC
+# Roadmap — Send to PC
 
 Baseline precedente: v1.16.0 production-signing verified.
 

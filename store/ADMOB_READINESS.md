@@ -1,4 +1,4 @@
-# AdMob readiness — Invia al PC
+# AdMob readiness — Send to PC
 
 Stato corrente: PREPARED / NOT VERIFIED FOR PRODUCTION
 

@@ -297,7 +297,7 @@ object AppText {
     )
 
     private val it = mapOf(
-        "app_name" to "Invia al PC", "help" to "Guida", "connect" to "Connetti",
+        "app_name" to "Send to PC", "help" to "Guida", "connect" to "Connetti",
         "recents" to "Recenti", "trusted_pcs" to "PC fidati", "pc" to "PC",
         "network_ready" to "Rete locale • %s", "network_unavailable" to "Wi-Fi locale non disponibile",
         "phone_pc" to "TELEFONO ↔ PC", "connect_devices" to "Connetti i tuoi dispositivi",
@@ -427,7 +427,7 @@ object AppText {
     )
 
     private val es = mapOf(
-        "app_name" to "Enviar al PC", "help" to "Ayuda", "connect" to "Conectar", "recents" to "Recientes",
+        "app_name" to "Send to PC", "help" to "Ayuda", "connect" to "Conectar", "recents" to "Recientes",
         "trusted_pcs" to "PC de confianza", "network_unavailable" to "Wi-Fi local no disponible",
         "connect_devices" to "Conecta tus dispositivos", "phone_content_optional" to "Contenido del teléfono (opcional)",
         "photo" to "Foto", "text" to "Texto", "text_hint" to "Escribe o pega texto...", "link" to "Enlace",
@@ -594,7 +594,7 @@ object AppText {
     )
 
     private val fr = mapOf(
-        "app_name" to "Envoyer au PC", "help" to "Aide", "connect" to "Connecter", "recents" to "Récents",
+        "app_name" to "Send to PC", "help" to "Aide", "connect" to "Connecter", "recents" to "Récents",
         "trusted_pcs" to "PC de confiance", "network_unavailable" to "Wi-Fi local indisponible",
         "connect_devices" to "Connectez vos appareils", "phone_content_optional" to "Contenu du téléphone (facultatif)",
         "photo" to "Photo", "text" to "Texte", "text_hint" to "Écrivez ou collez du texte...", "link" to "Lien",
@@ -763,7 +763,7 @@ object AppText {
     )
 
     private val de = mapOf(
-        "app_name" to "An PC senden", "help" to "Hilfe", "connect" to "Verbinden", "recents" to "Letzte",
+        "app_name" to "Send to PC", "help" to "Hilfe", "connect" to "Verbinden", "recents" to "Letzte",
         "trusted_pcs" to "Vertrauenswürdige PCs", "network_unavailable" to "Lokales WLAN nicht verfügbar",
         "connect_devices" to "Geräte verbinden", "phone_content_optional" to "Inhalte vom Smartphone (optional)",
         "photo" to "Foto", "text" to "Text", "text_hint" to "Text schreiben oder einfügen...", "link" to "Link",
@@ -932,7 +932,7 @@ object AppText {
     )
 
     private val pt = mapOf(
-        "app_name" to "Enviar para o PC", "help" to "Ajuda", "connect" to "Conectar", "recents" to "Recentes",
+        "app_name" to "Send to PC", "help" to "Ajuda", "connect" to "Conectar", "recents" to "Recentes",
         "trusted_pcs" to "PCs confiáveis", "network_unavailable" to "Wi-Fi local indisponível",
         "connect_devices" to "Conecte os dispositivos", "phone_content_optional" to "Conteúdo do telefone (opcional)",
         "photo" to "Foto", "text" to "Texto", "text_hint" to "Escreva ou cole texto...", "link" to "Link",
