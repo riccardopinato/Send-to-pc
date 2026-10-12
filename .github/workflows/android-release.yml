@@ -1,6 +1,9 @@
 name: Android release
 
 on:
+  push:
+    branches:
+      - "store-candidate/**"
   workflow_dispatch:
     inputs:
       store_candidate:
@@ -18,6 +21,7 @@ concurrency:
 
 env:
   EXPECTED_UPLOAD_CERT_SHA256: 248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4
+  STORE_CANDIDATE: ${{ github.event_name == 'push' || inputs.store_candidate }}
 
 jobs:
   release:
@@ -80,7 +84,7 @@ jobs:
           fi
 
       - name: Require production AdMob IDs for Store candidate
-        if: ${{ inputs.store_candidate }}
+        if: ${{ env.STORE_CANDIDATE == 'true' }}
         shell: bash
         env:
           ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
@@ -163,8 +167,8 @@ jobs:
           test -s "$AAB"
 
           mkdir -p build/release-artifacts
-          cp "$APK" "build/release-artifacts/Invia-al-PC-v${VERSION_NAME}.apk"
-          cp "$AAB" "build/release-artifacts/Invia-al-PC-v${VERSION_NAME}.aab"
+          cp "$APK" "build/release-artifacts/Send-to-PC-v${VERSION_NAME}.apk"
+          cp "$AAB" "build/release-artifacts/Send-to-PC-v${VERSION_NAME}.aab"
 
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" \
             > build/release-artifacts/SIGNING.txt
@@ -191,8 +195,8 @@ jobs:
           fi
 
           sha256sum \
-            "build/release-artifacts/Invia-al-PC-v${VERSION_NAME}.apk" \
-            "build/release-artifacts/Invia-al-PC-v${VERSION_NAME}.aab" \
+            "build/release-artifacts/Send-to-PC-v${VERSION_NAME}.apk" \
+            "build/release-artifacts/Send-to-PC-v${VERSION_NAME}.aab" \
             > build/release-artifacts/SHA256SUMS.txt
 
           {
@@ -201,7 +205,7 @@ jobs:
             echo "package_id=com.riccardopinato.inviaalpc"
             echo "version_name=${VERSION_NAME}"
             echo "version_code=${VERSION_CODE}"
-            echo "store_candidate=${{ inputs.store_candidate }}"
+            echo "store_candidate=${STORE_CANDIDATE}"
             if [ -n "${ADMOB_APP_ID:-}" ] && [ -n "${ADMOB_BANNER_ID:-}" ] && [ -n "${ADMOB_INTERSTITIAL_ID:-}" ]; then
               echo "admob_production_configured=true"
 
@@ -227,23 +231,23 @@ jobs:
       - name: Upload signed APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Invia-al-PC-v${{ env.VERSION_NAME }}-apk
-          path: build/release-artifacts/Invia-al-PC-v${{ env.VERSION_NAME }}.apk
+          name: Send-to-PC-v${{ env.VERSION_NAME }}-apk
+          path: build/release-artifacts/Send-to-PC-v${{ env.VERSION_NAME }}.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload Play AAB
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Invia-al-PC-v${{ env.VERSION_NAME }}-aab
-          path: build/release-artifacts/Invia-al-PC-v${{ env.VERSION_NAME }}.aab
+          name: Send-to-PC-v${{ env.VERSION_NAME }}-aab
+          path: build/release-artifacts/Send-to-PC-v${{ env.VERSION_NAME }}.aab
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload release evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Invia-al-PC-v${{ env.VERSION_NAME }}-release-evidence
+          name: Send-to-PC-v${{ env.VERSION_NAME }}-release-evidence
           path: |
             build/release-artifacts/SHA256SUMS.txt
             build/release-artifacts/SIGNING.txt
