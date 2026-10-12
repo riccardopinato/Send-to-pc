@@ -1,0 +1,59 @@
+name: AdMob production preflight
+
+on:
+  push:
+    branches:
+      - v1.27-production-rc
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  admob-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+      ADMOB_BANNER_ID: ${{ secrets.ADMOB_BANNER_ID }}
+      ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
+
+    steps:
+      - name: Validate production AdMob configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          missing=()
+          for name in ADMOB_APP_ID ADMOB_BANNER_ID ADMOB_INTERSTITIAL_ID; do
+            if [ -z "${!name:-}" ]; then
+              missing+=("$name")
+            fi
+          done
+
+          if [ "${#missing[@]}" -ne 0 ]; then
+            echo "::error::Missing production AdMob GitHub Secrets: ${missing[*]}"
+            exit 1
+          fi
+
+          if [[ ! "$ADMOB_APP_ID" =~ ^ca-app-pub-[0-9]{10,20}~[0-9]{5,20}$ ]]; then
+            echo "::error::ADMOB_APP_ID format is invalid"
+            exit 1
+          fi
+
+          for pair in             "ADMOB_BANNER_ID:$ADMOB_BANNER_ID"             "ADMOB_INTERSTITIAL_ID:$ADMOB_INTERSTITIAL_ID"; do
+            name="${pair%%:*}"
+            value="${pair#*:}"
+
+            if [[ ! "$value" =~ ^ca-app-pub-[0-9]{10,20}/[0-9]{5,20}$ ]]; then
+              echo "::error::$name format is invalid"
+              exit 1
+            fi
+          done
+
+          if [ "$ADMOB_APP_ID" = "ca-app-pub-3940256099942544~3347511713" ] ||              [ "$ADMOB_BANNER_ID" = "ca-app-pub-3940256099942544/9214589741" ] ||              [ "$ADMOB_INTERSTITIAL_ID" = "ca-app-pub-3940256099942544/1033173712" ]; then
+            echo "::error::Google demo IDs are not valid production configuration"
+            exit 1
+          fi
+
+          echo "Production AdMob configuration: PRESENT_AND_VALID_FORMAT"
