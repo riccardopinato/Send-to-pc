@@ -64,32 +64,28 @@ Per Google Play questa chiave viene usata come **upload key**. Se Play App Signi
 
 ## Stato attuale
 
-**PRODUCTION SIGNING VERIFIED — v1.16.0**
+**STORE CANDIDATE GENERATED / PRODUCTION SIGNING VERIFIED — v1.27.0**
 
-First production run verificato:
+Canonical v1.27 Store Candidate:
 
 - workflow: `Android release`
-- run: `38159474760`
-- source SHA: `3240f107875372a01e7ba2e6577a73397ee72766`
+- run: `38247324555`
+- source SHA: `79efe53c229e919d220ddc070a93a254b500888f`
 - package: `com.riccardopinato.inviaalpc`
-- versionName: `1.16.0`
-- versionCode: `27`
+- versionName: `1.27.0`
+- versionCode: `33`
+- store_candidate: `true`
+- admob_production_configured: `true`
 - expected certificate SHA-256: `248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4`
 - actual certificate SHA-256: `248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4`
-- APK SHA-256: `639f471c29788ad80d5777fea9944633b603e69e792b05d8d175226341c8f552`
-- AAB SHA-256: `5ae82d96d4a43a8aef6c5851a0d2c9613a6a445d4ef2c45d8207c265a4d846ab`
+- APK SHA-256: `78dde1a90def7cfb594b377ae5906869d745c186363a9d5094a0e3d47972619f`
+- AAB SHA-256: `e524c19033ce838f2cf4120f22f2ab7ae856510a3683503fd417decfb1265a09`
 
-Il workflow ha completato con successo:
-- secret gate;
-- restore temporaneo della keystore;
-- test/lint;
-- APK e AAB release;
-- verifica firma;
-- confronto fail-closed del fingerprint;
-- release evidence;
-- rimozione della keystore temporanea.
+The workflow completed the production AdMob gate, persistent signing gate, test/lint, signed APK/AAB build, signing verification and release evidence upload.
 
-Il gate signing è quindi chiuso. Restano separati i gate di physical QA, update-in-place e final certification.
+Historical first production-signing run: v1.16.0 / run `38159474760`.
+
+The signing gate is closed. Physical QA, update-in-place, app-ads.txt/readiness and final certification remain separate gates.
 
 ## Same-artifact rule
 
@@ -101,9 +97,9 @@ L'APK fisicamente verificato deve essere lo stesso artifact, con lo stesso SHA-2
 - versionCode: 33
 - package: com.riccardopinato.inviaalpc
 - signing identity: invariata
-- AdMob production IDs: PENDING
+- AdMob production IDs: CONFIGURED / STORE CANDIDATE VERIFIED
 
-La v1.16.0 sopra resta l'ultima release con Production Signing VERIFIED finché non viene eseguito un nuovo workflow release per la versione corrente.
+La v1.27.0 è il Production RC canonico. L'esatto APK candidato è definito in `store/V1_27_RC_EVIDENCE.md`.
 
 
 ## Store candidate gate
@@ -117,4 +113,4 @@ Il nome degli artifact e RELEASE_IDENTITY vengono derivati dinamicamente da `ver
 
 Un run Store Candidate verde non sostituisce Physical QA, app-ads.txt/readiness o Final Certification.
 
-La v1.27 è la sorgente Production RC congelata. Il vero artifact RC nasce solo da un run `Android release` con `store_candidate=true`, i 3 production AdMob IDs configurati e signing identity verificata. Physical QA e final certification restano separati.
+La v1.27 Production RC è stata generata dal run canonico `38247324555`. Physical QA e final certification restano separati.
