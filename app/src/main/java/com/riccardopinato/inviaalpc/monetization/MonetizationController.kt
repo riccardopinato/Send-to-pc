@@ -142,10 +142,6 @@ object MonetizationController {
         sdkInitializing = false
         interstitialLoading = false
 
-        runCatching {
-            interstitialAd?.destroy()
-        }
-
         interstitialAd = null
 
         _state.value =
@@ -247,9 +243,6 @@ object MonetizationController {
                         if (
                             adsDisabledForSession
                         ) {
-                            runCatching {
-                                ad.destroy()
-                            }
                             return
                         }
 
