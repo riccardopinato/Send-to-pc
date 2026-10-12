@@ -26,27 +26,36 @@ class ConsentManager private constructor(
 
     fun gather(
         activity: Activity,
-        onComplete: (FormError?) -> Unit
+        onComplete: (FormError?) -> Unit,
+        onFailure: (Throwable) -> Unit = {}
     ) {
         val params =
             ConsentRequestParameters.Builder()
                 .build()
 
-        consentInformation.requestConsentInfoUpdate(
-            activity,
-            params,
-            {
-                UserMessagingPlatform
-                    .loadAndShowConsentFormIfRequired(
-                        activity
-                    ) { error ->
-                        onComplete(error)
+        try {
+            consentInformation.requestConsentInfoUpdate(
+                activity,
+                params,
+                {
+                    try {
+                        UserMessagingPlatform
+                            .loadAndShowConsentFormIfRequired(
+                                activity
+                            ) { error ->
+                                onComplete(error)
+                            }
+                    } catch (throwable: Throwable) {
+                        onFailure(throwable)
                     }
-            },
-            { error ->
-                onComplete(error)
-            }
-        )
+                },
+                { error ->
+                    onComplete(error)
+                }
+            )
+        } catch (throwable: Throwable) {
+            onFailure(throwable)
+        }
     }
 
     fun showPrivacyOptions(
