@@ -64,6 +64,9 @@ object MonetizationController {
     private var interstitialLoading = false
 
     @Volatile
+    private var adsDisabledForSession = false
+
+    @Volatile
     private var interstitialAd:
         InterstitialAd? = null
 
@@ -76,40 +79,89 @@ object MonetizationController {
     fun initialize(
         activity: Activity
     ) {
-        appContext =
-            activity.applicationContext
+        if (adsDisabledForSession) {
+            return
+        }
 
-        consentManager =
-            ConsentManager.getInstance(
-                appContext
-            )
+        try {
+            appContext =
+                activity.applicationContext
 
-        refreshConsentState(
-            resolved = false
-        )
-
-        consentManager.gather(
-            activity
-        ) { error ->
-            error?.let {
-                Log.w(
-                    TAG,
-                    "Consent update: " +
-                        it.message
+            consentManager =
+                ConsentManager.getInstance(
+                    appContext
                 )
-            }
 
             refreshConsentState(
-                resolved = true
+                resolved = false
             )
 
-            if (
-                consentManager
-                    .canRequestAds
-            ) {
-                initializeMobileAds()
-            }
+            consentManager.gather(
+                activity = activity,
+                onComplete = { error ->
+                    error?.let {
+                        Log.w(
+                            TAG,
+                            "Consent update: " +
+                                it.message
+                        )
+                    }
+
+                    refreshConsentState(
+                        resolved = true
+                    )
+
+                    if (
+                        !adsDisabledForSession &&
+                        consentManager
+                            .canRequestAds
+                    ) {
+                        initializeMobileAds()
+                    }
+                },
+                onFailure = {
+                    disableForSession(
+                        stage = "ump_gather",
+                        throwable = it
+                    )
+                }
+            )
+        } catch (throwable: Throwable) {
+            disableForSession(
+                stage = "monetization_initialize",
+                throwable = throwable
+            )
         }
+    }
+
+    fun disableForSession(
+        stage: String,
+        throwable: Throwable
+    ) {
+        adsDisabledForSession = true
+        sdkInitializing = false
+        interstitialLoading = false
+
+        runCatching {
+            interstitialAd?.destroy()
+        }
+
+        interstitialAd = null
+
+        _state.value =
+            _state.value.copy(
+                consentResolved = true,
+                canRequestAds = false,
+                mobileAdsInitialized = false,
+                interstitialReady = false
+            )
+
+        Log.e(
+            TAG,
+            "Ads disabled for this session at " +
+                stage,
+            throwable
+        )
     }
 
     fun showPrivacyOptions(
@@ -118,6 +170,7 @@ object MonetizationController {
             {}
     ) {
         if (
+            adsDisabledForSession ||
             !::consentManager
                 .isInitialized
         ) {
@@ -127,22 +180,33 @@ object MonetizationController {
             return
         }
 
-        consentManager.showPrivacyOptions(
-            activity
-        ) { error ->
-            refreshConsentState(
-                resolved = true
-            )
+        try {
+            consentManager.showPrivacyOptions(
+                activity
+            ) { error ->
+                refreshConsentState(
+                    resolved = true
+                )
 
-            if (
-                consentManager
-                    .canRequestAds
-            ) {
-                initializeMobileAds()
+                if (
+                    !adsDisabledForSession &&
+                    consentManager
+                        .canRequestAds
+                ) {
+                    initializeMobileAds()
+                }
+
+                onComplete(
+                    error?.message
+                )
             }
-
+        } catch (throwable: Throwable) {
+            disableForSession(
+                stage = "privacy_options",
+                throwable = throwable
+            )
             onComplete(
-                error?.message
+                throwable.message
             )
         }
     }
@@ -151,6 +215,7 @@ object MonetizationController {
         val current = _state.value
 
         if (
+            adsDisabledForSession ||
             !current.canRequestAds ||
             !current.mobileAdsInitialized ||
             interstitialLoading ||
@@ -161,50 +226,67 @@ object MonetizationController {
 
         interstitialLoading = true
 
-        val request =
-            AdRequest.Builder(
-                AdMobConfig.interstitialId
-            ).build()
+        try {
+            val request =
+                AdRequest.Builder(
+                    AdMobConfig.interstitialId
+                ).build()
 
-        InterstitialAd.load(
-            request,
-            object :
-                AdLoadCallback<
-                    InterstitialAd
-                > {
-                override fun onAdLoaded(
-                    ad: InterstitialAd
-                ) {
-                    interstitialLoading =
-                        false
-                    interstitialAd = ad
-                    _state.value =
-                        _state.value.copy(
-                            interstitialReady =
-                                true
+            InterstitialAd.load(
+                request,
+                object :
+                    AdLoadCallback<
+                        InterstitialAd
+                    > {
+                    override fun onAdLoaded(
+                        ad: InterstitialAd
+                    ) {
+                        interstitialLoading =
+                            false
+
+                        if (
+                            adsDisabledForSession
+                        ) {
+                            runCatching {
+                                ad.destroy()
+                            }
+                            return
+                        }
+
+                        interstitialAd = ad
+                        _state.value =
+                            _state.value.copy(
+                                interstitialReady =
+                                    true
+                            )
+                    }
+
+                    override fun onAdFailedToLoad(
+                        adError: LoadAdError
+                    ) {
+                        interstitialLoading =
+                            false
+                        interstitialAd = null
+                        _state.value =
+                            _state.value.copy(
+                                interstitialReady =
+                                    false
+                            )
+
+                        Log.w(
+                            TAG,
+                            "Interstitial load failed: " +
+                                adError.message
                         )
+                    }
                 }
-
-                override fun onAdFailedToLoad(
-                    adError: LoadAdError
-                ) {
-                    interstitialLoading =
-                        false
-                    interstitialAd = null
-                    _state.value =
-                        _state.value.copy(
-                            interstitialReady =
-                                false
-                        )
-
-                    Log.w(
-                        TAG,
-                        "Interstitial load failed: " +
-                            adError.message
-                    )
-                }
-            }
-        )
+            )
+        } catch (throwable: Throwable) {
+            disableForSession(
+                stage = "interstitial_preload",
+                throwable = throwable
+            )
+        }
     }
 
     fun showInterstitialIfEligible(
@@ -212,6 +294,7 @@ object MonetizationController {
         summary: TransferOperationSummary
     ): Boolean {
         if (
+            adsDisabledForSession ||
             !_state.value
                 .canRequestAds ||
             !_state.value
@@ -220,114 +303,131 @@ object MonetizationController {
             return false
         }
 
-        val prefs =
-            appContext
-                .getSharedPreferences(
-                    PREFS,
-                    Context.MODE_PRIVATE
+        return try {
+            val prefs =
+                appContext
+                    .getSharedPreferences(
+                        PREFS,
+                        Context.MODE_PRIVATE
+                    )
+
+            val lastShown =
+                prefs.getLong(
+                    KEY_LAST_INTERSTITIAL,
+                    0L
                 )
 
-        val lastShown =
-            prefs.getLong(
-                KEY_LAST_INTERSTITIAL,
-                0L
-            )
+            val alreadyShown =
+                shownSessionIds.contains(
+                    summary.sessionId
+                )
 
-        val alreadyShown =
-            shownSessionIds.contains(
+            if (
+                !InterstitialPolicy
+                    .shouldShow(
+                        summary =
+                            summary,
+                        lastShownAtMillis =
+                            lastShown,
+                        alreadyShownForSession =
+                            alreadyShown
+                    )
+            ) {
+                preloadInterstitial()
+                return false
+            }
+
+            val ad =
+                interstitialAd
+                    ?: run {
+                        preloadInterstitial()
+                        return false
+                    }
+
+            interstitialAd = null
+            _state.value =
+                _state.value.copy(
+                    interstitialReady =
+                        false
+                )
+
+            shownSessionIds.add(
                 summary.sessionId
             )
 
-        if (
-            !InterstitialPolicy
-                .shouldShow(
-                    summary =
-                        summary,
-                    lastShownAtMillis =
-                        lastShown,
-                    alreadyShownForSession =
-                        alreadyShown
+            prefs.edit()
+                .putLong(
+                    KEY_LAST_INTERSTITIAL,
+                    System.currentTimeMillis()
                 )
-        ) {
-            preloadInterstitial()
-            return false
+                .apply()
+
+            ad.adEventCallback =
+                object :
+                    InterstitialAdEventCallback {
+                    override fun onAdDismissedFullScreenContent() {
+                        preloadInterstitial()
+                    }
+
+                    override fun onAdFailedToShowFullScreenContent(
+                        fullScreenContentError:
+                            FullScreenContentError
+                    ) {
+                        Log.w(
+                            TAG,
+                            "Interstitial show failed: " +
+                                fullScreenContentError.message
+                        )
+                        preloadInterstitial()
+                    }
+                }
+
+            ad.show(activity)
+            true
+        } catch (throwable: Throwable) {
+            disableForSession(
+                stage = "interstitial_show",
+                throwable = throwable
+            )
+            false
         }
-
-        val ad =
-            interstitialAd
-                ?: run {
-                    preloadInterstitial()
-                    return false
-                }
-
-        interstitialAd = null
-        _state.value =
-            _state.value.copy(
-                interstitialReady =
-                    false
-            )
-
-        shownSessionIds.add(
-            summary.sessionId
-        )
-
-        prefs.edit()
-            .putLong(
-                KEY_LAST_INTERSTITIAL,
-                System.currentTimeMillis()
-            )
-            .apply()
-
-        ad.adEventCallback =
-            object :
-                InterstitialAdEventCallback {
-                override fun onAdDismissedFullScreenContent() {
-                    preloadInterstitial()
-                }
-
-                override fun onAdFailedToShowFullScreenContent(
-                    fullScreenContentError:
-                        FullScreenContentError
-                ) {
-                    Log.w(
-                        TAG,
-                        "Interstitial show failed: " +
-                            fullScreenContentError.message
-                    )
-                    preloadInterstitial()
-                }
-            }
-
-        ad.show(activity)
-        return true
     }
 
     private fun refreshConsentState(
         resolved: Boolean
     ) {
         if (
+            adsDisabledForSession ||
             !::consentManager
                 .isInitialized
         ) {
             return
         }
 
-        _state.value =
-            _state.value.copy(
-                consentResolved =
-                    resolved,
-                canRequestAds =
-                    consentManager
-                        .canRequestAds,
-                privacyOptionsRequired =
-                    consentManager
-                        .isPrivacyOptionsRequired
+        try {
+            _state.value =
+                _state.value.copy(
+                    consentResolved =
+                        resolved,
+                    canRequestAds =
+                        consentManager
+                            .canRequestAds,
+                    privacyOptionsRequired =
+                        consentManager
+                            .isPrivacyOptionsRequired
+                )
+        } catch (throwable: Throwable) {
+            disableForSession(
+                stage = "consent_state",
+                throwable = throwable
             )
+        }
     }
 
     @Synchronized
     private fun initializeMobileAds() {
         if (
+            adsDisabledForSession ||
             sdkInitializing ||
             _state.value
                 .mobileAdsInitialized ||
@@ -340,24 +440,35 @@ object MonetizationController {
         sdkInitializing = true
 
         scope.launch {
-            MobileAds.initialize(
-                appContext,
-                InitializationConfig
-                    .Builder(
-                        AdMobConfig.appId
-                    )
-                    .build()
-            ) {
-                sdkInitializing =
-                    false
+            try {
+                MobileAds.initialize(
+                    appContext,
+                    InitializationConfig
+                        .Builder(
+                            AdMobConfig.appId
+                        )
+                        .build()
+                ) {
+                    sdkInitializing =
+                        false
 
-                _state.value =
-                    _state.value.copy(
-                        mobileAdsInitialized =
-                            true
-                    )
+                    if (
+                        !adsDisabledForSession
+                    ) {
+                        _state.value =
+                            _state.value.copy(
+                                mobileAdsInitialized =
+                                    true
+                            )
 
-                preloadInterstitial()
+                        preloadInterstitial()
+                    }
+                }
+            } catch (throwable: Throwable) {
+                disableForSession(
+                    stage = "gma_initialize",
+                    throwable = throwable
+                )
             }
         }
     }
