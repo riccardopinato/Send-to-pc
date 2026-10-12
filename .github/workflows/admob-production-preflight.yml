@@ -3,7 +3,8 @@ name: AdMob production preflight
 on:
   push:
     branches:
-      - v1.27-production-rc
+      - main
+      - "store-candidate/**"
   workflow_dispatch:
 
 permissions:
