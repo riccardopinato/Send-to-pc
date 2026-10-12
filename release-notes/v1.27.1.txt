@@ -1,0 +1,10 @@
+Send to PC v1.27.1 — startup crash hotfix
+
+- versionCode 34.
+- Hotfix per crash immediato osservato su device reale con la v1.27.0 production.
+- UMP e GMA Next-Gen sono ora fail-safe: un'eccezione SDK advertising non termina il processo dell'app.
+- Banner e interstitial degradano in modo sicuro disabilitando gli ads per la sessione in caso di errore.
+- MainActivity contiene anche eventuali failure sincrone dell'inizializzazione monetizzazione.
+- Package e signing identity restano invariati: questa build deve aggiornare direttamente la v1.27.0 production già installata.
+- Il core trasferimento non viene modificato.
+- Physical QA deve ripartire dalla v1.27.1.
