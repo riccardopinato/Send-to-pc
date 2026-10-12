@@ -71,33 +71,42 @@ fun AdaptiveBannerAd(
             return@LaunchedEffect
         }
 
-        val adSize =
-            AdSize
-                .getLargeAnchoredAdaptiveBannerAdSize(
-                    context,
-                    widthDp
-                )
+        try {
+            val adSize =
+                AdSize
+                    .getLargeAnchoredAdaptiveBannerAdSize(
+                        context,
+                        widthDp
+                    )
 
-        when (
-            val result =
-                BannerAd.load(
-                    BannerAdRequest
-                        .Builder(
-                            AdMobConfig.bannerId,
-                            adSize
-                        )
-                        .build()
-                )
-        ) {
-            is AdLoadResult.Success ->
-                bannerAd =
-                    result.ad
+            when (
+                val result =
+                    BannerAd.load(
+                        BannerAdRequest
+                            .Builder(
+                                AdMobConfig.bannerId,
+                                adSize
+                            )
+                            .build()
+                    )
+            ) {
+                is AdLoadResult.Success ->
+                    bannerAd =
+                        result.ad
 
-            is AdLoadResult.Failure ->
-                Log.w(
-                    "Monetization",
-                    "Banner load failed: " +
-                        result.error
+                is AdLoadResult.Failure ->
+                    Log.w(
+                        "Monetization",
+                        "Banner load failed: " +
+                            result.error
+                    )
+            }
+        } catch (throwable: Throwable) {
+            bannerAd = null
+            MonetizationController
+                .disableForSession(
+                    stage = "banner_load",
+                    throwable = throwable
                 )
         }
     }
