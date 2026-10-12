@@ -1,4 +1,4 @@
-# AdMob production activation — Invia al PC v1.27
+# AdMob production activation — Send to PC v1.27
 
 Package Android: `com.riccardopinato.inviaalpc`
 
@@ -18,7 +18,7 @@ Il runtime AdMob è già implementato e usa:
 In AdMob:
 1. App -> Aggiungi app.
 2. Piattaforma: Android.
-3. Nome: Invia al PC.
+3. Nome: Send to PC.
 4. Package: `com.riccardopinato.inviaalpc`.
 5. Se non è ancora pubblicata su Google Play, configurarla come app non ancora pubblicata e collegarla allo Store quando la listing esiste.
 
@@ -33,7 +33,7 @@ Questo valore diventa:
 Nell'app AdMob:
 1. Unità pubblicitarie -> Aggiungi unità pubblicitaria.
 2. Formato: Banner.
-3. Nome consigliato: `Invia al PC - Adaptive Banner`.
+3. Nome consigliato: `Send to PC - Adaptive Banner`.
 4. Mantieni il posizionamento coerente con l'anchored adaptive banner già implementato.
 
 Copia l'Ad Unit ID, formato:
@@ -47,7 +47,7 @@ Questo valore diventa:
 Nell'app AdMob:
 1. Unità pubblicitarie -> Aggiungi unità pubblicitaria.
 2. Formato: Interstitial.
-3. Nome consigliato: `Invia al PC - Session Complete Interstitial`.
+3. Nome consigliato: `Send to PC - Session Complete Interstitial`.
 4. L'app lo mostra solo dopo una sessione completata significativa, non durante il trasferimento.
 
 Copia l'Ad Unit ID.
