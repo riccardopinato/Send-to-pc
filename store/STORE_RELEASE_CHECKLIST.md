@@ -1,31 +1,31 @@
 # Store release checklist — Send to PC
 
-Versione target corrente: v1.26.0
+Versione target corrente: v1.27.0
 Package: `com.riccardopinato.inviaalpc`
 
 ## Product / build
 
-[ ] feature freeze confermata
-[ ] unit test PASS
-[ ] lint PASS
-[ ] release build PASS
-[ ] versione/versionCode definitivi
-[ ] package invariato
-[ ] signing fingerprint atteso verificato
-[ ] AAB firmato generato
-[ ] SHA-256 artifact registrato
-[ ] source SHA registrato
+[x] feature freeze confermata
+[x] unit test PASS
+[x] lint PASS
+[x] release build PASS
+[x] versione/versionCode definitivi
+[x] package invariato
+[x] signing fingerprint atteso verificato
+[x] AAB firmato generato
+[x] SHA-256 artifact registrato
+[x] source SHA registrato
 
 ## AdMob
 
-[ ] app creata/configurata in AdMob
-[ ] banner production Ad Unit creato
-[ ] interstitial production Ad Unit creato
-[ ] `ADMOB_APP_ID` configurato in GitHub Secrets
-[ ] `ADMOB_BANNER_ID` configurato in GitHub Secrets
-[ ] `ADMOB_INTERSTITIAL_ID` configurato in GitHub Secrets
-[ ] `Android release` eseguito con `store_candidate=true`
-[ ] artifact evidence riporta `admob_production_configured=true`
+[x] app creata/configurata in AdMob
+[x] banner production Ad Unit creato
+[x] interstitial production Ad Unit creato
+[x] `ADMOB_APP_ID` configurato in GitHub Secrets
+[x] `ADMOB_BANNER_ID` configurato in GitHub Secrets
+[x] `ADMOB_INTERSTITIAL_ID` configurato in GitHub Secrets
+[x] `Android release` eseguito con `store_candidate=true`
+[x] artifact evidence riporta `admob_production_configured=true`
 [ ] UMP verificato fisicamente
 [ ] banner adaptive verificato fisicamente
 [ ] interstitial policy/frequency cap verificati fisicamente
@@ -57,7 +57,7 @@ Package: `com.riccardopinato.inviaalpc`
 
 ## Store listing
 
-[ ] nome app definitivo
+[x] nome app definitivo
 [ ] short description
 [ ] full description
 [ ] icona 512x512
@@ -91,4 +91,4 @@ CERTIFIED / NOT CERTIFIED / BLOCKED
 
 Un AAB firmato e CI GREEN non equivalgono da soli a STORE READY.
 
-La cifratura TLS è implementata; il verdetto Store resta **BLOCKED** finché trust flow, AdMob/UMP, Physical QA e update-in-place non sono verificati.
+La v1.27 Production RC è generata e firmata; il verdetto Store resta **BLOCKED** finché trust flow, AdMob/UMP fisico, app-ads.txt/readiness, Physical QA e update-in-place non sono verificati.
