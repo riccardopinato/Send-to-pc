@@ -39,8 +39,16 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        MonetizationController
-            .initialize(this)
+        runCatching {
+            MonetizationController
+                .initialize(this)
+        }.onFailure {
+            MonetizationController
+                .disableForSession(
+                    stage = "activity_startup",
+                    throwable = it
+                )
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
