@@ -55,7 +55,7 @@ Stato: IMPLEMENTED — CI GREEN
 
 ## v1.20 — LAN Transport Security
 
-Stato: IMPLEMENTED — CI / PHYSICAL QA PENDING
+Stato: IMPLEMENTED — CI GREEN / PHYSICAL QA PENDING
 
 - HTTPS locale al posto del trasporto HTTP.
 - TLS 1.2 / TLS 1.3.
@@ -72,7 +72,7 @@ Gate residuo:
 
 ## v1.21 — Transfer Reliability Final
 
-Stato: IMPLEMENTED — AUTOMATED CI PENDING / PHYSICAL QA PENDING
+Stato: IMPLEMENTED — CI GREEN / PHYSICAL QA PENDING
 
 - policy centralizzata per limiti file/batch/chunk;
 - arithmetic chunk overflow-safe;
@@ -84,7 +84,7 @@ Stato: IMPLEMENTED — AUTOMATED CI PENDING / PHYSICAL QA PENDING
 
 ## v1.22 — Security Hardening
 
-Stato: IMPLEMENTED — AUTOMATED CI PENDING / PHYSICAL QA PENDING
+Stato: IMPLEMENTED — CI GREEN / PHYSICAL QA PENDING
 
 - Host header vincolato a IP/porta sessione;
 - cross-site POST bloccati tramite Fetch Metadata;
@@ -106,12 +106,12 @@ Stato: PREPARED — PHYSICAL QA PENDING
 
 ## v1.24 — AdMob Production
 
-Stato: CODE PREPARED — EXTERNAL CONFIG / PHYSICAL QA PENDING
+Stato: PRODUCTION CONFIGURED — PHYSICAL QA PENDING
 
 - Store Candidate fail-closed su ID mancanti;
 - ID production validati per formato;
 - ID demo Google esplicitamente rifiutati;
-- production IDs reali: PENDING;
+- production IDs reali: CONFIGURED e verificati dal Store Candidate workflow;
 - UMP/banner/interstitial/no-fill physical validation: PENDING.
 
 ## v1.25 — Store Infrastructure
@@ -136,15 +136,18 @@ Stato: COPY/SPECS PREPARED — FINAL BINARY ASSETS PENDING
 
 ## v1.27 — Production Release Candidate
 
-Stato: SOURCE FREEZE PREPARED — ADMOB ACCOUNT CONFIG REQUIRED
+Stato: RC GENERATED — CI GREEN / PHYSICAL QA PENDING
 
 - versionName 1.27.0 / versionCode 33;
-- feature freeze: nessuna nuova feature nel candidato;
-- runbook production AdMob aggiunto;
-- Store Candidate workflow già fail-closed;
-- signed APK/AAB da generare solo dopo i 3 production AdMob IDs;
-- exact source SHA / artifact SHA-256 obbligatori;
-- il Physical QA appartiene a v1.28 e viene eseguito sull'esatto artifact v1.27.
+- feature freeze confermata;
+- production AdMob configurato e gate fail-closed superato;
+- canonical Store Candidate run: 38247324555;
+- source SHA: 79efe53c229e919d220ddc070a93a254b500888f;
+- APK SHA-256: 78dde1a90def7cfb594b377ae5906869d745c186363a9d5094a0e3d47972619f;
+- AAB SHA-256: e524c19033ce838f2cf4120f22f2ab7ae856510a3683503fd417decfb1265a09;
+- signing certificate MATCH / VERIFIED;
+- evidence: store/V1_27_RC_EVIDENCE.md;
+- v1.28 deve usare l'esatto APK candidato, senza rebuild.
 
 ## v1.28 — Physical Certification
 
