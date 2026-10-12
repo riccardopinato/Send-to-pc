@@ -56,7 +56,12 @@ object StartupCrashGuard {
         stage: String
     ) {
         runCatching {
-            prefs.edit()
+            context.applicationContext
+                .getSharedPreferences(
+                    PREFS,
+                    Context.MODE_PRIVATE
+                )
+                .edit()
                 .putString(
                     KEY_STAGE,
                     stage
@@ -213,12 +218,7 @@ object StartupCrashGuard {
                 )
             )
 
-            context.applicationContext
-                .getSharedPreferences(
-                    PREFS,
-                    Context.MODE_PRIVATE
-                )
-                .edit()
+            prefs.edit()
                 .putString(
                     KEY_REPORT,
                     writer.toString()
