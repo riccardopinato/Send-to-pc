@@ -204,8 +204,18 @@ jobs:
             echo "store_candidate=${{ inputs.store_candidate }}"
             if [ -n "${ADMOB_APP_ID:-}" ] && [ -n "${ADMOB_BANNER_ID:-}" ] && [ -n "${ADMOB_INTERSTITIAL_ID:-}" ]; then
               echo "admob_production_configured=true"
+
+              {
+                printf 'app_id_sha256='
+                printf '%s' "$ADMOB_APP_ID" | sha256sum | awk '{print $1}'
+                printf 'banner_id_sha256='
+                printf '%s' "$ADMOB_BANNER_ID" | sha256sum | awk '{print $1}'
+                printf 'interstitial_id_sha256='
+                printf '%s' "$ADMOB_INTERSTITIAL_ID" | sha256sum | awk '{print $1}'
+              } > build/release-artifacts/ADMOB_IDENTITY.txt
             else
               echo "admob_production_configured=false"
+              printf '%s\n' "production_admob_not_configured"                 > build/release-artifacts/ADMOB_IDENTITY.txt
             fi
             echo "expected_upload_certificate_sha256=$EXPECTED_UPLOAD_CERT_SHA256"
             echo "actual_upload_certificate_sha256=$ACTUAL_CERT_SHA256"
@@ -238,6 +248,7 @@ jobs:
             build/release-artifacts/SHA256SUMS.txt
             build/release-artifacts/SIGNING.txt
             build/release-artifacts/RELEASE_IDENTITY.txt
+            build/release-artifacts/ADMOB_IDENTITY.txt
           if-no-files-found: error
           retention-days: 90
 
