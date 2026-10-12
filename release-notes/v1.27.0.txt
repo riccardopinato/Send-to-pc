@@ -1,0 +1,11 @@
+Invia al PC v1.27.0 — Production RC source freeze
+
+- Feature freeze.
+- Versione candidata: versionCode 33.
+- Nessuna nuova feature rispetto alla v1.26 hardening baseline.
+- AdMob production activation documentata con mapping esatto dei tre GitHub Secrets.
+- Store Candidate resta fail-closed senza App ID, Banner ID e Interstitial ID reali.
+- Google demo IDs non sono ammessi nel candidato Store.
+- TLS locale, reliability e security hardening invariati.
+- Il vero APK/AAB candidato viene generato solo dal workflow Android release con store_candidate=true.
+- Physical QA verrà eseguito sull'esatto APK firmato prodotto da quel run.
