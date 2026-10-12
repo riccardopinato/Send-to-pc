@@ -1,4 +1,4 @@
-# Google Play asset specification — Invia al PC
+# Google Play asset specification — Send to PC
 
 Validate again against Play Console at submission time.
 
