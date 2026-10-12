@@ -136,11 +136,15 @@ Stato: COPY/SPECS PREPARED — FINAL BINARY ASSETS PENDING
 
 ## v1.27 — Production Release Candidate
 
-Stato: BLOCKED BY v1.24-v1.26 + PHYSICAL QA
+Stato: SOURCE FREEZE PREPARED — ADMOB ACCOUNT CONFIG REQUIRED
 
-- signed APK/AAB;
-- exact source SHA / artifact SHA-256;
-- Store Candidate workflow.
+- versionName 1.27.0 / versionCode 33;
+- feature freeze: nessuna nuova feature nel candidato;
+- runbook production AdMob aggiunto;
+- Store Candidate workflow già fail-closed;
+- signed APK/AAB da generare solo dopo i 3 production AdMob IDs;
+- exact source SHA / artifact SHA-256 obbligatori;
+- il Physical QA appartiene a v1.28 e viene eseguito sull'esatto artifact v1.27.
 
 ## v1.28 — Physical Certification
 
