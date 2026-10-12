@@ -1,4 +1,4 @@
-# Invia al PC / Send to PC
+# Send to PC
 
 Utility Android nativa per trasferire file, foto, testo e link tra telefono e computer sulla stessa rete locale.
 
