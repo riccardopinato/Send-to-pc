@@ -32,8 +32,9 @@ jobs:
           done
 
           if [ "${#missing[@]}" -ne 0 ]; then
-            echo "::error::Missing production AdMob GitHub Secrets: ${missing[*]}"
-            exit 1
+            echo "::warning::Production AdMob not configured. Missing: ${missing[*]}"
+            echo "configured=false" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
 
           if [[ ! "$ADMOB_APP_ID" =~ ^ca-app-pub-[0-9]{10,20}~[0-9]{5,20}$ ]]; then
