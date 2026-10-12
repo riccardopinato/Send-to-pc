@@ -98,8 +98,14 @@ class MainActivity : ComponentActivity() {
                 )
         }
 
-        StartupCrashGuard.markStartupCompleted(
-            this
+        window.decorView.postDelayed(
+            {
+                StartupCrashGuard
+                    .markStartupCompleted(
+                        this
+                    )
+            },
+            15_000L
         )
     }
 

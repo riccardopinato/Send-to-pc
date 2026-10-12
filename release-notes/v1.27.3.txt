@@ -1,0 +1,9 @@
+Send to PC v1.27.3 — startup diagnostics window fix
+
+- versionCode 36.
+- Fixes the v1.27.2 diagnostic limitation: startup was marked complete at the end of MainActivity.onCreate(), before the first rendered Compose frames and early asynchronous SDK work.
+- Startup crash capture now remains active for 15 seconds after Activity creation.
+- Any uncaught exception in that window is persisted, including exceptions from early background threads.
+- On the next launch, the app enters the native recovery screen before normal UI/monetization startup and exposes the captured stacktrace.
+- Same package and production signing identity: installs as an update over v1.27.2.
+- Diagnostic build only; not Store-certified.
