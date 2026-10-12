@@ -9,6 +9,7 @@ object StartupCrashGuard {
     private const val KEY_REPORT = "pending_report"
     private const val KEY_STAGE = "startup_stage"
     private const val KEY_TIME = "crash_time"
+    private const val KEY_STARTUP_COMPLETE = "startup_complete"
 
     @Volatile
     private var installed = false
@@ -18,6 +19,20 @@ object StartupCrashGuard {
         installed = true
 
         val app = context.applicationContext
+
+        runCatching {
+            app.getSharedPreferences(
+                PREFS,
+                Context.MODE_PRIVATE
+            )
+                .edit()
+                .putBoolean(
+                    KEY_STARTUP_COMPLETE,
+                    false
+                )
+                .commit()
+        }
+
         val previous =
             Thread.getDefaultUncaughtExceptionHandler()
 
@@ -41,17 +56,12 @@ object StartupCrashGuard {
         stage: String
     ) {
         runCatching {
-            context.applicationContext
-                .getSharedPreferences(
-                    PREFS,
-                    Context.MODE_PRIVATE
-                )
-                .edit()
+            prefs.edit()
                 .putString(
                     KEY_STAGE,
                     stage
                 )
-                .apply()
+                .commit()
         }
     }
 
@@ -123,6 +133,28 @@ object StartupCrashGuard {
         }
     }
 
+    fun markStartupCompleted(
+        context: Context
+    ) {
+        runCatching {
+            context.applicationContext
+                .getSharedPreferences(
+                    PREFS,
+                    Context.MODE_PRIVATE
+                )
+                .edit()
+                .putBoolean(
+                    KEY_STARTUP_COMPLETE,
+                    true
+                )
+                .putString(
+                    KEY_STAGE,
+                    "startup_completed"
+                )
+                .commit()
+        }
+    }
+
     fun clear(
         context: Context
     ) {
@@ -139,11 +171,15 @@ object StartupCrashGuard {
                 .remove(
                     KEY_TIME
                 )
+                .putBoolean(
+                    KEY_STARTUP_COMPLETE,
+                    false
+                )
                 .putString(
                     KEY_STAGE,
                     "manual_retry"
                 )
-                .apply()
+                .commit()
         }
     }
 
@@ -152,6 +188,22 @@ object StartupCrashGuard {
         throwable: Throwable
     ) {
         runCatching {
+            val prefs =
+                context.applicationContext
+                    .getSharedPreferences(
+                        PREFS,
+                        Context.MODE_PRIVATE
+                    )
+
+            if (
+                prefs.getBoolean(
+                    KEY_STARTUP_COMPLETE,
+                    false
+                )
+            ) {
+                return@runCatching
+            }
+
             val writer =
                 StringWriter()
 
