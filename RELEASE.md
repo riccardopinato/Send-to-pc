@@ -87,14 +87,34 @@ Historical first production-signing run: v1.16.0 / run `38159474760`.
 
 The signing gate is closed. Physical QA, update-in-place, app-ads.txt/readiness and final certification remain separate gates.
 
+## v1.27.1 startup hotfix
+
+The v1.27.0 Store Candidate failed Physical QA because the production app crashed immediately on launch.
+
+New candidate:
+- workflow: `Android release`
+- run: `38254139820`
+- source SHA: `46748a9a2acadb27d7dd2650ef7b1b40b22025ee`
+- package: `com.riccardopinato.inviaalpc`
+- versionName: `1.27.1`
+- versionCode: `34`
+- store_candidate: `true`
+- admob_production_configured: `true`
+- expected certificate SHA-256: `248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4`
+- actual certificate SHA-256: `248AE3BEDEC1CA6F80B2272F0ACDE5F010987864B4F5754FE2FA499353D77CE4`
+- APK SHA-256: `406b671396ac329e2035d7cd3b5931b09725d9a467cb4050e562c5256d3a5512`
+- AAB SHA-256: `9553344d98937881b5c1c6ae0fd8f9e9bffe7dcc374a23b7fdbbb333436992dd`
+
+The package and signing identity are unchanged, so v1.27.1 is the update-in-place candidate for an installed v1.27.0 production APK.
+
 ## Same-artifact rule
 
 L'APK fisicamente verificato deve essere lo stesso artifact, con lo stesso SHA-256, poi distribuito. Una rebuild produce un artifact diverso e richiede nuova evidence.
 
 ## Versione sviluppo corrente
 
-- versionName: 1.27.0
-- versionCode: 33
+- versionName: 1.27.1
+- versionCode: 34
 - package: com.riccardopinato.inviaalpc
 - signing identity: invariata
 - AdMob production IDs: CONFIGURED / STORE CANDIDATE VERIFIED
