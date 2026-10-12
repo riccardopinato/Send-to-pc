@@ -198,7 +198,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.core:core-ktx:1.19.1")
     implementation("androidx.activity:activity-compose:1.12.4")
 
     // Lifecycle 2.11 Compose artifacts require compileSdk 37.
