@@ -1,4 +1,4 @@
-# Google Play Console pack — Invia al PC
+# Google Play Console pack — Send to PC
 
 Target preparation: v1.26.
 Package: `com.riccardopinato.inviaalpc`
