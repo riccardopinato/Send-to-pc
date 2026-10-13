@@ -1,4 +1,4 @@
-name: AdMob serving diagnostic v1.27.5
+name: AdMob serving diagnostic v1.27.5 main-thread fix
 
 on:
   push:
