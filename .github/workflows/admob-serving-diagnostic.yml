@@ -93,34 +93,7 @@ jobs:
           profile: pixel_7_pro
           disable-animations: true
           script: |
-            set -Eeuo pipefail
-            REPORT="$GITHUB_WORKSPACE/admob-report/${{ matrix.mode }}"
-            mkdir -p "$REPORT"
-
-            adb install -r -g "$GITHUB_WORKSPACE/app/build/outputs/apk/release/app-release.apk"
-            adb logcat -c
-            adb shell am force-stop com.riccardopinato.inviaalpc || true
-            adb shell monkey -p com.riccardopinato.inviaalpc -c android.intent.category.LAUNCHER 1
-            sleep 20
-
-            adb exec-out screencap -p > "$REPORT/launch-20s.png" || true
-            adb shell uiautomator dump /sdcard/window.xml || true
-            adb pull /sdcard/window.xml "$REPORT/window.xml" || true
-            adb logcat -d -v threadtime > "$REPORT/logcat.txt"
-            grep -Ei "Monetization|UserMessagingPlatform|MobileAds|Ads|admob|consent|interstitial|banner" "$REPORT/logcat.txt" > "$REPORT/ads-log.txt" || true
-            adb shell pidof com.riccardopinato.inviaalpc > "$REPORT/pid.txt" || true
-
-            {
-              echo "mode=${{ matrix.mode }}"
-              echo "force_eea=${{ matrix.force_eea }}"
-              echo "production_app_id=true"
-              echo "banner_unit=google_test"
-              echo "interstitial_unit=google_test"
-              echo "--- monetization markers ---"
-              grep -E "Consent state|Mobile Ads initialized|Banner loaded|Banner load failed|Interstitial loaded|Interstitial load failed|Consent update|Ads disabled|UMP diagnostic" "$REPORT/ads-log.txt" || true
-            } > "$REPORT/summary.txt"
-
-            cat "$REPORT/summary.txt"
+            bash "$GITHUB_WORKSPACE/.github/scripts/admob_diagnostic.sh" "${{ matrix.mode }}" "${{ matrix.force_eea }}"
 
       - name: Upload diagnostic evidence
         if: always()
