@@ -2,6 +2,7 @@ package com.riccardopinato.inviaalpc.monetization
 
 import android.app.Activity
 import android.content.Context
+import android.os.Looper
 import android.util.Log
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
@@ -213,6 +214,13 @@ object MonetizationController {
     }
 
     fun preloadInterstitial() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            mainScope.launch {
+                preloadInterstitial()
+            }
+            return
+        }
+
         val current = _state.value
 
         if (
@@ -353,9 +361,7 @@ object MonetizationController {
             val ad =
                 interstitialAd
                     ?: run {
-                        mainScope.launch {
                         preloadInterstitial()
-                    }
                         return false
                     }
 
