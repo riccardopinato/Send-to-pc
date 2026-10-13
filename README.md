@@ -28,7 +28,7 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 - server HTTPS LAN nativo tramite TLS + ServerSocket;
 - MediaStore Downloads per i file ricevuti;
 - ZXing per il QR code;
-- Google Mobile Ads Next-Gen SDK;
+- Google Mobile Ads SDK (`play-services-ads` 25.5.0, legacy API line);
 - Google UMP;
 - minSdk 29;
 - targetSdk 36;
@@ -87,6 +87,8 @@ La release stabile usa invece una keystore persistente tramite GitHub Secrets e 
 ## QA
 
 La build CI verde non equivale a certificazione runtime. Gli scenari su device reale sono elencati in [QA-CHECKLIST.md](QA-CHECKLIST.md).
+
+La v1.27.5 include il fix R8/Room validato in AppLab per il crash di startup `WorkDatabase` osservato sulla v1.27.4. La certificazione fisica dell'esatto artifact v1.27.5 resta comunque obbligatoria.
 
 ## Privacy
 

@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-release-v1274-legacy-gma
+  group: android-release-v1275-room-r8-fix
   cancel-in-progress: true
 
 env:

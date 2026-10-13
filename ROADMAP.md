@@ -166,6 +166,32 @@ Stato: RC GENERATED — CI GREEN / PHYSICAL QA REQUIRED
 - deve aggiornare direttamente la v1.27.0 già installata;
 - Physical QA riparte dall'esatto APK v1.27.1.
 
+## v1.27.4 — Legacy GMA startup diagnostic
+
+Stato: NOT CERTIFIED — APPLAB STARTUP CRASH REPRODUCED
+
+- versionName 1.27.4 / versionCode 41;
+- Google Mobile Ads riportato alla linea legacy `play-services-ads:25.5.0`;
+- APK release esatto riprodotto in AppLab;
+- crash prima di `Application.onCreate`, dentro `androidx.startup.InitializationProvider`;
+- errore deterministico: impossibile creare `androidx.work.impl.WorkDatabase`;
+- la rimozione del solo init applicativo Mobile Ads non eliminava il crash;
+- la rimozione dello stack ads/UMP eliminava il crash, indicando una dipendenza transitiva;
+- il candidato v1.27.4 resta escluso dal merge/release finale.
+
+## v1.27.5 — Room / R8 startup fix
+
+Stato: STORE CANDIDATE — EXACT ARTIFACT QA PENDING
+
+- versionName 1.27.5 / versionCode 42;
+- package e signing identity invariati;
+- mantiene `play-services-ads:25.5.0` + UMP 4.0.0;
+- aggiunta regola R8 per preservare i costruttori delle subclass di `RoomDatabase`;
+- la stessa correzione, applicata al diagnostico v1.27.4, ha prodotto AppLab `PASS`;
+- cold start diagnostico: 2463 ms;
+- nessun `FATAL EXCEPTION`, `am_crash` o `WorkDatabase` nel logcat diagnostico;
+- il gate finale resta la validazione AppLab dell'esatto artifact v1.27.5 e poi il Physical QA su device reale.
+
 ## v1.28 — Physical Certification
 
 Stato: BLOCKED BY DEVICE TEST
