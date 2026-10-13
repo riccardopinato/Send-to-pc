@@ -2,11 +2,14 @@ package com.riccardopinato.inviaalpc.monetization
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
+import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentForm
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.FormError
 import com.google.android.ump.UserMessagingPlatform
+import com.riccardopinato.inviaalpc.BuildConfig
 
 class ConsentManager private constructor(
     context: Context
@@ -29,9 +32,32 @@ class ConsentManager private constructor(
         onComplete: (FormError?) -> Unit,
         onFailure: (Throwable) -> Unit = {}
     ) {
-        val params =
+        val paramsBuilder =
             ConsentRequestParameters.Builder()
-                .build()
+
+        if (BuildConfig.ADMOB_DIAGNOSTIC_FORCE_EEA) {
+            consentInformation.reset()
+
+            val debugSettings =
+                ConsentDebugSettings.Builder(activity)
+                    .setDebugGeography(
+                        ConsentDebugSettings.DebugGeography
+                            .DEBUG_GEOGRAPHY_EEA
+                    )
+                    .build()
+
+            paramsBuilder.setConsentDebugSettings(
+                debugSettings
+            )
+
+            Log.i(
+                "Monetization",
+                "UMP diagnostic geography forced to EEA"
+            )
+        }
+
+        val params =
+            paramsBuilder.build()
 
         try {
             consentInformation.requestConsentInfoUpdate(
