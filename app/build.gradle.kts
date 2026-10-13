@@ -38,8 +38,8 @@ android {
         applicationId = "com.riccardopinato.inviaalpc"
         minSdk = 29
         targetSdk = 36
-        versionCode = 38
-        versionName = "1.17.99-control"
+        versionCode = 39
+        versionName = "1.17.99-no-init"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
