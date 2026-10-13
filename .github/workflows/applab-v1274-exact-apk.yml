@@ -64,7 +64,6 @@ jobs:
           profile: pixel_7_pro
           disable-animations: true
           script: |
-            set -Eeuo pipefail
             adb shell cmd connectivity airplane-mode enable || true
             adb shell settings put global airplane_mode_on 1 || true
             adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true || true
