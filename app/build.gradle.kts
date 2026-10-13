@@ -2,6 +2,9 @@ val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH")
 val releaseKeystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
 val releaseKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+val admobDiagnosticForceEea =
+    providers.environmentVariable("ADMOB_DIAGNOSTIC_FORCE_EEA").orNull
+        ?.equals("true", ignoreCase = true) == true
 
 val testAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
 val testAdMobBannerId = "ca-app-pub-3940256099942544/9214589741"
@@ -65,6 +68,11 @@ android {
             "boolean",
             "ADMOB_PRODUCTION_CONFIGURED",
             productionAdsConfigured.toString()
+        )
+        buildConfigField(
+            "boolean",
+            "ADMOB_DIAGNOSTIC_FORCE_EEA",
+            admobDiagnosticForceEea.toString()
         )
     }
 
