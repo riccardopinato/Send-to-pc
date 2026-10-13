@@ -1,0 +1,10 @@
+Send to PC v1.27.4 — AdMob legacy compatibility candidate
+
+- versionCode 41.
+- Replaces GMA Next-Gen 1.5.0 with Google Mobile Ads SDK Legacy 25.5.0.
+- Keeps UMP 4.0.0 and the existing production AdMob App ID / Banner / Interstitial IDs.
+- Keeps existing consent gating and frequency/session policies.
+- Migrates adaptive banner and interstitial implementations to the legacy SDK APIs.
+- Keeps ads fail-safe: advertising failures must never terminate the core transfer app.
+- Same package and production signing identity; must update in place over bisect build versionCode 40.
+- Physical test determines whether Next-Gen was the regression source.
