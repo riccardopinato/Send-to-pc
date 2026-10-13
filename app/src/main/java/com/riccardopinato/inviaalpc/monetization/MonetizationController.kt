@@ -10,6 +10,7 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.riccardopinato.inviaalpc.BuildConfig
 import com.riccardopinato.inviaalpc.transfer.TransferOperationSummary
 import java.util.Collections
 import kotlinx.coroutines.CoroutineScope
@@ -251,6 +252,12 @@ object MonetizationController {
                                 interstitialReady =
                                     true
                             )
+
+                        Log.i(
+                            TAG,
+                            "Interstitial loaded; responseId=" +
+                                (ad.responseInfo?.responseId ?: "null")
+                        )
                     }
 
                     override fun onAdFailedToLoad(
@@ -268,7 +275,7 @@ object MonetizationController {
                         Log.w(
                             TAG,
                             "Interstitial load failed: " +
-                                error.message
+                                error.toString()
                         )
                     }
                 }
@@ -407,6 +414,19 @@ object MonetizationController {
                         consentManager
                             .isPrivacyOptionsRequired
                 )
+
+            val snapshot = _state.value
+            Log.i(
+                TAG,
+                "Consent state resolved=" +
+                    snapshot.consentResolved +
+                    " canRequestAds=" +
+                    snapshot.canRequestAds +
+                    " privacyOptionsRequired=" +
+                    snapshot.privacyOptionsRequired +
+                    " forceEea=" +
+                    BuildConfig.ADMOB_DIAGNOSTIC_FORCE_EEA
+            )
         } catch (throwable: Throwable) {
             disableForSession(
                 stage = "consent_state",
@@ -447,6 +467,12 @@ object MonetizationController {
                             mobileAdsInitialized =
                                 true
                         )
+
+                    Log.i(
+                        TAG,
+                        "Mobile Ads initialized; productionConfigured=" +
+                            AdMobConfig.productionConfigured
+                    )
 
                     preloadInterstitial()
                 }
