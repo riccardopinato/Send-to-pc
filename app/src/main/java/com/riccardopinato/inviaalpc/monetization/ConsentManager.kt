@@ -2,78 +2,35 @@ package com.riccardopinato.inviaalpc.monetization
 
 import android.app.Activity
 import android.content.Context
-import com.google.android.ump.ConsentForm
-import com.google.android.ump.ConsentInformation
-import com.google.android.ump.ConsentRequestParameters
-import com.google.android.ump.FormError
-import com.google.android.ump.UserMessagingPlatform
 
-class ConsentManager private constructor(
-    context: Context
-) {
-    private val consentInformation: ConsentInformation =
-        UserMessagingPlatform.getConsentInformation(
-            context.applicationContext
-        )
-
+class ConsentManager private constructor() {
     val canRequestAds: Boolean
-        get() = consentInformation.canRequestAds()
+        get() = false
 
     val isPrivacyOptionsRequired: Boolean
-        get() =
-            consentInformation.privacyOptionsRequirementStatus ==
-                ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+        get() = false
 
     fun gather(
         activity: Activity,
-        onComplete: (FormError?) -> Unit
+        onComplete: (Any?) -> Unit
     ) {
-        val params =
-            ConsentRequestParameters.Builder()
-                .build()
-
-        consentInformation.requestConsentInfoUpdate(
-            activity,
-            params,
-            {
-                UserMessagingPlatform
-                    .loadAndShowConsentFormIfRequired(
-                        activity
-                    ) { error ->
-                        onComplete(error)
-                    }
-            },
-            { error ->
-                onComplete(error)
-            }
-        )
+        onComplete(null)
     }
 
     fun showPrivacyOptions(
         activity: Activity,
-        onDismissed: ConsentForm.OnConsentFormDismissedListener
+        onDismissed: (Any?) -> Unit
     ) {
-        UserMessagingPlatform.showPrivacyOptionsForm(
-            activity,
-            onDismissed
-        )
+        onDismissed(null)
     }
 
     companion object {
-        @Volatile
-        private var instance: ConsentManager? = null
+        private val instance =
+            ConsentManager()
 
         fun getInstance(
             context: Context
         ): ConsentManager =
             instance
-                ?: synchronized(this) {
-                    instance
-                        ?: ConsentManager(
-                            context
-                        ).also {
-                            instance = it
-                        }
-                }
     }
 }
