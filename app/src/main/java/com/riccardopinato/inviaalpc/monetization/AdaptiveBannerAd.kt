@@ -1,8 +1,5 @@
 package com.riccardopinato.inviaalpc.monetization
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,19 +7,17 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
-import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
-import com.google.android.libraries.ads.mobile.sdk.common.AdLoadResult
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
 
 @Composable
 fun AdaptiveBannerAd(
@@ -33,27 +28,36 @@ fun AdaptiveBannerAd(
         return
     }
 
-    val context =
-        LocalContext.current
-
-    val activity =
-        remember(context) {
-            context.findActivity()
-        } ?: return
-
+    val context = LocalContext.current
     val widthDp =
         LocalConfiguration.current
             .screenWidthDp
             .coerceAtLeast(1)
-
     val isPreview =
         LocalInspectionMode.current
 
-    var bannerAd by
-        remember {
-            mutableStateOf<
-                BannerAd?
-            >(null)
+    val adView =
+        remember(
+            context,
+            AdMobConfig.bannerId
+        ) {
+            AdView(context).apply {
+                adUnitId =
+                    AdMobConfig.bannerId
+
+                adListener =
+                    object : AdListener() {
+                        override fun onAdFailedToLoad(
+                            error: LoadAdError
+                        ) {
+                            Log.w(
+                                "Monetization",
+                                "Banner load failed: " +
+                                    error.message
+                            )
+                        }
+                    }
+            }
         }
 
     LaunchedEffect(
@@ -61,9 +65,6 @@ fun AdaptiveBannerAd(
         widthDp,
         AdMobConfig.bannerId
     ) {
-        bannerAd?.destroy()
-        bannerAd = null
-
         if (
             !adsEnabled ||
             isPreview
@@ -72,37 +73,20 @@ fun AdaptiveBannerAd(
         }
 
         try {
-            val adSize =
+            adView.setAdSize(
                 AdSize
-                    .getLargeAnchoredAdaptiveBannerAdSize(
+                    .getCurrentOrientationAnchoredAdaptiveBannerAdSize(
                         context,
                         widthDp
                     )
+            )
 
-            when (
-                val result =
-                    BannerAd.load(
-                        BannerAdRequest
-                            .Builder(
-                                AdMobConfig.bannerId,
-                                adSize
-                            )
-                            .build()
-                    )
-            ) {
-                is AdLoadResult.Success ->
-                    bannerAd =
-                        result.ad
-
-                is AdLoadResult.Failure ->
-                    Log.w(
-                        "Monetization",
-                        "Banner load failed: " +
-                            result.error
-                    )
-            }
+            adView.loadAd(
+                AdRequest
+                    .Builder()
+                    .build()
+            )
         } catch (throwable: Throwable) {
-            bannerAd = null
             MonetizationController
                 .disableForSession(
                     stage = "banner_load",
@@ -111,42 +95,26 @@ fun AdaptiveBannerAd(
         }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(adView) {
         onDispose {
-            bannerAd?.destroy()
+            runCatching {
+                adView.destroy()
+            }
         }
     }
 
-    bannerAd?.let { ad ->
-        Box(
+    Box(
+        modifier =
+            modifier
+                .fillMaxWidth()
+    ) {
+        AndroidView(
             modifier =
-                modifier
-                    .fillMaxWidth()
-        ) {
-            AndroidView(
-                modifier =
-                    Modifier
-                        .wrapContentSize(),
-                factory = {
-                    ad.getView(
-                        activity
-                    )
-                }
-            )
-        }
+                Modifier
+                    .wrapContentSize(),
+            factory = {
+                adView
+            }
+        )
     }
 }
-
-private tailrec fun Context.findActivity():
-    Activity? =
-    when (this) {
-        is Activity ->
-            this
-
-        is ContextWrapper ->
-            baseContext
-                .findActivity()
-
-        else ->
-            null
-    }
