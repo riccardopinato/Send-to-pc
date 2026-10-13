@@ -24,6 +24,7 @@ jobs:
           persist-credentials: false
 
       - name: Download exact Room R8 diagnostic APK
+        timeout-minutes: 5
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
