@@ -65,11 +65,7 @@ jobs:
           disable-animations: true
           script: |
             adb shell cmd connectivity airplane-mode enable || true
-            adb shell settings put global airplane_mode_on 1 || true
-            adb shell am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true || true
-            cd "$GITHUB_WORKSPACE/applab"
-            chmod +x scripts/*.sh
-            RUN_MAESTRO=false ./scripts/verify_apk.sh "$GITHUB_WORKSPACE/exact-apk/Send-to-PC-v1.27.4.apk" "com.riccardopinato.inviaalpc"
+            bash -lc 'cd "$GITHUB_WORKSPACE/applab" && chmod +x scripts/*.sh && RUN_MAESTRO=false REPORT_DIR="$GITHUB_WORKSPACE/applab/applab-report" ./scripts/verify_apk.sh "$GITHUB_WORKSPACE/exact-apk/Send-to-PC-v1.27.4.apk" "com.riccardopinato.inviaalpc"'
 
       - name: Upload AppLab diagnostic report
         if: always()
