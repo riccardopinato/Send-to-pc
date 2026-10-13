@@ -44,6 +44,12 @@ object MonetizationController {
                 Dispatchers.IO
         )
 
+    private val mainScope =
+        CoroutineScope(
+            SupervisorJob() +
+                Dispatchers.Main.immediate
+        )
+
     private val _state =
         MutableStateFlow(
             MonetizationState()
@@ -281,9 +287,17 @@ object MonetizationController {
                 }
             )
         } catch (throwable: Throwable) {
-            disableForSession(
-                stage = "interstitial_preload",
-                throwable = throwable
+            interstitialLoading = false
+            interstitialAd = null
+            _state.value =
+                _state.value.copy(
+                    interstitialReady = false
+                )
+
+            Log.e(
+                TAG,
+                "Interstitial preload exception",
+                throwable
             )
         }
     }
@@ -339,7 +353,9 @@ object MonetizationController {
             val ad =
                 interstitialAd
                     ?: run {
+                        mainScope.launch {
                         preloadInterstitial()
+                    }
                         return false
                     }
 
@@ -383,10 +399,18 @@ object MonetizationController {
             ad.show(activity)
             true
         } catch (throwable: Throwable) {
-            disableForSession(
-                stage = "interstitial_show",
-                throwable = throwable
+            interstitialAd = null
+            _state.value =
+                _state.value.copy(
+                    interstitialReady = false
+                )
+
+            Log.e(
+                TAG,
+                "Interstitial show exception",
+                throwable
             )
+            preloadInterstitial()
             false
         }
     }
