@@ -95,11 +95,11 @@ fun AdaptiveBannerAd(
                     .build()
             )
         } catch (throwable: Throwable) {
-            MonetizationController
-                .disableForSession(
-                    stage = "banner_load",
-                    throwable = throwable
-                )
+            Log.e(
+                "Monetization",
+                "Banner load exception",
+                throwable
+            )
         }
     }
 
