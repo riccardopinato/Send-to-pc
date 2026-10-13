@@ -10,7 +10,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import com.riccardopinato.inviaalpc.monetization.MonetizationController
 import com.riccardopinato.inviaalpc.ui.InviaAlPcApp
 import com.riccardopinato.inviaalpc.ui.theme.InviaAlPcTheme
 
@@ -39,8 +38,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        MonetizationController
-            .initialize(this)
     }
 
     override fun onNewIntent(intent: Intent) {
