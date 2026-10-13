@@ -47,13 +47,21 @@ fun AdaptiveBannerAd(
 
                 adListener =
                     object : AdListener() {
+                        override fun onAdLoaded() {
+                            Log.i(
+                                "Monetization",
+                                "Banner loaded; responseId=" +
+                                    (responseInfo?.responseId ?: "null")
+                            )
+                        }
+
                         override fun onAdFailedToLoad(
                             error: LoadAdError
                         ) {
                             Log.w(
                                 "Monetization",
                                 "Banner load failed: " +
-                                    error.message
+                                    error.toString()
                             )
                         }
                     }
