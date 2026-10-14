@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-release-v1275-room-r8-fix
+  group: android-release-v1276-admob-main-thread
   cancel-in-progress: true
 
 env:

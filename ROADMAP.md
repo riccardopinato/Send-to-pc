@@ -181,7 +181,7 @@ Stato: NOT CERTIFIED — APPLAB STARTUP CRASH REPRODUCED
 
 ## v1.27.5 — Room / R8 startup fix
 
-Stato: STORE CANDIDATE — EXACT ARTIFACT QA PENDING
+Stato: STARTUP FIX VERIFIED — ADMOB RUNTIME BUG FOUND
 
 - versionName 1.27.5 / versionCode 42;
 - package e signing identity invariati;
@@ -190,7 +190,23 @@ Stato: STORE CANDIDATE — EXACT ARTIFACT QA PENDING
 - la stessa correzione, applicata al diagnostico v1.27.4, ha prodotto AppLab `PASS`;
 - cold start diagnostico: 2463 ms;
 - nessun `FATAL EXCEPTION`, `am_crash` o `WorkDatabase` nel logcat diagnostico;
-- il gate finale resta la validazione AppLab dell'esatto artifact v1.27.5 e poi il Physical QA su device reale.
+- exact APK v1.27.5: AppLab PASS;
+- avvio su device reale: PASS;
+- Physical QA ha rilevato assenza totale AdMob;
+- diagnostica successiva: `InterstitialAd.load()` veniva invocato da Dispatchers.IO e generava `#008 Must be called on the main UI thread`;
+- l'eccezione attivava il fail-safe globale, disabilitando anche il banner.
+
+## v1.27.6 — AdMob main-thread hotfix
+
+Stato: STORE CANDIDATE — UMP CONSOLE CONFIGURATION PENDING
+
+- versionName 1.27.6 / versionCode 43;
+- `MobileAds.initialize()` resta in background;
+- `InterstitialAd.load()` viene marshalled sul main thread;
+- failure di banner/interstitial isolate per formato: non disabilitano più l'intero stack ads;
+- diagnostica con App ID production + unità test ufficiali Google: banner PASS, interstitial PASS;
+- resta un blocker esterno: UMP segnala `no form(s) configured for the input app ID`;
+- prima della certificazione monetizzazione va creato e pubblicato il messaggio European regulations in AdMob.
 
 ## v1.28 — Physical Certification
 

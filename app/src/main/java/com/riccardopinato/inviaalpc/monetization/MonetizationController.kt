@@ -2,6 +2,7 @@ package com.riccardopinato.inviaalpc.monetization
 
 import android.app.Activity
 import android.content.Context
+import android.os.Looper
 import android.util.Log
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
@@ -41,6 +42,12 @@ object MonetizationController {
         CoroutineScope(
             SupervisorJob() +
                 Dispatchers.IO
+        )
+
+    private val mainScope =
+        CoroutineScope(
+            SupervisorJob() +
+                Dispatchers.Main.immediate
         )
 
     private val _state =
@@ -206,6 +213,13 @@ object MonetizationController {
     }
 
     fun preloadInterstitial() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            mainScope.launch {
+                preloadInterstitial()
+            }
+            return
+        }
+
         val current = _state.value
 
         if (
@@ -274,9 +288,17 @@ object MonetizationController {
                 }
             )
         } catch (throwable: Throwable) {
-            disableForSession(
-                stage = "interstitial_preload",
-                throwable = throwable
+            interstitialLoading = false
+            interstitialAd = null
+            _state.value =
+                _state.value.copy(
+                    interstitialReady = false
+                )
+
+            Log.e(
+                TAG,
+                "Interstitial preload exception",
+                throwable
             )
         }
     }
@@ -376,10 +398,18 @@ object MonetizationController {
             ad.show(activity)
             true
         } catch (throwable: Throwable) {
-            disableForSession(
-                stage = "interstitial_show",
-                throwable = throwable
+            interstitialAd = null
+            _state.value =
+                _state.value.copy(
+                    interstitialReady = false
+                )
+
+            Log.e(
+                TAG,
+                "Interstitial show exception",
+                throwable
             )
+            preloadInterstitial()
             false
         }
     }

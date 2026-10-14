@@ -88,7 +88,7 @@ La release stabile usa invece una keystore persistente tramite GitHub Secrets e 
 
 La build CI verde non equivale a certificazione runtime. Gli scenari su device reale sono elencati in [QA-CHECKLIST.md](QA-CHECKLIST.md).
 
-La v1.27.5 include il fix R8/Room validato in AppLab per il crash di startup `WorkDatabase` osservato sulla v1.27.4. La certificazione fisica dell'esatto artifact v1.27.5 resta comunque obbligatoria.
+La v1.27.5 ha corretto il crash R8/Room `WorkDatabase` ed è stata verificata sia in AppLab sia con avvio fisico. La v1.27.6 corregge inoltre il caricamento interstitial sul main thread: un errore di un singolo formato pubblicitario non disabilita più l'intero stack AdMob. Il messaggio UMP per le normative europee deve essere configurato e pubblicato nella console AdMob prima della certificazione monetizzazione.
 
 ## Privacy
 
