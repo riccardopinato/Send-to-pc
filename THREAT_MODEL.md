@@ -94,3 +94,17 @@ https://support.google.com/googleplay/android-developer/answer/18258653
 ## Possibile hardening futuro
 
 TLS locale con certificato/pairing, un trasporto P2P cifrato o un'altra soluzione end-to-end compatibile con il requisito browser-only richiedono una valutazione separata di UX, compatibilità browser, footprint e gestione certificati.
+
+
+## v1.28 PC Quick Connect
+
+Il percorso manuale PC-first espone soltanto l'indirizzo locale `https://IP:porta`. La richiesta `GET /` non rivela il token lungo della sessione.
+
+L'autenticazione manuale usa un codice casuale di 8 caratteri generato con `SecureRandom` su un alfabeto di 32 simboli non ambigui, pari a circa 40 bit di spazio. Il codice:
+- è valido solo per la sessione locale corrente;
+- è verificato in tempo costante;
+- usa un rate-limit separato dal PIN tradizionale;
+- dopo autenticazione crea il cookie di sessione Secure/HttpOnly e reindirizza al percorso con token;
+- non sostituisce il QR/link completo, che conservano token ad alta entropia + PIN.
+
+Il browser continua a dover verificare/accettare il certificato locale self-signed e il fingerprint SHA-256 mostrato sul telefono.

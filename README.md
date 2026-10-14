@@ -7,7 +7,7 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 - nessun account;
 - nessun cloud;
 - nessun software obbligatorio sul PC;
-- collegamento tramite QR / URL locale + PIN;
+- collegamento PC-first tramite indirizzo locale breve + codice connessione; QR / link completo + PIN come alternative;
 - trasferimento bidirezionale nella stessa sessione;
 - file, testo e link in entrambe le direzioni telefono ↔ PC;
 - progress complessivo per sessione e riepilogo operazione;
@@ -99,6 +99,10 @@ I file trasferiti restano sulla rete locale e non vengono caricati su un cloud d
 La cartella [store](store) contiene Data Safety, AdMob/app-ads.txt, Play Console pack, listing localizzata, specifiche asset e checklist Store. La cartella [docs](docs) contiene una Privacy Policy statica pronta per un hosting HTTPS.
 
 La v1.19 introduce inoltre un gate `store_candidate` nel workflow release: un candidato Store fallisce se gli ID AdMob production non sono configurati.
+
+## PC Quick Connect
+
+Dalla v1.28 il flusso principale non richiede più di scansionare un QR dal PC: il telefono mostra un indirizzo locale breve `https://IP:porta` e un codice connessione monouso di 8 caratteri. Il server accetta il codice solo sulla rete locale, applica un rate-limit dedicato e crea una sessione autenticata senza esporre il token lungo prima dell'autenticazione. Il link completo e il QR restano disponibili come alternative.
 
 ## Trasporto cifrato
 

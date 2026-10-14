@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-release-v1276-admob-main-thread
+  group: android-release-v1280-pc-quick-connect
   cancel-in-progress: true
 
 env:

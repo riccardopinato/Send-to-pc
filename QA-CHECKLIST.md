@@ -155,3 +155,17 @@ Usare solo:
 - NOT VERIFIED
 
 CI GREEN non rende automaticamente PASS gli scenari fisici.
+
+
+## PC Quick Connect — v1.28
+
+- [ ] Sul PC digitare soltanto `https://IP:porta` mostrato dal telefono.
+- [ ] Verificare il warning TLS/fingerprint come nel flusso esistente.
+- [ ] Inserire il codice connessione a 8 caratteri anche nel formato `XXXX-XXXX`.
+- [ ] Confermare l'apertura della dashboard senza dover digitare il token lungo.
+- [ ] Inserire codice errato ripetutamente e verificare il rate-limit.
+- [ ] Verificare che un PC fidato possa riaprire il root URL senza nuovo codice finché la credenziale è valida.
+- [ ] Verificare "Condividi link completo" verso un secondo dispositivo/PC.
+- [ ] Espandere "Mostra QR code" e verificare il flusso QR + PIN esistente.
+- [ ] Verificare che il root URL non mostri il token lungo nel sorgente HTML prima dell'autenticazione.
+- [ ] Ripetere su rete Wi-Fi normale e hotspot del PC.

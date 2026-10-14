@@ -208,12 +208,29 @@ Stato: STORE CANDIDATE — UMP CONSOLE CONFIGURATION PENDING
 - resta un blocker esterno: UMP segnala `no form(s) configured for the input app ID`;
 - prima della certificazione monetizzazione va creato e pubblicato il messaggio European regulations in AdMob.
 
-## v1.28 — Physical Certification
+## v1.28.0 — PC Quick Connect
+
+Stato: IMPLEMENTATION / QA
+
+- versionName 1.28.0 / versionCode 44;
+- flusso principale PC-first: indirizzo locale breve + codice connessione;
+- codice manuale 8 caratteri da alfabeto human-safe (~40 bit);
+- rate-limit separato dal PIN QR;
+- il root URL non espone il token di sessione prima dell'autenticazione;
+- PC fidati possono riutilizzare la credenziale dal root URL;
+- link completo condivisibile e QR restano disponibili come fallback;
+- nessun cloud, nessun software PC obbligatorio, nessun nuovo permesso Android;
+- TLS/fingerprint invariati;
+- unit test + AppLab + Physical QA richiesti.
+
+## v1.28.1 — Physical Certification
 
 Stato: BLOCKED BY DEVICE TEST
 
 - exact-artifact validation;
 - update-in-place;
+- Quick Connect manuale da Windows/macOS/Linux;
+- link condiviso + QR fallback;
 - Evidence Bundle;
 - CERTIFIED / NOT CERTIFIED / BLOCKED.
 
