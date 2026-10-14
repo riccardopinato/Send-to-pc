@@ -787,6 +787,8 @@ private fun ActiveSessionScreen(
     val appNameLabel = tr("app_name")
     val addressCopiedLabel =
         tr("address_copied")
+    val shareConnectionLabel =
+        tr("share_connection")
 
     var confirmStop by remember {
         mutableStateOf(false)
@@ -975,7 +977,7 @@ private fun ActiveSessionScreen(
                                     context.startActivity(
                                         Intent.createChooser(
                                             intent,
-                                            tr("share_connection")
+                                            shareConnectionLabel
                                         )
                                     )
                                 }
