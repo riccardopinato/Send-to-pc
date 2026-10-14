@@ -1,4 +1,4 @@
-name: AppLab exact APK certification v1.27.6
+name: AppLab exact APK certification v1.28.0
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           path: applab
           persist-credentials: false
 
-      - name: Download exact v1.27.6 Store Candidate APK
+      - name: Download exact v1.28.0 Store Candidate APK
         timeout-minutes: 5
         shell: bash
         env:
@@ -34,12 +34,12 @@ jobs:
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/riccardopinato/Send-to-pc/actions/artifacts/11860925710/zip" \
+            "https://api.github.com/repos/riccardopinato/Send-to-pc/actions/artifacts/11884499075/zip" \
             --output artifact.zip
           mkdir -p exact-apk
           unzip -q artifact.zip -d exact-apk
-          test -f exact-apk/Send-to-PC-v1.27.6.apk
-          echo "5f36b5d4a1127a2a789bb0d3fb60394b3acf72a98c297987ee09878c69c4aaea  exact-apk/Send-to-PC-v1.27.6.apk" | sha256sum -c -
+          test -f exact-apk/Send-to-PC-v1.28.0.apk
+          echo "2e8c1bb39c83a22bad6e6a6a36f5ab225c040ca3320b60f19733f41943d5e9ae  exact-apk/Send-to-PC-v1.28.0.apk" | sha256sum -c -
 
       - name: Setup Java
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
@@ -66,13 +66,13 @@ jobs:
           disable-animations: true
           script: |
             adb shell cmd connectivity airplane-mode enable || true
-            bash -lc 'cd "$GITHUB_WORKSPACE/applab" && chmod +x scripts/*.sh && RUN_MAESTRO=false REPORT_DIR="$GITHUB_WORKSPACE/applab/applab-report" ./scripts/verify_apk.sh "$GITHUB_WORKSPACE/exact-apk/Send-to-PC-v1.27.6.apk" "com.riccardopinato.inviaalpc"'
+            bash -lc 'cd "$GITHUB_WORKSPACE/applab" && chmod +x scripts/*.sh && RUN_MAESTRO=false REPORT_DIR="$GITHUB_WORKSPACE/applab/applab-report" ./scripts/verify_apk.sh "$GITHUB_WORKSPACE/exact-apk/Send-to-PC-v1.28.0.apk" "com.riccardopinato.inviaalpc"'
 
       - name: Upload AppLab diagnostic report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: applab-v1.27.6-exact-apk-report
+          name: applab-v1.28.0-exact-apk-report
           path: applab/applab-report/
           if-no-files-found: warn
           retention-days: 7
