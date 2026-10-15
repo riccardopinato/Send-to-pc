@@ -459,8 +459,7 @@ class ResumableUploadStore(
                 )
                 put(
                     MediaStore.Downloads.RELATIVE_PATH,
-                    Environment.DIRECTORY_DOWNLOADS +
-                        "/Invia al PC/"
+                    TransferStoragePaths.CURRENT_RELATIVE_PATH
                 )
                 put(
                     MediaStore.Downloads.IS_PENDING,
