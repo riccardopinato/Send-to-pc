@@ -1296,6 +1296,9 @@ class LocalTransferServer(
                 ?.trim()
                 ?.lowercase(Locale.ROOT)
 
+        val chunkStartedAtMillis =
+            System.currentTimeMillis()
+
         try {
             val status =
                 resumableUploadStore.writeChunk(
@@ -1319,7 +1322,20 @@ class LocalTransferServer(
                         status.receivedBytes,
                     totalBytes =
                         status.totalBytes,
-                    bytesPerSecond = 0L,
+                    bytesPerSecond =
+                        TransferReliabilityPolicy
+                            .bytesPerSecond(
+                                transferredBytes =
+                                    (
+                                        status.receivedBytes -
+                                            offset
+                                        ).coerceAtLeast(0L),
+                                elapsedMillis =
+                                    (
+                                        System.currentTimeMillis() -
+                                            chunkStartedAtMillis
+                                        ).coerceAtLeast(1L)
+                            ),
                     direction =
                         TransferDirection.PC_TO_PHONE
                 )
@@ -1336,7 +1352,9 @@ class LocalTransferServer(
                     contentUri =
                         status.contentUri,
                     mimeType =
-                        status.mimeType
+                        status.mimeType,
+                    completionKey =
+                        "upload:" + uploadId
                 )
             }
 

@@ -29,7 +29,6 @@ enum class TransferStatus {
     WAITING,
     CONNECTED,
     TRANSFERRING,
-    COMPLETED,
     EXPIRED,
     STOPPED,
     ERROR
@@ -472,6 +471,9 @@ class TransferSessionManager(context: Context) {
     private val registeredBatchIds =
         mutableSetOf<String>()
 
+    private val completedTransferKeys =
+        mutableSetOf<String>()
+
     private val _lastEndReason =
         MutableStateFlow<SessionEndReason?>(null)
     val lastEndReason: StateFlow<SessionEndReason?> =
@@ -505,6 +507,7 @@ class TransferSessionManager(context: Context) {
         _progress.value = null
         _lastEndReason.value = null
         registeredBatchIds.clear()
+        completedTransferKeys.clear()
         val expectedFileCount =
             sharedItems.size
                 .takeIf { it > 0 }
@@ -537,8 +540,7 @@ class TransferSessionManager(context: Context) {
         val now = System.currentTimeMillis()
         val extendSession =
             status == TransferStatus.CONNECTED ||
-                status == TransferStatus.TRANSFERRING ||
-                status == TransferStatus.COMPLETED
+                status == TransferStatus.TRANSFERRING
 
         _session.value =
             current.copy(
@@ -613,8 +615,18 @@ class TransferSessionManager(context: Context) {
         kind: TransferContentKind = TransferContentKind.FILE,
         contentUri: String? = null,
         mimeType: String? = null,
-        textContent: String? = null
-    ) {
+        textContent: String? = null,
+        completionKey: String? = null
+    ): Boolean {
+        if (
+            completionKey != null &&
+            !completedTransferKeys.add(
+                completionKey
+            )
+        ) {
+            return false
+        }
+
         val updated = listOf(
             TransferHistoryEntry(
                 sessionId =
@@ -675,7 +687,8 @@ class TransferSessionManager(context: Context) {
             }
 
         _progress.value = null
-        updateStatus(TransferStatus.COMPLETED)
+        updateStatus(TransferStatus.CONNECTED)
+        return true
     }
 
     fun clearHistory() {
@@ -714,5 +727,6 @@ class TransferSessionManager(context: Context) {
         _progress.value = null
         _operationSummary.value = null
         registeredBatchIds.clear()
+        completedTransferKeys.clear()
     }
 }

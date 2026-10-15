@@ -3,7 +3,6 @@ package com.riccardopinato.inviaalpc.transfer
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
 import android.provider.MediaStore
 import org.json.JSONArray
 import org.json.JSONObject
@@ -57,8 +56,24 @@ class ResumableUploadStore(
     }
 
     @Synchronized
-    fun status(uploadId: String): ResumableUploadStatus? =
-        records[uploadId]?.toStatus()
+    fun status(
+        uploadId: String
+    ): ResumableUploadStatus? {
+        val record =
+            records[uploadId]
+                ?: return null
+
+        if (
+            record.completed &&
+            !isCompletedRecordReadable(record)
+        ) {
+            records.remove(uploadId)
+            persist()
+            return null
+        }
+
+        return record.toStatus()
+    }
 
     @Synchronized
     fun writeChunk(
@@ -93,15 +108,34 @@ class ResumableUploadStore(
             "Chunk non valido"
         }
 
-        val current =
+        val existing =
             records[uploadId]
-                ?: createRecord(
+
+        val current =
+            if (
+                existing?.completed == true &&
+                !isCompletedRecordReadable(existing)
+            ) {
+                records.remove(uploadId)
+                persist()
+
+                createRecord(
                     uploadId = uploadId,
                     requestedName = requestedName,
                     mimeType = mimeType,
                     totalBytes = totalBytes,
                     expectedSha256 = expectedSha256
                 )
+            } else {
+                existing
+                    ?: createRecord(
+                        uploadId = uploadId,
+                        requestedName = requestedName,
+                        mimeType = mimeType,
+                        totalBytes = totalBytes,
+                        expectedSha256 = expectedSha256
+                    )
+            }
 
         if (current.completed) {
             return current.toStatus()
@@ -319,69 +353,84 @@ class ResumableUploadStore(
                 MediaStore.Downloads.RELATIVE_PATH +
                 "=?"
 
-        val args =
-            arrayOf(
-                "1",
-                Environment.DIRECTORY_DOWNLOADS +
-                    "/Invia al PC/"
-            )
-
-        runCatching {
-            resolver.query(
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                projection,
-                selection,
-                args,
-                null
-            )?.use { cursor ->
-                val idIndex =
-                    cursor.getColumnIndexOrThrow(
-                        MediaStore.Downloads._ID
+        TransferStoragePaths
+            .MANAGED_RELATIVE_PATHS
+            .forEach { relativePath ->
+                val args =
+                    arrayOf(
+                        "1",
+                        relativePath
                     )
 
-                val modifiedIndex =
-                    cursor.getColumnIndexOrThrow(
-                        MediaStore.Downloads.DATE_MODIFIED
-                    )
-
-                while (cursor.moveToNext()) {
-                    val id =
-                        cursor.getLong(idIndex)
-
-                    val uri =
-                        Uri.withAppendedPath(
-                            MediaStore.Downloads.EXTERNAL_CONTENT_URI,
-                            id.toString()
-                        )
-
-                    if (uri.toString() in activeUris) {
-                        continue
-                    }
-
-                    val modifiedSeconds =
-                        cursor.getLong(
-                            modifiedIndex
-                        )
-
-                    val modifiedMillis =
-                        modifiedSeconds * 1000L
-
-                    if (
-                        now - modifiedMillis >
-                        KEEP_METADATA_MS
-                    ) {
-                        runCatching {
-                            resolver.delete(
-                                uri,
-                                null,
-                                null
+                runCatching {
+                    resolver.query(
+                        MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                        projection,
+                        selection,
+                        args,
+                        null
+                    )?.use { cursor ->
+                        val idIndex =
+                            cursor.getColumnIndexOrThrow(
+                                MediaStore.Downloads._ID
                             )
+
+                        val modifiedIndex =
+                            cursor.getColumnIndexOrThrow(
+                                MediaStore.Downloads.DATE_MODIFIED
+                            )
+
+                        while (cursor.moveToNext()) {
+                            val id =
+                                cursor.getLong(idIndex)
+
+                            val uri =
+                                Uri.withAppendedPath(
+                                    MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                                    id.toString()
+                                )
+
+                            if (uri.toString() in activeUris) {
+                                continue
+                            }
+
+                            val modifiedSeconds =
+                                cursor.getLong(
+                                    modifiedIndex
+                                )
+
+                            val modifiedMillis =
+                                modifiedSeconds * 1000L
+
+                            if (
+                                now - modifiedMillis >
+                                KEEP_METADATA_MS
+                            ) {
+                                runCatching {
+                                    resolver.delete(
+                                        uri,
+                                        null,
+                                        null
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
     }
+
+    private fun isCompletedRecordReadable(
+        record: Record
+    ): Boolean =
+        runCatching {
+            resolver.openAssetFileDescriptor(
+                Uri.parse(record.uri),
+                "r"
+            )?.use {
+                true
+            } ?: false
+        }.getOrDefault(false)
 
     private fun createRecord(
         uploadId: String,
