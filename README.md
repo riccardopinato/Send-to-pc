@@ -88,7 +88,7 @@ La release stabile usa invece una keystore persistente tramite GitHub Secrets e 
 
 La build CI verde non equivale a certificazione runtime. Gli scenari su device reale sono elencati in [QA-CHECKLIST.md](QA-CHECKLIST.md).
 
-La v1.27.5 ha corretto il crash R8/Room `WorkDatabase` ed è stata verificata sia in AppLab sia con avvio fisico. La v1.27.6 corregge inoltre il caricamento interstitial sul main thread: un errore di un singolo formato pubblicitario non disabilita più l'intero stack AdMob. Il messaggio UMP per le normative europee deve essere configurato e pubblicato nella console AdMob prima della certificazione monetizzazione.
+La v1.27.5 ha corretto il crash R8/Room `WorkDatabase` ed è stata verificata sia in AppLab sia con avvio fisico. La v1.27.6 corregge inoltre il caricamento interstitial sul main thread: un errore di un singolo formato pubblicitario non disabilita più l'intero stack AdMob. Banner production, messaggio UMP europeo e privacy options sono stati verificati su device reale; resta da validare fisicamente l'interstitial production nel natural break previsto dalla policy.
 
 ## Privacy
 
@@ -102,7 +102,7 @@ La v1.19 introduce inoltre un gate `store_candidate` nel workflow release: un ca
 
 ## PC Quick Connect
 
-Dalla v1.28 il flusso principale non richiede più di scansionare un QR dal PC: il telefono mostra un indirizzo locale breve `https://IP:porta` e un codice connessione monouso di 8 caratteri. Il server accetta il codice solo sulla rete locale, applica un rate-limit dedicato e crea una sessione autenticata senza esporre il token lungo prima dell'autenticazione. Il link completo e il QR restano disponibili come alternative.
+Dalla v1.28 il flusso principale non richiede più di scansionare un QR dal PC: il telefono mostra un indirizzo locale breve `https://IP:porta` e un codice connessione monouso di 8 caratteri. Il server accetta il codice solo sulla rete locale, applica un rate-limit dedicato e crea una sessione autenticata senza esporre il token lungo prima dell'autenticazione. Il link completo e il QR restano disponibili come alternative. Telefono e PC devono trovarsi sulla stessa rete locale; il PC può essere collegato via Wi-Fi oppure Ethernet.
 
 ## Trasporto cifrato
 

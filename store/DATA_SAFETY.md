@@ -1,101 +1,92 @@
-# Data Safety draft — Invia al PC
+# Data Safety draft — Send to PC
 
-Versione di lavoro: v1.19.0
-Stato: DRAFT — da verificare nuovamente al momento della pubblicazione su Google Play.
+Versione di lavoro: v1.28.1
+Stato: DRAFT — da verificare nuovamente sull'esatto AAB al momento della pubblicazione su Google Play.
 
 ## Confine del prodotto
 
-Il trasferimento di file, foto, testo e link avviene direttamente tra telefono e browser del PC sulla rete locale.
+Il trasferimento di file, foto, testo e link avviene direttamente tra telefono e browser del PC sulla stessa rete locale.
 
-L'app non dispone di un cloud proprietario per i contenuti trasferiti e il codice di trasferimento non invia ad AdMob il contenuto di file, testo o link.
+Il PC può essere collegato alla stessa LAN via Wi-Fi oppure Ethernet. L'app non dispone di un cloud proprietario per i contenuti trasferiti e il codice di trasferimento non invia ad AdMob il contenuto di file, testo o link.
 
 La pubblicità e il consenso privacy costituiscono un canale di rete separato dal trasferimento locale.
 
 ## SDK Google Advertising / Privacy
 
-L'app integra:
-- Google Mobile Ads Next-Gen SDK;
-- Google User Messaging Platform (UMP).
+L'artifact corrente integra:
+- Google Mobile Ads SDK `com.google.android.gms:play-services-ads:25.5.0` (legacy API line);
+- Google User Messaging Platform `com.google.android.ump:user-messaging-platform:4.0.0`.
 
-Secondo la documentazione Data Safety corrente di Google per il Mobile Ads SDK, il componente pubblicitario può raccogliere/condividere automaticamente categorie di dati che includono:
-- indirizzo IP, utilizzabile anche per stime di localizzazione generale;
-- interazioni dell'utente con il prodotto e con gli annunci;
-- informazioni diagnostiche;
+Il questionario Data Safety finale deve essere verificato contro la documentazione Google corrente e l'esatto AAB distribuito. In particolare vanno riesaminate le categorie trattate automaticamente dagli SDK advertising/privacy, incluse quando applicabili:
+- indirizzo IP / localizzazione generale derivata;
+- interazioni con prodotto e annunci;
+- diagnostica;
 - identificatori del dispositivo/account.
 
-Le finalità indicate dalla documentazione Google includono advertising, analytics e prevenzione delle frodi. Google dichiara che i dati raccolti dal GMA Next-Gen SDK sono cifrati in transito tramite TLS. Google dichiara che i dati raccolti dal GMA Next-Gen SDK sono cifrati in transito tramite TLS.
-
-Questa pagina NON sostituisce il questionario Data Safety della Play Console. Prima della submission finale bisogna verificare:
-- versione effettiva degli SDK;
-- configurazione AdMob effettiva;
-- eventuali servizi aggiunti dopo questa bozza;
-- dichiarazioni correnti richieste dalla Play Console;
-- comportamento UMP e audience/age treatment scelto per l'app.
+Le finalità e le dichiarazioni effettive dipendono dalla configurazione finale AdMob/UMP e dalla versione degli SDK inclusa nell'AAB.
 
 ## Dati applicativi locali
 
 Sono salvati localmente:
 - cronologia dei trasferimenti;
 - metadati per resume dei caricamenti quando necessari;
-- elenco/hash delle credenziali dei PC fidati;
+- hash delle credenziali dei PC fidati;
 - preferenze lingua/tema;
 - stato di monetizzazione/frequency cap non sensibile.
 
 L'utente può cancellare cronologia e PC fidati dall'app.
 
-## Dati che non devono essere dichiarati come cloud dell'app
+I file ricevuti dal PC vengono salvati tramite MediaStore in:
+- `Download/Send to PC/` per i nuovi trasferimenti;
+- la precedente cartella `Download/Invia al PC/` resta soltanto una compatibilità legacy per file/metadati già esistenti.
 
-Non attribuire al backend dell'app:
+## Dati che non devono essere descritti come cloud dell'app
+
+Non attribuire a un backend Send to PC:
 - file trasferiti;
 - testo trasferito;
 - link trasferiti;
 - foto trasferite.
 
-Restano comunque da distinguere le connessioni esterne degli SDK Google.
+Restano separate le connessioni esterne effettuate dagli SDK Google Advertising / Privacy.
 
 ## Sicurezza del trasporto core
 
 Dalla v1.20 il trasferimento telefono ↔ browser usa TLS 1.2/1.3 sulla LAN.
 
-- private key persistente nell'Android Keystore;
+- chiave privata persistente nell'Android Keystore;
 - certificato self-signed;
 - fingerprint SHA-256 visibile sul telefono;
-- cookie session/trusted Secure;
-- nessun endpoint di trasferimento intenzionalmente HTTP.
+- cookie session/trusted con Secure + HttpOnly + SameSite=Strict;
+- server legato all'indirizzo LAN selezionato;
+- nessun endpoint intenzionale di trasferimento payload via HTTP.
 
-Stato: **IMPLEMENTED / PHYSICAL VALIDATION PENDING**.
+Stato engineering: **IMPLEMENTED**.
+Stato release reality: **PHYSICAL VALIDATION DEL TRUST FLOW ANCORA RICHIESTA SULL'ESATTO CANDIDATO**.
 
-La dichiarazione Data Safety finale deve essere basata sull'esatto artifact e sulla verifica reale del trust flow browser/fingerprint.
+La vecchia nota repository che descriveva il core come HTTP non cifrato era precedente alla v1.20 ed è rimossa perché non rappresenta più l'implementazione corrente.
 
-Riferimento:
-https://support.google.com/googleplay/android-developer/answer/18258653
+## Stato privacy / AdMob osservato
 
-## Sicurezza del trasporto core
-
-Il trasferimento telefono ↔ browser usa attualmente HTTP sulla LAN.
-
-Conseguenze:
-- il payload applicativo non è cifrato in transito;
-- non è corretto dichiarare che tutti i dati dell'app sono cifrati in transito;
-- la sola raccomandazione di usare una rete fidata non chiude automaticamente il requisito Store.
-
-Stato: **BLOCKED FOR STORE REVIEW** finché il rischio non viene risolto tecnicamente o chiuso con evidence/policy interpretation adeguata.
-
-Riferimento:
-https://support.google.com/googleplay/android-developer/answer/18258653
+- Privacy Policy HTTPS: pubblicata e raggiungibile;
+- banner production: verificato su device reale;
+- UMP European Regulations + privacy options: verificati su device reale;
+- interstitial production nel natural break: ancora da verificare fisicamente;
+- audience/age treatment e questionario Play Console: ancora da chiudere nella console.
 
 ## Gate finale
 
 Prima di Store Ready:
 
 [ ] ricontrollare la documentazione Data Safety Google corrente;
-[ ] verificare la versione SDK realmente inclusa nell'AAB;
-[ ] verificare UMP/consenso su device fisico;
+[ ] verificare le versioni SDK realmente incluse nell'AAB finale;
+[x] verificare UMP/consenso e privacy options su device fisico;
 [ ] dichiarare audience/age treatment;
-[ ] completare il questionario Play Console in modo coerente;
-[ ] verificare Privacy Policy pubblicata e raggiungibile;
+[ ] completare il questionario Data Safety in Play Console;
+[x] Privacy Policy pubblicata e raggiungibile;
 [ ] conservare evidence della configurazione finale;
-[ ] validare fisicamente TLS/fingerprint sui browser target;
+[ ] validare fisicamente TLS/fingerprint sui browser target sull'esatto artifact;
 [ ] confermare sull'artifact finale che nessun payload di trasferimento usa HTTP LAN;
+[ ] verificare interstitial production e failure path pertinenti.
 
 CI GREEN != DATA SAFETY VERIFIED.
