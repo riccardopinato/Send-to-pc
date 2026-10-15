@@ -241,6 +241,40 @@ class LocalTransferServer(
         val path = request.path
 
         when {
+            request.method == "GET" && path == "/" -> {
+                if (isAuthenticated(request)) {
+                    redirectToSession(
+                        output = output,
+                        session = session
+                    )
+                } else if (
+                    !tryTrustedRootAccess(
+                        request = request,
+                        output = output,
+                        session = session
+                    )
+                ) {
+                    sendHtml(
+                        output,
+                        200,
+                        localized("browser_quick"),
+                        quickCodePage()
+                    )
+                }
+            }
+
+            request.method == "POST" &&
+                path == "/quick-auth" -> {
+
+                authenticateQuick(
+                    request = request,
+                    input = input,
+                    output = output,
+                    clientAddress = clientAddress,
+                    session = session
+                )
+            }
+
             request.method == "GET" && path == "/s/" + session.token -> {
                 if (isAuthenticated(request)) {
                     sessionManager.updateStatus(TransferStatus.CONNECTED)
@@ -375,6 +409,148 @@ class LocalTransferServer(
                 )
             }
         }
+    }
+
+    private fun authenticateQuick(
+        request: HttpRequest,
+        input: InputStream,
+        output: OutputStream,
+        clientAddress: String,
+        session: TransferSession
+    ) {
+        val length =
+            request.contentLength
+                .coerceAtMost(4096L)
+                .toInt()
+
+        val body =
+            readExact(
+                input,
+                length
+            ).toString(
+                StandardCharsets.UTF_8
+            )
+
+        val suppliedCode =
+            parseUrlEncoded(
+                body
+            )["code"].orEmpty()
+
+        val valid =
+            SessionSecurity
+                .validateQuickCode(
+                    clientKey = clientAddress,
+                    expectedCode = session.quickCode,
+                    suppliedCode = suppliedCode
+                )
+
+        if (!valid) {
+            sendHtml(
+                output,
+                401,
+                localized("browser_wrong_code"),
+                quickCodePage(
+                    localized("browser_wrong_code")
+                )
+            )
+            return
+        }
+
+        val sid = SessionSecurity.generateToken()
+        authenticatedSessions[sid] =
+            System.currentTimeMillis() +
+                AUTH_SESSION_MS
+
+        sessionManager.updateStatus(
+            TransferStatus.CONNECTED
+        )
+
+        redirectToSession(
+            output = output,
+            session = session,
+            sessionId = sid
+        )
+    }
+
+    private fun tryTrustedRootAccess(
+        request: HttpRequest,
+        output: OutputStream,
+        session: TransferSession
+    ): Boolean {
+        val rawToken =
+            cookieValue(
+                request,
+                TRUSTED_COOKIE
+            ).orEmpty()
+
+        if (rawToken.isBlank()) {
+            return false
+        }
+
+        val trusted =
+            trustedDeviceStore
+                .validateAndRotate(
+                    rawToken
+                )
+                ?: return false
+
+        val sid = SessionSecurity.generateToken()
+
+        authenticatedSessions[sid] =
+            System.currentTimeMillis() +
+                AUTH_SESSION_MS
+
+        sessionManager.updateStatus(
+            TransferStatus.CONNECTED
+        )
+
+        redirectToSession(
+            output = output,
+            session = session,
+            sessionId = sid,
+            trustedToken = trusted.second
+        )
+
+        return true
+    }
+
+    private fun redirectToSession(
+        output: OutputStream,
+        session: TransferSession,
+        sessionId: String? = null,
+        trustedToken: String? = null
+    ) {
+        writeStatus(
+            output,
+            303,
+            "See Other"
+        )
+        writeHeader(
+            output,
+            "Location",
+            "/s/" + session.token
+        )
+
+        sessionId?.let {
+            writeHeader(
+                output,
+                "Set-Cookie",
+                sessionCookie(it)
+            )
+        }
+
+        trustedToken?.let {
+            writeHeader(
+                output,
+                "Set-Cookie",
+                trustedCookie(it)
+            )
+        }
+
+        securityHeaders(output)
+        writeHeader(output, "Content-Length", "0")
+        writeHeader(output, "Connection", "close")
+        endHeaders(output)
     }
 
     private fun authenticate(
@@ -1120,6 +1296,9 @@ class LocalTransferServer(
                 ?.trim()
                 ?.lowercase(Locale.ROOT)
 
+        val chunkStartedAtMillis =
+            System.currentTimeMillis()
+
         try {
             val status =
                 resumableUploadStore.writeChunk(
@@ -1143,7 +1322,20 @@ class LocalTransferServer(
                         status.receivedBytes,
                     totalBytes =
                         status.totalBytes,
-                    bytesPerSecond = 0L,
+                    bytesPerSecond =
+                        TransferReliabilityPolicy
+                            .bytesPerSecond(
+                                transferredBytes =
+                                    (
+                                        status.receivedBytes -
+                                            offset
+                                        ).coerceAtLeast(0L),
+                                elapsedMillis =
+                                    (
+                                        System.currentTimeMillis() -
+                                            chunkStartedAtMillis
+                                        ).coerceAtLeast(1L)
+                            ),
                     direction =
                         TransferDirection.PC_TO_PHONE
                 )
@@ -1160,7 +1352,9 @@ class LocalTransferServer(
                     contentUri =
                         status.contentUri,
                     mimeType =
-                        status.mimeType
+                        status.mimeType,
+                    completionKey =
+                        "upload:" + uploadId
                 )
             }
 
@@ -1548,6 +1742,75 @@ class LocalTransferServer(
         }
 
         return if (offset == length) result else result.copyOf(offset)
+    }
+
+    private fun quickCodePage(
+        error: String? = null
+    ): String {
+        val language =
+            AppLanguageStore.current(
+                context
+            )
+
+        val errorHtml =
+            error
+                ?.let {
+                    "<div class=\"error\">" +
+                        htmlEscape(it) +
+                        "</div>"
+                }
+                .orEmpty()
+
+        val appName =
+            htmlEscape(
+                localized("app_name")
+            )
+
+        val title =
+            htmlEscape(
+                localized("browser_quick")
+            )
+
+        val hint =
+            htmlEscape(
+                localized(
+                    "browser_quick_code_hint"
+                )
+            )
+
+        val connect =
+            htmlEscape(
+                localized("browser_connect")
+            )
+
+        return """<!doctype html>
+<html lang="${language.code}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>""" + appName + """</title>
+<style>
+:root{--primary:#4f63f2;--primary-soft:#e9ecff;--text:#17181d;--muted:#6c7180;--surface:#fff;--line:#dde1eb;--danger:#b3261e}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top,#eef0ff 0,#f7f8fc 42%,#f7f8fc 100%);color:var(--text);min-height:100vh;display:grid;place-items:center;padding:24px}
+.card{width:min(440px,100%);background:var(--surface);padding:34px;border:1px solid rgba(79,99,242,.08);border-radius:30px;box-shadow:0 24px 70px rgba(37,48,112,.12)}
+.card:before{content:"";display:block;width:52px;height:52px;border-radius:17px;background:var(--primary);margin-bottom:22px;box-shadow:inset 0 0 0 13px var(--primary-soft)}
+h1{margin:0 0 8px;font-size:30px;letter-spacing:-.03em}.muted{color:var(--muted);line-height:1.5}.code{width:100%;font-size:28px;font-weight:850;letter-spacing:6px;text-align:center;text-transform:uppercase;padding:17px;border:2px solid var(--line);border-radius:19px;margin:20px 0;outline:none;background:#fbfbfe;color:var(--text)}.code:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(79,99,242,.11)}
+button{width:100%;border:0;border-radius:17px;padding:15px;background:var(--primary);color:white;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 10px 24px rgba(79,99,242,.22)}.error{background:#fff0ef;color:var(--danger);padding:12px;border-radius:14px;margin-top:12px}
+@media(prefers-color-scheme:dark){:root{--text:#e7e7ef;--muted:#b4b6c2;--surface:#191a21;--line:#3b3e49}.card{border-color:#2c2e39}.code{background:#20212a;color:#fff}body{background:radial-gradient(circle at top,#22274a 0,#111217 42%,#111217 100%)}}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>""" + title + """</h1>
+<p class="muted">""" + hint + """</p>
+""" + errorHtml + """
+<form method="post" action="/quick-auth">
+<input class="code" name="code" type="text" maxlength="9" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" autofocus required>
+<button type="submit">""" + connect + """</button>
+</form>
+</div>
+</body>
+</html>"""
     }
 
     private fun pinPage(

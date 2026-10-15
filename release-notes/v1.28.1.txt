@@ -1,0 +1,12 @@
+Send to PC 1.28.1 — Truth & Reliability Fix
+
+- Corretto il copy TLS/HTTPS in tutte le lingue: il trasferimento locale è cifrato.
+- Chiarito che telefono e PC devono essere sulla stessa rete locale; il PC può usare anche Ethernet.
+- Quick Connect riallineato in EN/IT/ES/FR/DE/PT.
+- I nuovi file ricevuti vengono salvati in Download/Send to PC; compatibilità cleanup mantenuta per Download/Invia al PC.
+- Il completamento di un singolo file non marca più l'intera sessione come completata.
+- Upload resumable reso idempotente sui retry finali.
+- I metadata completed vengono invalidati se il content URI non è più leggibile.
+- Calcolo velocità PC -> telefono aggiunto.
+- LAN discovery estesa a Wi-Fi/Ethernet locali non-default ed esclude VPN.
+- Documentazione Store, Data Safety, QA e roadmap riallineate.

@@ -10,6 +10,7 @@ import org.json.JSONObject
 import java.net.URI
 import java.security.SecureRandom
 import java.util.Base64
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -28,7 +29,6 @@ enum class TransferStatus {
     WAITING,
     CONNECTED,
     TRANSFERRING,
-    COMPLETED,
     EXPIRED,
     STOPPED,
     ERROR
@@ -112,6 +112,7 @@ data class TransferSession(
     val id: String = UUID.randomUUID().toString(),
     val token: String,
     val pin: String,
+    val quickCode: String,
     val createdAtMillis: Long,
     val expiresAtMillis: Long,
     val port: Int,
@@ -124,6 +125,12 @@ data class TransferSession(
 ) {
     val url: String
         get() = "https://$localIp:$port/s/$token"
+
+    val quickUrl: String
+        get() = "https://$localIp:$port"
+
+    val quickCodeDisplay: String
+        get() = quickCode.chunked(4).joinToString("-")
 
     fun isExpired(now: Long = System.currentTimeMillis()): Boolean =
         now >= expiresAtMillis
@@ -176,6 +183,9 @@ object SessionSecurity {
     private const val MAX_ATTEMPTS = 10
     private const val BLOCK_MS = 60_000L
     private const val MAX_TRACKED_CLIENTS = 256
+    private const val QUICK_CODE_LENGTH = 8
+    private const val QUICK_CODE_ALPHABET =
+        "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
     private data class AttemptState(
         var attempts: Int = 0,
@@ -194,31 +204,74 @@ object SessionSecurity {
     fun generatePin(): String =
         random.nextInt(10_000).toString().padStart(4, '0')
 
+    fun generateQuickCode(): String =
+        buildString(QUICK_CODE_LENGTH) {
+            repeat(QUICK_CODE_LENGTH) {
+                append(
+                    QUICK_CODE_ALPHABET[
+                        random.nextInt(
+                            QUICK_CODE_ALPHABET.length
+                        )
+                    ]
+                )
+            }
+        }
+
     fun validatePin(
         clientKey: String,
         expectedPin: String,
         suppliedPin: String
-    ): Boolean {
-        val now =
-            System.currentTimeMillis()
+    ): Boolean =
+        validateSecret(
+            clientKey = "pin:$clientKey",
+            expected = expectedPin,
+            supplied = suppliedPin
+        )
 
-        val existing =
-            attempts[clientKey]
+    fun validateQuickCode(
+        clientKey: String,
+        expectedCode: String,
+        suppliedCode: String
+    ): Boolean {
+        val normalized =
+            suppliedCode
+                .trim()
+                .replace("-", "")
+                .replace(" ", "")
+                .uppercase(Locale.US)
+
+        if (normalized.length != QUICK_CODE_LENGTH) {
+            return false
+        }
+
+        if (normalized.any { it !in QUICK_CODE_ALPHABET }) {
+            return false
+        }
+
+        return validateSecret(
+            clientKey = "quick:$clientKey",
+            expected = expectedCode,
+            supplied = normalized
+        )
+    }
+
+    private fun validateSecret(
+        clientKey: String,
+        expected: String,
+        supplied: String
+    ): Boolean {
+        val now = System.currentTimeMillis()
+        val existing = attempts[clientKey]
 
         val state =
             existing ?: run {
                 pruneAttempts(now)
 
-                if (
-                    attempts.size >=
-                    MAX_TRACKED_CLIENTS
-                ) {
+                if (attempts.size >= MAX_TRACKED_CLIENTS) {
                     return false
                 }
 
-                attempts.computeIfAbsent(
-                    clientKey
-                ) {
+                attempts.computeIfAbsent(clientKey) {
                     AttemptState(
                         lastTouchedAt = now
                     )
@@ -228,17 +281,14 @@ object SessionSecurity {
         synchronized(state) {
             state.lastTouchedAt = now
 
-            if (
-                state.blockedUntil >
-                now
-            ) {
+            if (state.blockedUntil > now) {
                 return false
             }
 
             if (
                 constantTimeEquals(
-                    expectedPin,
-                    suppliedPin
+                    expected,
+                    supplied
                 )
             ) {
                 attempts.remove(
@@ -250,13 +300,9 @@ object SessionSecurity {
 
             state.attempts++
 
-            if (
-                state.attempts >=
-                MAX_ATTEMPTS
-            ) {
+            if (state.attempts >= MAX_ATTEMPTS) {
                 state.attempts = 0
-                state.blockedUntil =
-                    now + BLOCK_MS
+                state.blockedUntil = now + BLOCK_MS
             }
         }
 
@@ -425,6 +471,9 @@ class TransferSessionManager(context: Context) {
     private val registeredBatchIds =
         mutableSetOf<String>()
 
+    private val completedTransferKeys =
+        mutableSetOf<String>()
+
     private val _lastEndReason =
         MutableStateFlow<SessionEndReason?>(null)
     val lastEndReason: StateFlow<SessionEndReason?> =
@@ -444,6 +493,7 @@ class TransferSessionManager(context: Context) {
         val value = TransferSession(
             token = SessionSecurity.generateToken(),
             pin = SessionSecurity.generatePin(),
+            quickCode = SessionSecurity.generateQuickCode(),
             createdAtMillis = now,
             expiresAtMillis = now + lifetimeMillis,
             port = port,
@@ -457,6 +507,7 @@ class TransferSessionManager(context: Context) {
         _progress.value = null
         _lastEndReason.value = null
         registeredBatchIds.clear()
+        completedTransferKeys.clear()
         val expectedFileCount =
             sharedItems.size
                 .takeIf { it > 0 }
@@ -489,8 +540,7 @@ class TransferSessionManager(context: Context) {
         val now = System.currentTimeMillis()
         val extendSession =
             status == TransferStatus.CONNECTED ||
-                status == TransferStatus.TRANSFERRING ||
-                status == TransferStatus.COMPLETED
+                status == TransferStatus.TRANSFERRING
 
         _session.value =
             current.copy(
@@ -565,8 +615,18 @@ class TransferSessionManager(context: Context) {
         kind: TransferContentKind = TransferContentKind.FILE,
         contentUri: String? = null,
         mimeType: String? = null,
-        textContent: String? = null
-    ) {
+        textContent: String? = null,
+        completionKey: String? = null
+    ): Boolean {
+        if (
+            completionKey != null &&
+            !completedTransferKeys.add(
+                completionKey
+            )
+        ) {
+            return false
+        }
+
         val updated = listOf(
             TransferHistoryEntry(
                 sessionId =
@@ -627,7 +687,8 @@ class TransferSessionManager(context: Context) {
             }
 
         _progress.value = null
-        updateStatus(TransferStatus.COMPLETED)
+        updateStatus(TransferStatus.CONNECTED)
+        return true
     }
 
     fun clearHistory() {
@@ -666,5 +727,6 @@ class TransferSessionManager(context: Context) {
         _progress.value = null
         _operationSummary.value = null
         registeredBatchIds.clear()
+        completedTransferKeys.clear()
     }
 }

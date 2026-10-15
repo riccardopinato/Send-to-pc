@@ -1,4 +1,4 @@
-# QA checklist — Invia al PC v1.20.0
+# QA checklist — Send to PC v1.28.1
 
 ## CI gate
 
@@ -30,11 +30,16 @@
 - [ ] apri link ricevuto
 - [ ] share sheet per file/testo/link ricevuti
 - [ ] progress complessivo coerente per batch multi-file
+- [ ] velocità PC → telefono plausibile e non ferma a 0 B/s
+- [ ] dopo il completamento di un file la sessione resta CONNECTED per i file successivi
 - [ ] riepilogo sessione con conteggio/direzione/byte/durata
 - [ ] pausa / riprendi / annulla
 - [ ] resume selezionando lo stesso file
+- [ ] retry dell'ultimo chunk non duplica history/summary
+- [ ] record completed con content URI cancellato viene invalidato e non blocca un nuovo upload
 - [ ] file duplicato senza sovrascrittura
-- [ ] salvataggio in Download/Invia al PC
+- [ ] nuovi file salvati in Download/Send to PC
+- [ ] file legacy in Download/Invia al PC restano accessibili e il cleanup non li corrompe
 - [ ] file parziale vecchio eliminato dal cleanup
 
 ## Reliability
@@ -103,7 +108,9 @@ Per EN / IT / ES / FR / DE / PT:
 ## Network help
 
 - [ ] IP/rete locale mostrati correttamente in Impostazioni
-- [ ] guida same-Wi-Fi comprensibile
+- [ ] guida stessa rete locale comprensibile e coerente con PC via Ethernet
+- [ ] telefono Wi-Fi + PC Ethernet sulla stessa LAN viene rilevato correttamente
+- [ ] Wi-Fi LAN non-default resta rilevabile quando Android usa un'altra default network
 - [ ] indicazioni VPN / guest-client isolation visibili
 - [ ] hotspot del PC → telefono collegato come client
 
@@ -155,3 +162,18 @@ Usare solo:
 - NOT VERIFIED
 
 CI GREEN non rende automaticamente PASS gli scenari fisici.
+
+
+## PC Quick Connect — v1.28 / v1.28.1
+
+- [ ] Sul PC digitare soltanto `https://IP:porta` mostrato dal telefono.
+- [ ] Verificare il warning TLS/fingerprint come nel flusso esistente.
+- [ ] Inserire il codice connessione a 8 caratteri anche nel formato `XXXX-XXXX`.
+- [ ] Confermare l'apertura della dashboard senza dover digitare il token lungo.
+- [ ] Inserire codice errato ripetutamente e verificare il rate-limit.
+- [ ] Verificare che un PC fidato possa riaprire il root URL senza nuovo codice finché la credenziale è valida.
+- [ ] Verificare "Condividi link completo" verso un secondo dispositivo/PC.
+- [ ] Espandere "Mostra QR code" e verificare il flusso QR + PIN esistente.
+- [ ] Verificare che il root URL non mostri il token lungo nel sorgente HTML prima dell'autenticazione.
+- [ ] Ripetere su rete Wi-Fi normale e hotspot del PC.
+- [ ] Ripetere con telefono su Wi-Fi e PC collegato alla stessa LAN via Ethernet.

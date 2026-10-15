@@ -6,7 +6,7 @@ Baseline precedente: v1.16.0 production-signing verified.
 
 Stato: IMPLEMENTED — CI GREEN (test ads; production AdMob IDs pending)
 
-- GMA Next-Gen SDK.
+- Google Mobile Ads SDK `play-services-ads:25.5.0` (legacy API line).
 - UMP consent flow.
 - Anchored adaptive banner fuori dalla sessione di trasferimento attiva.
 - Interstitial solo al termine esplicito di una sessione completata e significativa.
@@ -106,13 +106,16 @@ Stato: PREPARED — PHYSICAL QA PENDING
 
 ## v1.24 — AdMob Production
 
-Stato: PRODUCTION CONFIGURED — PHYSICAL QA PENDING
+Stato: PRODUCTION CONFIGURED — BANNER + UMP PHYSICAL PASS / INTERSTITIAL PHYSICAL PENDING
 
 - Store Candidate fail-closed su ID mancanti;
 - ID production validati per formato;
 - ID demo Google esplicitamente rifiutati;
 - production IDs reali: CONFIGURED e verificati dal Store Candidate workflow;
-- UMP/banner/interstitial/no-fill physical validation: PENDING.
+- banner production su device reale: PASS;
+- UMP europeo + privacy options su device reale: PASS;
+- interstitial production / frequency cap nel natural break: PENDING;
+- no-fill/offline/error physical path: PENDING.
 
 ## v1.25 — Store Infrastructure
 
@@ -166,16 +169,110 @@ Stato: RC GENERATED — CI GREEN / PHYSICAL QA REQUIRED
 - deve aggiornare direttamente la v1.27.0 già installata;
 - Physical QA riparte dall'esatto APK v1.27.1.
 
-## v1.28 — Physical Certification
+## v1.27.4 — Legacy GMA startup diagnostic
+
+Stato: NOT CERTIFIED — APPLAB STARTUP CRASH REPRODUCED
+
+- versionName 1.27.4 / versionCode 41;
+- Google Mobile Ads riportato alla linea legacy `play-services-ads:25.5.0`;
+- APK release esatto riprodotto in AppLab;
+- crash prima di `Application.onCreate`, dentro `androidx.startup.InitializationProvider`;
+- errore deterministico: impossibile creare `androidx.work.impl.WorkDatabase`;
+- la rimozione del solo init applicativo Mobile Ads non eliminava il crash;
+- la rimozione dello stack ads/UMP eliminava il crash, indicando una dipendenza transitiva;
+- il candidato v1.27.4 resta escluso dal merge/release finale.
+
+## v1.27.5 — Room / R8 startup fix
+
+Stato: STARTUP FIX VERIFIED — ADMOB RUNTIME BUG FOUND
+
+- versionName 1.27.5 / versionCode 42;
+- package e signing identity invariati;
+- mantiene `play-services-ads:25.5.0` + UMP 4.0.0;
+- aggiunta regola R8 per preservare i costruttori delle subclass di `RoomDatabase`;
+- la stessa correzione, applicata al diagnostico v1.27.4, ha prodotto AppLab `PASS`;
+- cold start diagnostico: 2463 ms;
+- nessun `FATAL EXCEPTION`, `am_crash` o `WorkDatabase` nel logcat diagnostico;
+- exact APK v1.27.5: AppLab PASS;
+- avvio su device reale: PASS;
+- Physical QA ha rilevato assenza totale AdMob;
+- diagnostica successiva: `InterstitialAd.load()` veniva invocato da Dispatchers.IO e generava `#008 Must be called on the main UI thread`;
+- l'eccezione attivava il fail-safe globale, disabilitando anche il banner.
+
+## v1.27.6 — AdMob main-thread hotfix
+
+Stato: VERIFIED HOTFIX — UMP CONFIGURED / PRODUCTION INTERSTITIAL PHYSICAL PENDING
+
+- versionName 1.27.6 / versionCode 43;
+- `MobileAds.initialize()` resta in background;
+- `InterstitialAd.load()` viene marshalled sul main thread;
+- failure di banner/interstitial isolate per formato: non disabilitano più l'intero stack ads;
+- diagnostica con App ID production + unità test ufficiali Google: banner PASS, interstitial PASS;
+- il precedente blocker UMP `no form(s) configured` è stato chiuso pubblicando/configurando il messaggio European regulations;
+- banner production + UMP/privacy options: PASS su device reale;
+- resta da verificare l'interstitial production nel natural break e i relativi failure path fisici.
+
+## v1.28.0 — PC Quick Connect
+
+Stato: IMPLEMENTATION / QA
+
+- versionName 1.28.0 / versionCode 44;
+- flusso principale PC-first: indirizzo locale breve + codice connessione;
+- codice manuale 8 caratteri da alfabeto human-safe (~40 bit);
+- rate-limit separato dal PIN QR;
+- il root URL non espone il token di sessione prima dell'autenticazione;
+- PC fidati possono riutilizzare la credenziale dal root URL;
+- link completo condivisibile e QR restano disponibili come fallback;
+- nessun cloud, nessun software PC obbligatorio, nessun nuovo permesso Android;
+- TLS/fingerprint invariati;
+- unit test + AppLab + Physical QA richiesti.
+
+## v1.28.1 — Truth & Reliability Fix
+
+Stato: IMPLEMENTATION / CI + PHYSICAL QA REQUIRED
+
+- copy TLS/HTTPS allineato in EN/IT/ES/FR/DE/PT;
+- concetto rete corretto: stessa LAN, PC consentito anche via Ethernet;
+- Quick Connect copy riallineato in ES/FR/DE/PT;
+- nuovi file PC -> telefono salvati in `Download/Send to PC/`, con cleanup compatibile anche con la cartella legacy `Download/Invia al PC/`;
+- stato sessione separato dal completamento del singolo file: dopo un file completato la sessione resta CONNECTED;
+- dedupe idempotente del completamento resumable tramite completion key per upload;
+- metadata completed invalidato se il relativo content URI non è più leggibile;
+- velocità PC -> telefono calcolata sul chunk reale;
+- LAN discovery non limitata alla default network: vengono valutate anche Wi-Fi/Ethernet locali non-default, escludendo VPN;
+- regression test aggiunti per product truth localization e velocità upload;
+- Data Safety, Store checklist, Play listing, QA e roadmap riallineati.
+
+Gate:
+- unit test + lint + release build;
+- AppLab sull'esatto APK candidato;
+- test fisico Quick Connect + trasferimento bidirezionale;
+- rete PC Ethernet + telefono Wi-Fi;
+- resume retry/idempotency;
+- production interstitial.
+
+## v1.28.2 — Physical Certification
 
 Stato: BLOCKED BY DEVICE TEST
 
 - exact-artifact validation;
 - update-in-place;
+- Quick Connect manuale da Windows/macOS/Linux;
+- link condiviso + QR fallback;
 - Evidence Bundle;
 - CERTIFIED / NOT CERTIFIED / BLOCKED.
 
-## v1.29 / 1.0 Store — Google Play
+## v1.29 — UX Consolidation
+
+Stato: PLANNED
+
+- Connect più compatta;
+- Selection Review dedicata per liste file;
+- niente liste lunghe nella Home;
+- active session e dettagli TLS più gerarchici;
+- refactor bounded dei monoliti UI/server senza riscrittura del core.
+
+## v1.30 / 1.0 Store — Google Play
 
 Stato: BLOCKED BY PLAY CONSOLE / FINAL CERTIFICATION
 

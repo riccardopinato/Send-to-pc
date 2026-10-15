@@ -7,7 +7,7 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 - nessun account;
 - nessun cloud;
 - nessun software obbligatorio sul PC;
-- collegamento tramite QR / URL locale + PIN;
+- collegamento PC-first tramite indirizzo locale breve + codice connessione; QR / link completo + PIN come alternative;
 - trasferimento bidirezionale nella stessa sessione;
 - file, testo e link in entrambe le direzioni telefono ↔ PC;
 - progress complessivo per sessione e riepilogo operazione;
@@ -28,7 +28,7 @@ Utility Android nativa per trasferire file, foto, testo e link tra telefono e co
 - server HTTPS LAN nativo tramite TLS + ServerSocket;
 - MediaStore Downloads per i file ricevuti;
 - ZXing per il QR code;
-- Google Mobile Ads Next-Gen SDK;
+- Google Mobile Ads SDK (`play-services-ads` 25.5.0, legacy API line);
 - Google UMP;
 - minSdk 29;
 - targetSdk 36;
@@ -88,6 +88,8 @@ La release stabile usa invece una keystore persistente tramite GitHub Secrets e 
 
 La build CI verde non equivale a certificazione runtime. Gli scenari su device reale sono elencati in [QA-CHECKLIST.md](QA-CHECKLIST.md).
 
+La v1.27.5 ha corretto il crash R8/Room `WorkDatabase` ed è stata verificata sia in AppLab sia con avvio fisico. La v1.27.6 corregge inoltre il caricamento interstitial sul main thread: un errore di un singolo formato pubblicitario non disabilita più l'intero stack AdMob. Banner production, messaggio UMP europeo e privacy options sono stati verificati su device reale; resta da validare fisicamente l'interstitial production nel natural break previsto dalla policy.
+
 ## Privacy
 
 I file trasferiti restano sulla rete locale e non vengono caricati su un cloud dell'app. AdMob/UMP effettuano connessioni Internet separate per advertising/privacy. Vedi [PRIVACY.md](PRIVACY.md).
@@ -97,6 +99,10 @@ I file trasferiti restano sulla rete locale e non vengono caricati su un cloud d
 La cartella [store](store) contiene Data Safety, AdMob/app-ads.txt, Play Console pack, listing localizzata, specifiche asset e checklist Store. La cartella [docs](docs) contiene una Privacy Policy statica pronta per un hosting HTTPS.
 
 La v1.19 introduce inoltre un gate `store_candidate` nel workflow release: un candidato Store fallisce se gli ID AdMob production non sono configurati.
+
+## PC Quick Connect
+
+Dalla v1.28 il flusso principale non richiede più di scansionare un QR dal PC: il telefono mostra un indirizzo locale breve `https://IP:porta` e un codice connessione monouso di 8 caratteri. Il server accetta il codice solo sulla rete locale, applica un rate-limit dedicato e crea una sessione autenticata senza esporre il token lungo prima dell'autenticazione. Il link completo e il QR restano disponibili come alternative. Telefono e PC devono trovarsi sulla stessa rete locale; il PC può essere collegato via Wi-Fi oppure Ethernet.
 
 ## Trasporto cifrato
 

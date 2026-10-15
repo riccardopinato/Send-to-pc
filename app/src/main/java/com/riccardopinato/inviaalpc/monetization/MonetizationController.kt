@@ -2,15 +2,15 @@ package com.riccardopinato.inviaalpc.monetization
 
 import android.app.Activity
 import android.content.Context
+import android.os.Looper
 import android.util.Log
-import com.google.android.libraries.ads.mobile.sdk.MobileAds
-import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
-import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
-import com.google.android.libraries.ads.mobile.sdk.common.FullScreenContentError
-import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
-import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
-import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
-import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.riccardopinato.inviaalpc.transfer.TransferOperationSummary
 import java.util.Collections
 import kotlinx.coroutines.CoroutineScope
@@ -42,6 +42,12 @@ object MonetizationController {
         CoroutineScope(
             SupervisorJob() +
                 Dispatchers.IO
+        )
+
+    private val mainScope =
+        CoroutineScope(
+            SupervisorJob() +
+                Dispatchers.Main.immediate
         )
 
     private val _state =
@@ -141,7 +147,6 @@ object MonetizationController {
         adsDisabledForSession = true
         sdkInitializing = false
         interstitialLoading = false
-
         interstitialAd = null
 
         _state.value =
@@ -208,6 +213,13 @@ object MonetizationController {
     }
 
     fun preloadInterstitial() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            mainScope.launch {
+                preloadInterstitial()
+            }
+            return
+        }
+
         val current = _state.value
 
         if (
@@ -215,7 +227,8 @@ object MonetizationController {
             !current.canRequestAds ||
             !current.mobileAdsInitialized ||
             interstitialLoading ||
-            interstitialAd != null
+            interstitialAd != null ||
+            !::appContext.isInitialized
         ) {
             return
         }
@@ -224,16 +237,16 @@ object MonetizationController {
 
         try {
             val request =
-                AdRequest.Builder(
-                    AdMobConfig.interstitialId
-                ).build()
+                AdRequest
+                    .Builder()
+                    .build()
 
             InterstitialAd.load(
+                appContext,
+                AdMobConfig.interstitialId,
                 request,
                 object :
-                    AdLoadCallback<
-                        InterstitialAd
-                    > {
+                    InterstitialAdLoadCallback() {
                     override fun onAdLoaded(
                         ad: InterstitialAd
                     ) {
@@ -255,7 +268,7 @@ object MonetizationController {
                     }
 
                     override fun onAdFailedToLoad(
-                        adError: LoadAdError
+                        error: LoadAdError
                     ) {
                         interstitialLoading =
                             false
@@ -269,15 +282,23 @@ object MonetizationController {
                         Log.w(
                             TAG,
                             "Interstitial load failed: " +
-                                adError.message
+                                error.message
                         )
                     }
                 }
             )
         } catch (throwable: Throwable) {
-            disableForSession(
-                stage = "interstitial_preload",
-                throwable = throwable
+            interstitialLoading = false
+            interstitialAd = null
+            _state.value =
+                _state.value.copy(
+                    interstitialReady = false
+                )
+
+            Log.e(
+                TAG,
+                "Interstitial preload exception",
+                throwable
             )
         }
     }
@@ -355,21 +376,20 @@ object MonetizationController {
                 )
                 .apply()
 
-            ad.adEventCallback =
+            ad.fullScreenContentCallback =
                 object :
-                    InterstitialAdEventCallback {
+                    FullScreenContentCallback() {
                     override fun onAdDismissedFullScreenContent() {
                         preloadInterstitial()
                     }
 
                     override fun onAdFailedToShowFullScreenContent(
-                        fullScreenContentError:
-                            FullScreenContentError
+                        error: AdError
                     ) {
                         Log.w(
                             TAG,
                             "Interstitial show failed: " +
-                                fullScreenContentError.message
+                                error.message
                         )
                         preloadInterstitial()
                     }
@@ -378,10 +398,18 @@ object MonetizationController {
             ad.show(activity)
             true
         } catch (throwable: Throwable) {
-            disableForSession(
-                stage = "interstitial_show",
-                throwable = throwable
+            interstitialAd = null
+            _state.value =
+                _state.value.copy(
+                    interstitialReady = false
+                )
+
+            Log.e(
+                TAG,
+                "Interstitial show exception",
+                throwable
             )
+            preloadInterstitial()
             false
         }
     }
@@ -435,31 +463,26 @@ object MonetizationController {
         scope.launch {
             try {
                 MobileAds.initialize(
-                    appContext,
-                    InitializationConfig
-                        .Builder(
-                            AdMobConfig.appId
-                        )
-                        .build()
+                    appContext
+                )
+
+                sdkInitializing =
+                    false
+
+                if (
+                    !adsDisabledForSession
                 ) {
-                    sdkInitializing =
-                        false
+                    _state.value =
+                        _state.value.copy(
+                            mobileAdsInitialized =
+                                true
+                        )
 
-                    if (
-                        !adsDisabledForSession
-                    ) {
-                        _state.value =
-                            _state.value.copy(
-                                mobileAdsInitialized =
-                                    true
-                            )
-
-                        preloadInterstitial()
-                    }
+                    preloadInterstitial()
                 }
             } catch (throwable: Throwable) {
                 disableForSession(
-                    stage = "gma_initialize",
+                    stage = "gma_legacy_initialize",
                     throwable = throwable
                 )
             }

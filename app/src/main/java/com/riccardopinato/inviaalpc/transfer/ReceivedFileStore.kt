@@ -3,7 +3,6 @@ package com.riccardopinato.inviaalpc.transfer
 import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
 import android.provider.MediaStore
 import java.io.OutputStream
 
@@ -26,7 +25,7 @@ class ReceivedFileStore(
             put(MediaStore.Downloads.MIME_TYPE, mimeType ?: "application/octet-stream")
             put(
                 MediaStore.Downloads.RELATIVE_PATH,
-                Environment.DIRECTORY_DOWNLOADS + "/Invia al PC/"
+                TransferStoragePaths.CURRENT_RELATIVE_PATH
             )
             put(MediaStore.Downloads.IS_PENDING, 1)
         }

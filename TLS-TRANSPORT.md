@@ -65,3 +65,12 @@ Per chiudere il gate:
 - browser target;
 - rete privata + hotspot PC;
 - test di sniffing che non mostri payload applicativo in chiaro.
+
+
+## v1.28 PC Quick Connect
+
+Il nuovo indirizzo breve `https://IP:porta` usa lo stesso `SSLServerSocket`, la stessa identity Android Keystore e lo stesso fingerprint della sessione. Non viene introdotto HTTP in chiaro.
+
+Il percorso root serve soltanto la pagina di autenticazione Quick Connect e non espone il token lungo prima della verifica del codice. Dopo autenticazione il browser riceve il cookie Secure/HttpOnly e viene reindirizzato al percorso della sessione.
+
+Il QR e il link completo continuano a usare lo stesso certificato e il PIN tradizionale.
