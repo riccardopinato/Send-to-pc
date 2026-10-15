@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-release-v1280-pc-quick-connect
+  group: android-release-v1281-truth-reliability
   cancel-in-progress: true
 
 env:

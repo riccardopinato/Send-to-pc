@@ -853,11 +853,18 @@ private fun ActiveSessionScreen(
                         TransferStatus.WAITING ->
                             tr("waiting_pc")
                         TransferStatus.CONNECTED ->
-                            tr("pc_connected")
+                            if (
+                                operationSummary
+                                    ?.completedFiles
+                                    ?.let { it > 0 } ==
+                                true
+                            ) {
+                                tr("completed_open")
+                            } else {
+                                tr("pc_connected")
+                            }
                         TransferStatus.TRANSFERRING ->
                             tr("transferring")
-                        TransferStatus.COMPLETED ->
-                            tr("completed_open")
                         TransferStatus.ERROR ->
                             tr("network_changed")
                         TransferStatus.EXPIRED ->
@@ -1167,8 +1174,6 @@ private fun ActiveSessionScreen(
         }
 
         if (
-            session.status ==
-                TransferStatus.COMPLETED &&
             operationSummary != null &&
             operationSummary.completedFiles > 0
         ) {
@@ -1187,8 +1192,11 @@ private fun ActiveSessionScreen(
             }
 
         if (
-            session.status == TransferStatus.COMPLETED &&
-            latestReceived != null
+            latestReceived != null &&
+            operationSummary
+                ?.completedFiles
+                ?.let { it > 0 } ==
+            true
         ) {
             item {
                 Button(
@@ -1264,13 +1272,16 @@ private fun ActiveSessionScreen(
         item {
             FilledTonalButton(
                 onClick = {
-                    when (
-                        session.status
-                    ) {
-                        TransferStatus.TRANSFERRING ->
+                    when {
+                        progress != null ||
+                            session.status ==
+                            TransferStatus.TRANSFERRING ->
                             confirmStop = true
 
-                        TransferStatus.COMPLETED ->
+                        operationSummary
+                            ?.completedFiles
+                            ?.let { it > 0 } ==
+                            true ->
                             onCompletedStop()
 
                         else ->
@@ -1281,8 +1292,11 @@ private fun ActiveSessionScreen(
             ) {
                 Text(
                     if (
-                        session.status ==
-                        TransferStatus.COMPLETED
+                        progress == null &&
+                        operationSummary
+                            ?.completedFiles
+                            ?.let { it > 0 } ==
+                        true
                     ) {
                         tr("done")
                     } else {
@@ -2028,7 +2042,6 @@ private fun SessionStatusChip(
             TransferStatus.WAITING -> tr("status_waiting")
             TransferStatus.CONNECTED -> tr("status_connected")
             TransferStatus.TRANSFERRING -> tr("status_transferring")
-            TransferStatus.COMPLETED -> tr("status_completed")
             TransferStatus.EXPIRED -> tr("status_expired")
             TransferStatus.STOPPED -> tr("status_stopped")
             TransferStatus.ERROR -> tr("status_error")
@@ -2039,15 +2052,6 @@ private fun SessionStatusChip(
         label = {
             Text(label)
         },
-        leadingIcon = {
-            if (status == TransferStatus.COMPLETED) {
-                AppIcon(
-                    R.drawable.ic_check,
-                    null,
-                    Modifier.size(18.dp)
-                )
-            }
-        }
     )
 }
 
