@@ -105,3 +105,8 @@ La v1.20 usa HTTPS locale e cookie Secure. La validazione fisica del warning cer
 ## Roadmap
 
 Vedi [ROADMAP.md](ROADMAP.md).
+
+
+## Template Notion
+
+[Catalogo di ricerca](docs/TEMPLATE_NOTION/README.md), senza template importati o acquisti attivati.
