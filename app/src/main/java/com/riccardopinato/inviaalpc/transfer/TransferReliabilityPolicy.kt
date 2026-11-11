@@ -70,6 +70,30 @@ object TransferReliabilityPolicy {
             maxBatchBytes
     }
 
+    fun bytesPerSecond(
+        transferredBytes: Long,
+        elapsedMillis: Long
+    ): Long {
+        if (
+            transferredBytes <= 0L ||
+            elapsedMillis <= 0L
+        ) {
+            return 0L
+        }
+
+        val scaled =
+            if (
+                transferredBytes >
+                Long.MAX_VALUE / 1_000L
+            ) {
+                Long.MAX_VALUE
+            } else {
+                transferredBytes * 1_000L
+            }
+
+        return scaled / elapsedMillis
+    }
+
     fun hasStorageCapacity(
         availableBytes: Long,
         incomingBytes: Long,

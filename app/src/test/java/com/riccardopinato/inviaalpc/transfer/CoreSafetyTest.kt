@@ -73,6 +73,7 @@ class CoreSafetyTest {
             TransferSession(
                 token = "token",
                 pin = "1234",
+                quickCode = "ABCDEFGH",
                 createdAtMillis = 1L,
                 expiresAtMillis = 2L,
                 port = 8734,
@@ -83,6 +84,16 @@ class CoreSafetyTest {
         assertEquals(
             "https://192.168.1.42:8734/s/token",
             session.url
+        )
+
+        assertEquals(
+            "https://192.168.1.42:8734",
+            session.quickUrl
+        )
+
+        assertEquals(
+            "ABCD-EFGH",
+            session.quickCodeDisplay
         )
     }
 
@@ -107,6 +118,36 @@ class CoreSafetyTest {
                 expectedPin = "1234",
                 suppliedPin = "1234"
             )
+        )
+    }
+
+    @Test
+    fun quickCodeHasHumanSafeFortyBitShape() {
+        val code =
+            SessionSecurity
+                .generateQuickCode()
+
+        assertEquals(
+            8,
+            code.length
+        )
+        assertTrue(
+            code.matches(
+                Regex(
+                    "[A-HJ-NP-Z2-9]{8}"
+                )
+            )
+        )
+        assertTrue(
+            SessionSecurity
+                .validateQuickCode(
+                    clientKey = "unit-test-quick-ok",
+                    expectedCode = code,
+                    suppliedCode =
+                        code.take(4) +
+                            "-" +
+                            code.drop(4)
+                )
         )
     }
 

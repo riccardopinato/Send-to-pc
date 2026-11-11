@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
@@ -786,8 +787,16 @@ private fun ActiveSessionScreen(
     val appNameLabel = tr("app_name")
     val addressCopiedLabel =
         tr("address_copied")
+    val shareConnectionLabel =
+        tr("share_connection")
 
     var confirmStop by remember {
+        mutableStateOf(false)
+    }
+
+    var showQr by remember(
+        session.id
+    ) {
         mutableStateOf(false)
     }
 
@@ -844,11 +853,18 @@ private fun ActiveSessionScreen(
                         TransferStatus.WAITING ->
                             tr("waiting_pc")
                         TransferStatus.CONNECTED ->
-                            tr("pc_connected")
+                            if (
+                                operationSummary
+                                    ?.completedFiles
+                                    ?.let { it > 0 } ==
+                                true
+                            ) {
+                                tr("completed_open")
+                            } else {
+                                tr("pc_connected")
+                            }
                         TransferStatus.TRANSFERRING ->
                             tr("transferring")
-                        TransferStatus.COMPLETED ->
-                            tr("completed_open")
                         TransferStatus.ERROR ->
                             tr("network_changed")
                         TransferStatus.EXPIRED ->
@@ -856,7 +872,7 @@ private fun ActiveSessionScreen(
                         TransferStatus.STOPPED ->
                             tr("session_stopped")
                     },
-                iconRes = R.drawable.ic_qr,
+                iconRes = R.drawable.ic_devices,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -870,7 +886,8 @@ private fun ActiveSessionScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor =
+                        MaterialTheme.colorScheme.surface
                 )
             ) {
                 Column(
@@ -878,91 +895,255 @@ private fun ActiveSessionScreen(
                         Modifier
                             .fillMaxWidth()
                             .padding(22.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    verticalArrangement =
+                        Arrangement.spacedBy(12.dp)
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(22.dp),
-                        color = Color.White,
-                        tonalElevation = 0.dp
-                    ) {
-                        QrCodeView(
-                            text = session.url,
-                            modifier =
-                                Modifier
-                                    .padding(14.dp)
-                                    .size(224.dp)
+                    Text(
+                        tr("pc_quick_title"),
+                        style =
+                            MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        tr("pc_quick_body"),
+                        style =
+                            MaterialTheme.typography.bodyMedium,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        tr("pc_address_label"),
+                        style =
+                            MaterialTheme.typography.labelMedium,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    SelectionContainer {
+                        Text(
+                            session.quickUrl,
+                            style =
+                                MaterialTheme.typography.titleMedium,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
-                    Spacer(Modifier.height(18.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement =
+                            Arrangement.spacedBy(10.dp)
+                    ) {
+                        FilledTonalButton(
+                            onClick = {
+                                val clipboard =
+                                    context.getSystemService(
+                                        Context.CLIPBOARD_SERVICE
+                                    ) as ClipboardManager
+
+                                clipboard.setPrimaryClip(
+                                    ClipData.newPlainText(
+                                        appNameLabel,
+                                        session.quickUrl
+                                    )
+                                )
+
+                                Toast.makeText(
+                                    context,
+                                    addressCopiedLabel,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            AppIcon(
+                                R.drawable.ic_copy,
+                                null,
+                                Modifier.size(19.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(tr("copy_address"))
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val intent =
+                                    Intent(
+                                        Intent.ACTION_SEND
+                                    ).apply {
+                                        type = "text/plain"
+                                        putExtra(
+                                            Intent.EXTRA_TEXT,
+                                            session.url
+                                        )
+                                    }
+
+                                runCatching {
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            intent,
+                                            shareConnectionLabel
+                                        )
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(tr("share_link"))
+                        }
+                    }
+
+                    HorizontalDivider()
 
                     Text(
-                        tr("pin_access"),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        tr("connection_code"),
+                        style =
+                            MaterialTheme.typography.labelMedium,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    Spacer(Modifier.height(6.dp))
 
                     Surface(
                         shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        color =
+                            MaterialTheme.colorScheme.primaryContainer
                     ) {
-                        Text(
-                            session.pin,
-                            modifier =
-                                Modifier.padding(
-                                    horizontal = 24.dp,
-                                    vertical = 10.dp
-                                ),
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 6.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        SelectionContainer {
+                            Text(
+                                session.quickCodeDisplay,
+                                modifier =
+                                    Modifier.padding(
+                                        horizontal = 20.dp,
+                                        vertical = 10.dp
+                                    ),
+                                style =
+                                    MaterialTheme.typography.headlineMedium,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 3.sp,
+                                color =
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
-
-                    Spacer(Modifier.height(8.dp))
 
                     Text(
                         tr(
                             "expires_in",
-                            formatCountdown(remainingSeconds)
+                            formatCountdown(
+                                remainingSeconds
+                            )
                         ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(Modifier.height(12.dp))
-
-                    FilledTonalButton(
+                    TextButton(
                         onClick = {
-                            val clipboard =
-                                context.getSystemService(
-                                    Context.CLIPBOARD_SERVICE
-                                ) as ClipboardManager
-
-                            clipboard.setPrimaryClip(
-                                ClipData.newPlainText(
-                                    appNameLabel,
-                                    session.url
-                                )
-                            )
-
-                            Toast.makeText(
-                                context,
-                                addressCopiedLabel,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                            showQr = !showQr
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        AppIcon(
-                            R.drawable.ic_copy,
-                            null,
-                            Modifier.size(20.dp)
+                        Text(
+                            tr(
+                                if (showQr) {
+                                    "hide_qr"
+                                } else {
+                                    "show_qr"
+                                }
+                            )
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Text(tr("copy_address"))
+                    }
+
+                    if (showQr) {
+                        HorizontalDivider()
+
+                        Text(
+                            tr("qr_method_body"),
+                            style =
+                                MaterialTheme.typography.bodySmall,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(22.dp),
+                                color = Color.White,
+                                tonalElevation = 0.dp
+                            ) {
+                                QrCodeView(
+                                    text = session.url,
+                                    modifier =
+                                        Modifier
+                                            .padding(14.dp)
+                                            .size(210.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            tr("pin_access"),
+                            style =
+                                MaterialTheme.typography.labelMedium,
+                            color =
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color =
+                                MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    session.pin,
+                                    modifier =
+                                        Modifier.padding(
+                                            horizontal = 18.dp,
+                                            vertical = 8.dp
+                                        ),
+                                    style =
+                                        MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 5.sp,
+                                    color =
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+
+                        FilledTonalButton(
+                            onClick = {
+                                val clipboard =
+                                    context.getSystemService(
+                                        Context.CLIPBOARD_SERVICE
+                                    ) as ClipboardManager
+
+                                clipboard.setPrimaryClip(
+                                    ClipData.newPlainText(
+                                        appNameLabel,
+                                        session.url
+                                    )
+                                )
+
+                                Toast.makeText(
+                                    context,
+                                    addressCopiedLabel,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(tr("copy_full_link"))
+                        }
                     }
                 }
             }
@@ -993,8 +1174,6 @@ private fun ActiveSessionScreen(
         }
 
         if (
-            session.status ==
-                TransferStatus.COMPLETED &&
             operationSummary != null &&
             operationSummary.completedFiles > 0
         ) {
@@ -1013,8 +1192,11 @@ private fun ActiveSessionScreen(
             }
 
         if (
-            session.status == TransferStatus.COMPLETED &&
-            latestReceived != null
+            latestReceived != null &&
+            operationSummary
+                ?.completedFiles
+                ?.let { it > 0 } ==
+            true
         ) {
             item {
                 Button(
@@ -1088,23 +1270,18 @@ private fun ActiveSessionScreen(
         }
 
         item {
-            Text(
-                session.url,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        item {
             FilledTonalButton(
                 onClick = {
-                    when (
-                        session.status
-                    ) {
-                        TransferStatus.TRANSFERRING ->
+                    when {
+                        progress != null ||
+                            session.status ==
+                            TransferStatus.TRANSFERRING ->
                             confirmStop = true
 
-                        TransferStatus.COMPLETED ->
+                        operationSummary
+                            ?.completedFiles
+                            ?.let { it > 0 } ==
+                            true ->
                             onCompletedStop()
 
                         else ->
@@ -1115,8 +1292,11 @@ private fun ActiveSessionScreen(
             ) {
                 Text(
                     if (
-                        session.status ==
-                        TransferStatus.COMPLETED
+                        progress == null &&
+                        operationSummary
+                            ?.completedFiles
+                            ?.let { it > 0 } ==
+                        true
                     ) {
                         tr("done")
                     } else {
@@ -1862,7 +2042,6 @@ private fun SessionStatusChip(
             TransferStatus.WAITING -> tr("status_waiting")
             TransferStatus.CONNECTED -> tr("status_connected")
             TransferStatus.TRANSFERRING -> tr("status_transferring")
-            TransferStatus.COMPLETED -> tr("status_completed")
             TransferStatus.EXPIRED -> tr("status_expired")
             TransferStatus.STOPPED -> tr("status_stopped")
             TransferStatus.ERROR -> tr("status_error")
@@ -1873,15 +2052,6 @@ private fun SessionStatusChip(
         label = {
             Text(label)
         },
-        leadingIcon = {
-            if (status == TransferStatus.COMPLETED) {
-                AppIcon(
-                    R.drawable.ic_check,
-                    null,
-                    Modifier.size(18.dp)
-                )
-            }
-        }
     )
 }
 

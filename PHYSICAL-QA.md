@@ -1,6 +1,6 @@
-# Physical QA — Invia al PC
+# Physical QA — Send to PC
 
-Target di lavoro: v1.26 candidate preparation.
+Target di lavoro: v1.28.1 Truth & Reliability candidate.
 Stato iniziale: NOT VERIFIED.
 
 Questo documento non trasforma scenari fisici in PASS sulla base della CI.
@@ -28,7 +28,9 @@ PC/browser:
 - Firefox stable.
 
 Reti:
-- Wi-Fi privata con router;
+- telefono + PC sulla stessa Wi-Fi privata;
+- telefono su Wi-Fi + PC via Ethernet sulla stessa LAN;
+- Wi-Fi locale senza Internet mentre Android mantiene un'altra default network;
 - hotspot mobile del PC con telefono client;
 - rete guest/client isolation per verificare recovery esplicita;
 - VPN attiva per verificare recovery esplicita.
@@ -76,6 +78,9 @@ Verdetto separato:
 - pause/resume;
 - cancel;
 - resume stesso file;
+- retry ultimo chunk senza doppia history/summary;
+- record resumable completed con file cancellato -> invalidazione metadata e nuovo upload;
+- velocità PC -> telefono non ferma a 0 B/s;
 - hash mismatch;
 - offset mismatch;
 - file duplicato;
@@ -92,6 +97,7 @@ Verdetto separato:
 - kill service/process osservato;
 - notifica FGS;
 - session expiry;
+- batch multi-file: il primo file completato non termina semanticamente la sessione;
 - wake lock durante file grande.
 
 ## Security smoke

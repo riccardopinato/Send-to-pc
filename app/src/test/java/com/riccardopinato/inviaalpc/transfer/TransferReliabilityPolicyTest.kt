@@ -119,6 +119,27 @@ class TransferReliabilityPolicyTest {
     }
 
     @Test
+    fun uploadSpeedUsesElapsedChunkTime() {
+        assertTrue(
+            TransferReliabilityPolicy
+                .bytesPerSecond(
+                    transferredBytes =
+                        4L * 1024L * 1024L,
+                    elapsedMillis = 1_000L
+                ) ==
+                4L * 1024L * 1024L
+        )
+
+        assertTrue(
+            TransferReliabilityPolicy
+                .bytesPerSecond(
+                    transferredBytes = 0L,
+                    elapsedMillis = 1_000L
+                ) == 0L
+        )
+    }
+
+    @Test
     fun storageCapacityHonorsHeadroom() {
         val incoming = 1_000L
         val headroom = 100L
