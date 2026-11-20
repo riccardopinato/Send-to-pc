@@ -1,0 +1,108 @@
+name: Send-to-PC — Python Factory QA consumer
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/src/test/java/com/riccardopinato/inviaalpc/transfer/FactoryPythonTransferFixtureTest.kt'
+      - '.github/workflows/factory-python-qa-consumer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-fixture-transfer-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Exact app head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Pinned merged App Factory Core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: riccardopinato/App-Factory-Core
+          ref: cac009697970490e45f9aaa9e7e7634016607273
+          path: .factory-core
+          persist-credentials: false
+
+      - name: Generate immutable fixture, validate then expose transfer TSV
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export FACTORY_FIXTURE_ROOT="$RUNNER_TEMP/sendpc-factory-qa"
+          echo "FACTORY_FIXTURE_ROOT=$FACTORY_FIXTURE_ROOT" >> "$GITHUB_ENV"
+          python3 .factory-core/reference_engines/performance_qa/factory_performance_qa.py fixture \
+            --output "$FACTORY_FIXTURE_ROOT" --files 512 --duplicate-pairs 8 --seed 19
+          python3 .factory-core/reference_engines/performance_qa/factory_performance_qa.py verify \
+            --input "$FACTORY_FIXTURE_ROOT"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          root = Path(os.environ["FACTORY_FIXTURE_ROOT"])
+          rows = json.loads((root / "manifest.json").read_text(encoding="utf-8"))["records"]
+          assert len(rows) == 512
+          (root / "manifest.tsv").write_text(
+              "".join(f"{r['name']}\t{r['size']}\t{r['sha256']}\n" for r in rows),
+              encoding="utf-8",
+          )
+          PY
+
+      - name: JDK 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd
+
+      - name: Install Android 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+        with:
+          cache-provider: basic
+
+      - name: JVM must verify synthetic transfer records
+        run: |
+          ./gradlew :app:testDebugUnitTest \
+            --tests 'com.riccardopinato.inviaalpc.transfer.FactoryPythonTransferFixtureTest' \
+            --rerun-tasks --stacktrace
+
+      - name: Fail closed unless one real JVM test executed and passed
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          root = Path("app/build/test-results/testDebugUnitTest")
+          cases = []
+          for path in root.rglob("*.xml"):
+              tree = ET.parse(path)
+              for case in tree.iter("testcase"):
+                  if "FactoryPythonTransferFixtureTest" in case.attrib.get("classname", ""):
+                      cases.append(case)
+          if len(cases) != 1:
+              raise SystemExit(f"FAIL: expected 1 transfer consumer testcase, got {len(cases)}")
+          if any(case.find(tag) is not None for case in cases for tag in ("failure", "error", "skipped")):
+              raise SystemExit("FAIL: consumer test failed or was skipped")
+          print("PASS: pinned Python fixture verified by Send-to-PC transfer policy and SHA-256")
+          PY
+
+      - name: Evidence boundary
+        if: always()
+        run: |
+          {
+            echo "## Factory Python second consumer — Send-to-PC"
+            echo "- App source: ${{ github.event.pull_request.head.sha || github.sha }}"
+            echo "- Core source: cac009697970490e45f9aaa9e7e7634016607273"
+            echo "- Only synthetic files: 512, including eight deterministic duplicate pairs"
+            echo "- JVM checks transfer chunk bounds, safe filename and SHA-256. Does NOT certify native receiver/MediaStore, Wi-Fi/TLS performance, or device release."
+          } >> "$GITHUB_STEP_SUMMARY"
